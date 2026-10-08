@@ -123,7 +123,7 @@ final class TradeDesk
         try {
             return DB::connection('pgsql_trader')->selectOne($sql, $bindings);
         } catch (QueryException $e) {
-            throw new RuntimeException($this->explain($e), previous: $e);
+            throw new RuntimeException($this->explain($e, $message), previous: $e);
         }
     }
 
@@ -133,7 +133,7 @@ final class TradeDesk
      * The alternative is a raw Postgres message on a phone screen, which tells a trader nothing about
      * what to do next and tells whoever reads the logs more than they need to know.
      */
-    private function explain(QueryException $e): string
+    private function explain(QueryException $e, string $fallback): string
     {
         $message = $e->getMessage();
 
@@ -148,7 +148,12 @@ final class TradeDesk
             str_contains($message, 'insufficient funds') => 'A balance involved in this trade cannot cover the move.',
             str_contains($message, 'exceeds cap') => 'That amount is above the limit for this kind of trade.',
             str_contains($message, 'no crypto leg') => 'This trade has no crypto leg, so there is nothing to escrow.',
-            default => $this->message,
+            // $fallback is the caller's own wording. The first version read $this->message here, which
+            // is not a property of this class, so every UNMAPPED database error -- attestPaid reaching
+            // a permission check, most immediately -- died with "Undefined property: TradeDesk::$message"
+            // instead of reaching the trader. The generic branch is the one that matters most, because
+            // it is the branch taken by whatever has not been thought about yet.
+            default => $fallback,
         };
     }
 }

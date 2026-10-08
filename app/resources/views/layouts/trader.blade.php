@@ -79,6 +79,16 @@
         .rate { font-size: 32px; font-weight: 600; letter-spacing: -0.02em; margin: 4px 0 2px; }
         .pair-line { font-size: 15px; }
         .note { font-size: 14px; color: var(--ink-soft); margin-top: 8px; }
+        /* A confirmation after a write. Plum, because the claim is pending rather than settled -- the
+           money has not moved and green would say it had. Mixed from tokens that exist: the first
+           version named --plum-100 and --plum-700, which were never defined, so the notice rendered with
+           no background and inherited text. The design linter did not catch it -- it checks hex values
+           and cannot see that a var() points at nothing. */
+        .notice {
+            margin-top: 12px; padding: 10px 12px; border-radius: 10px;
+            background: color-mix(in oklch, var(--plum-300) 14%, var(--bone));
+            color: var(--plum-900); font-size: 15px;
+        }
         .card p { font-size: 15px; color: var(--ink-mid); margin-top: 8px; }
 
         .badge {

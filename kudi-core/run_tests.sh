@@ -461,6 +461,19 @@ expect_eq "trader can open a trade against us" "$(sql "select state from trade w
 expect_eq "trader can claim their own payment" \
   "$(astrader "select transition_trade($TRD,'open','paid_claimed','tc1','tr1'); select state from trade where id=$TRD;" | tail -1)" "paid_claimed"
 
+# The idempotency key is derived from the trade and the step, so it is NOT a secret: anybody who knows
+# the trade id can produce tc1. If the replay check ran before authorisation, a stranger replaying that
+# key got a silent SUCCESS -- which reads to the caller as "your claim was accepted" while nothing was
+# recorded in their name. The key decides whether a move applies twice, never who may make it.
+expect_eq "the claim was recorded exactly once" \
+  "$(sql "select count(*) from trade_event where trade_id=$TRD and to_state='paid_claimed';")" "1"
+expect_fail "a stranger cannot replay somebody else's claim key" \
+  "$(astrader "select transition_trade($TRD,'open','paid_claimed','tc1','mallory@example.com');")" "may not"
+expect_eq "and the stranger added no event" \
+  "$(sql "select count(*) from trade_event where trade_id=$TRD;")" "2"
+expect_eq "and the claim still belongs to the trader who paid" \
+  "$(sql "select actor from trade_event where trade_id=$TRD and to_state='paid_claimed';")" "tr1"
+
 # Each of these asserts something the trader role must NOT be able to do. Using astrader rather than
 # asops matters: asops would pass for the wrong reason, because ops cannot set a rate either. Only
 # astrader proves the grant did not leak to the wrong account.

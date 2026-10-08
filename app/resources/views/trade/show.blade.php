@@ -82,7 +82,36 @@
         </ol>
     </div>
 
-    {{-- The "I have paid" button belongs to Task 6. Nothing here can settle a trade yet, and the
-         screen says so rather than offering a control that does nothing. --}}
-    <p class="note">Nothing on this page can release money. Sending proof arrives with the next step.</p>
+    {{--
+        The claim button appears only while the trade is open. Showing it afterwards would invite a
+        trader to press a control that can only fail, and a button that cannot work is worse than no
+        button -- especially on a metered connection, where the round trip costs real money.
+
+        "I have paid" rather than "Confirm": the trader is stating a fact about the world, not approving
+        ours. Attestation is deliberately absent from this screen. The only way to learn that the money
+        arrived is somebody else saying so.
+    --}}
+    @if ($trade->state === 'open')
+        <form method="post" action="{{ route('trade.claim', $trade->id) }}">
+            @csrf
+            <button type="submit">I have sent the cedi</button>
+        </form>
+        <p class="note">
+            Tap this once you have sent the cedi. If your connection drops, tap again &mdash; it is safe,
+            and we will only ever count it once.
+        </p>
+    @else
+        <p class="note">
+            @if ($trade->state === 'paid_claimed')
+                We have your claim and are checking for the payment. You do not need to do anything.
+            @else
+                This trade is {{ str_replace('_', ' ', $trade->state) }}. The button is gone because there
+                is nothing left for you to press.
+            @endif
+        </p>
+    @endif
+
+    @if (session('notice'))
+        <p class="notice" role="status">{{ session('notice') }}</p>
+    @endif
 @endsection

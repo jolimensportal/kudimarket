@@ -97,7 +97,6 @@ declare
   da text;
   v_seq int; v_prev bytea; v_ev bytea; v_now timestamptz := clock_timestamp();
 begin
-  if exists (select 1 from trade_event where idem_key = p_idem) then return; end if;    -- replay
   if p_actor is null or p_actor = '' then raise exception 'actor required'; end if;
 
 
@@ -129,6 +128,20 @@ begin
       raise exception 'actor % may not do % -> % on trade %', p_actor, p_from, p_to, p_trade;
     end if;
   end if;
+
+
+  -- Idempotent replay. Deliberately AFTER authorisation, not before it.
+  --
+  -- The application derives the key from the trade and the step, not from the caller, so the buyer's
+  -- claim and anybody else's claim for that same trade produce the SAME key. That is deliberate --
+  -- it is what makes a double tap settle once without the client cooperating -- but it means the key
+  -- is not a secret and cannot be treated as proof of who sent the request.
+  --
+  -- With this check above the authorisation block, an unauthorised caller who reused a key that
+  -- already existed got a silent success instead of a refusal: their claim was swallowed as a replay
+  -- and never named in the record. Silence there reads as "your claim was accepted". The key decides
+  -- only whether a move is applied twice, never whether the caller may make it.
+  if exists (select 1 from trade_event where idem_key = p_idem) then return; end if;
 
 
   -- fault is only meaningful on vendor_vendor resolutions

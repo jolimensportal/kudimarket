@@ -18,5 +18,7 @@ use Illuminate\Support\Facades\Route;
  */
 Route::middleware('auth:trader')->prefix('trade')->name('trade.')->group(function (): void {
     Route::get('/board', BoardController::class)->name('board');
+
     Route::get('/{trade}', [TradeController::class, 'show'])->whereNumber('trade')->name('show');
+    Route::post('/{trade}/claim', [TradeController::class, 'claim'])->whereNumber('trade')->name('claim');
 });
