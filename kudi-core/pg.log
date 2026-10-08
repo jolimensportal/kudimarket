@@ -10637,3 +10637,22 @@
 2026-10-08 02:55:35.847 GMT [34371] LOG:  checkpoint complete: wrote 10 buffers (0.1%), wrote 1 SLRU buffers; 0 WAL file(s) added, 0 removed, 0 recycled; write=1.228 s, sync=0.005 s, total=1.261 s; sync files=8, longest=0.002 s, average=0.001 s; distance=59 kB, estimate=4991 kB; lsn=0/940F670, redo lsn=0/940F618
 2026-10-08 03:10:34.879 GMT [34371] LOG:  checkpoint starting: time
 2026-10-08 03:10:35.243 GMT [34371] LOG:  checkpoint complete: wrote 2 buffers (0.0%), wrote 0 SLRU buffers; 0 WAL file(s) added, 0 removed, 0 recycled; write=0.214 s, sync=0.002 s, total=0.365 s; sync files=2, longest=0.002 s, average=0.001 s; distance=13 kB, estimate=4494 kB; lsn=0/9412CB8, redo lsn=0/9412C60
+2026-10-08 03:24:26.776 GMT [2449] FATAL:  database ":memory:" does not exist
+2026-10-08 03:24:27.568 GMT [2452] FATAL:  database ":memory:" does not exist
+2026-10-08 03:24:27.828 GMT [2454] FATAL:  database ":memory:" does not exist
+2026-10-08 03:28:00.964 GMT [2960] ERROR:  permission denied for table account
+2026-10-08 03:28:00.964 GMT [2960] STATEMENT:  update account set balance = 999999 where id = (select min(id) from account)
+2026-10-08 03:28:01.524 GMT [2962] ERROR:  permission denied for table posting
+2026-10-08 03:28:01.524 GMT [2962] STATEMENT:  insert into posting(tx_id, account_id, asset, amount) values (1, (select min(id) from account), 'GHS', 1)
+2026-10-08 03:29:30.423 GMT [34371] LOG:  checkpoint starting: immediate force wait
+2026-10-08 03:29:30.556 GMT [34371] LOG:  checkpoint complete: wrote 15 buffers (0.1%), wrote 1 SLRU buffers; 0 WAL file(s) added, 0 removed, 0 recycled; write=0.027 s, sync=0.056 s, total=0.133 s; sync files=16, longest=0.024 s, average=0.004 s; distance=5233 kB, estimate=5233 kB; lsn=0/992F228, redo lsn=0/992F1D0
+2026-10-08 03:29:38.151 GMT [3244] ERROR:  permission denied for table account
+2026-10-08 03:29:38.151 GMT [3244] STATEMENT:  update account set balance = 999999 where id = (select min(id) from account)
+2026-10-08 03:29:38.424 GMT [3246] ERROR:  permission denied for table posting
+2026-10-08 03:29:38.424 GMT [3246] STATEMENT:  insert into posting(tx_id, account_id, asset, amount) values (1, (select min(id) from account), 'GHS', 1)
+2026-10-08 03:32:08.579 GMT [34371] LOG:  checkpoint starting: immediate force wait
+2026-10-08 03:32:08.595 GMT [34371] LOG:  checkpoint complete: wrote 11 buffers (0.1%), wrote 1 SLRU buffers; 0 WAL file(s) added, 0 removed, 0 recycled; write=0.004 s, sync=0.008 s, total=0.017 s; sync files=9, longest=0.005 s, average=0.001 s; distance=5265 kB, estimate=5265 kB; lsn=0/9E539D0, redo lsn=0/9E53978
+2026-10-08 03:32:14.557 GMT [3763] ERROR:  permission denied for table account
+2026-10-08 03:32:14.557 GMT [3763] STATEMENT:  update account set balance = 999999 where id = (select min(id) from account)
+2026-10-08 03:32:15.058 GMT [3765] ERROR:  permission denied for table posting
+2026-10-08 03:32:15.058 GMT [3765] STATEMENT:  insert into posting(tx_id, account_id, asset, amount) values (1, (select min(id) from account), 'GHS', 1)

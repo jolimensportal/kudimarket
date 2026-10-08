@@ -23,9 +23,26 @@
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="BROADCAST_CONNECTION" value="null"/>
         <env name="CACHE_STORE" value="array"/>
-        <env name="DB_CONNECTION" value="sqlite"/>
-        <env name="DB_DATABASE" value=":memory:"/>
-        <env name="DB_URL" value=""/>
+
+        <!--
+            Postgres, never sqlite. The default Laravel configuration points at an in-memory SQLite
+            file, where none of our stored procedures, roles or triggers exist: every test would pass
+            while proving nothing about money. Tests build kudi_test from kudi-core/ in
+            BuildsLedgerDatabase, so they run against the real schema and the real role limits.
+        -->
+        <env name="DB_CONNECTION" value="pgsql"/>
+        <env name="DB_SOCKET" value="/tmp"/>
+        <env name="DB_PORT" value="5433"/>
+        <env name="DB_DATABASE" value="kudi_test"/>
+        <env name="DB_USERNAME" value="kudi_app_login"/>
+        <env name="DB_PASSWORD" value=""/>
+        <env name="DB_OPS_SOCKET" value="/tmp"/>
+        <env name="DB_OPS_PORT" value="5433"/>
+        <env name="DB_OPS_DATABASE" value="kudi_test"/>
+        <env name="DB_OPS_USERNAME" value="kudi_ops_login"/>
+        <env name="DB_OPS_PASSWORD" value=""/>
+
+        <!-- No DB_URL. It overrides every individual setting above and silently wins. -->
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
