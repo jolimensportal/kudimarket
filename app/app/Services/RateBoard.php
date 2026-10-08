@@ -88,6 +88,25 @@ final class RateBoard
     }
 
     /**
+     * How many decimal places a currency carries, from the database rather than from PHP.
+     *
+     * Naira and cedi are two, USDT is six. Getting this wrong by hand is how ₦2,000.00 becomes
+     * ₦200,000.00, so the number is asked of the same table the ledger stores it in.
+     */
+    public static function decimalsFor(string $asset): int
+    {
+        $row = DB::connection('pgsql_trader')->selectOne('select decimals from asset where code = ?', [$asset]);
+
+        if ($row === null) {
+            // An unknown currency is a programming error, not a display problem. Guessing 2 here would
+            // quietly render every amount of an unlisted currency wrong by a factor of a hundred.
+            throw new \RuntimeException("unknown asset {$asset}: not in the asset table");
+        }
+
+        return (int) $row->decimals;
+    }
+
+    /**
      * A rate as a person should read it.
      *
      * $minPlaces is a floor, not a fixed width. 148.2 and 148.20 are the same price and a board that
