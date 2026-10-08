@@ -27,7 +27,11 @@ return new class extends Migration
 
     public function up(): void
     {
-        foreach (['001_core.sql', '002_trade_types.sql', '003_fiat_leg.sql', '004_state_chain.sql', '005_creation_anchor.sql', '006_rate_card.sql', '007_trader_role.sql'] as $file) {
+        // 008 is in this list now. It was not, and that is not a cosmetic omission: 008 creates the
+        // trader table, so a database built by `php artisan migrate` had no traders and no way to sign
+        // in as one. The table only existed on this machine because the file had been applied by hand
+        // earlier, which is exactly the kind of gap a fresh checkout turns into a silent failure.
+        foreach (['001_core.sql', '002_trade_types.sql', '003_fiat_leg.sql', '004_state_chain.sql', '005_creation_anchor.sql', '006_rate_card.sql', '007_trader_role.sql', '008_traders.sql'] as $file) {
             DB::unprepared($this->sql($file));
         }
     }

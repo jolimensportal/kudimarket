@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Support;
 
+use Illuminate\Support\Facades\Artisan;
 use RuntimeException;
 
 /**
@@ -109,7 +110,67 @@ trait BuildsLedgerDatabase
         // produces "permission denied for sequence", which is a confusing way to learn nothing.
         $this->psql($admin, $database, 'grant usage, select on sequence trader_id_seq to kudi_app, kudi_ops');
 
+        $this->buildApplicationTables($admin, $database);
+
         self::$built = true;
+    }
+
+    /**
+     * Give the scratch database the APPLICATION tables too, not just the financial core.
+     *
+     * Until this existed, kudi_test held the ledger and nothing else: no users, no sessions, no Filament
+     * tables. Every trader test was unaffected because none of them needed them -- and the operations
+     * console therefore could not be tested at all, which is how two fatal errors shipped in the trades
+     * page while 76 tests passed. The console is half the product; the harness has to be able to hold it.
+     *
+     * Runs artisan migrate, with the core-loading migration recorded as already applied. That migration
+     * loads the same kudi-core SQL this trait just loaded by hand, and running it again fails on objects
+     * that already exist -- so it is marked rather than executed, and everything after it runs normally.
+     */
+    private function buildApplicationTables(array $admin, string $database): void
+    {
+        $this->psql($admin, $database, 'create table if not exists migrations (id serial primary key, migration varchar(255) not null, batch integer not null)');
+        $this->psql($admin, $database, 'create unique index if not exists migrations_migration_unique on migrations(migration)');
+
+        // ONLY the core loader is marked as applied. Marking the users, cache and jobs migrations too --
+        // which is what this did first -- means those tables are never created and every console test
+        // dies with "relation users does not exist". They are ordinary migrations and must run.
+        foreach ([
+            '2026_01_01_000100_create_kudi_core',
+        ] as $applied) {
+            $this->psql(
+                $admin,
+                $database,
+                sprintf(
+                    "insert into migrations (migration, batch) values ('%s', 0) on conflict (migration) do nothing",
+                    $applied
+                )
+            );
+        }
+
+        // --database=pgsql_admin, on purpose. The default connection is kudi_app_login, which correctly
+        // has no privilege on the migrations table -- the application must not be able to alter its own
+        // schema. Creating tables is an operator action, so the migrator runs as the operator. Without
+        // this it dies with "permission denied for table migrations", which reads like a permissions
+        // problem rather than the harness choosing the wrong identity.
+        $exit = Artisan::call('migrate', ['--force' => true, '--database' => 'pgsql_admin']);
+
+        if ($exit !== 0) {
+            throw new RuntimeException(
+                'migrate failed against the scratch database: '.Artisan::output()
+            );
+        }
+
+        // Belt and braces: a console test that cannot find users would fail for a reason that reads like
+        // an authentication bug, which is a miserable thing to debug at 2am.
+        foreach (['users', 'sessions', 'cache'] as $table) {
+            if (trim($this->scalar($admin, $database, sprintf(
+                "select count(*) from information_schema.tables where table_schema='public' and table_name='%s'",
+                $table
+            ))) !== '1') {
+                throw new RuntimeException("expected table {$table} in the scratch database and it is not there");
+            }
+        }
     }
 
     /**
@@ -131,6 +192,34 @@ trait BuildsLedgerDatabase
         exec($command, $output, $status);
 
         return $status === 0 && trim(implode('', $output)) === '1';
+    }
+
+    /**
+     * psql() for a query whose answer matters -- psql() itself discards stdout, which is right for DDL.
+     *
+     * Named scalar() rather than query() because TestCase already declares a public query(), and a trait
+     * cannot narrow an inherited method's visibility: naming it query() is a fatal at class load.
+     */
+    private function scalar(array $connection, string $database, string $sql): string
+    {
+        $command = sprintf(
+            'psql -X -q -t -A -h %s -p %s -U %s -d %s -c %s 2>&1',
+            escapeshellarg($connection['host'] ?: '/tmp'),
+            escapeshellarg((string) ($connection['port'] ?: 5433)),
+            escapeshellarg($connection['username']),
+            escapeshellarg($database),
+            escapeshellarg($sql)
+        );
+
+        $output = [];
+        $status = 0;
+        exec($command, $output, $status);
+
+        if ($status !== 0) {
+            throw new RuntimeException("psql query failed against {$database}: ".implode("\n", $output));
+        }
+
+        return implode('', $output);
     }
 
     private function psql(array $connection, string $database, string $sql): void

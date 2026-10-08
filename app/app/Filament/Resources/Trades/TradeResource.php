@@ -72,14 +72,51 @@ class TradeResource extends Resource
             ->defaultSort('id', 'desc')
             ->recordActions([
                 ViewAction::make(),
+                // Attestation. This action was missing entirely, and its absence stopped every trade
+                // dead: the Release button below is only visible at paid_attested, and before this there
+                // was nothing in the console that could reach paid_attested. A trade could be opened,
+                // paid and claimed, and then nothing could ever happen to it -- the buyer's money held
+                // with no way out. It is deliberately not on the trader side: confirming that somebody
+                // else's money arrived is the one thing a payer may never do.
+                Action::make('attest')
+                    // The icon name was read off Heroicon's actual constant list rather than guessed.
+                    // OutlinedClipboardCheck does not exist in this Filament version, and a wrong constant
+                    // is a fatal at table-build time: the whole ops trades page 500s before it renders.
+                    ->label('Confirm the payment arrived')
+                    ->icon(Heroicon::OutlinedClipboardDocumentCheck)
+                    ->color('primary')
+                    ->requiresConfirmation()
+                    ->modalHeading('Confirm this payment arrived?')
+                    ->modalDescription('You are confirming that money you can see has reached KudiMarket. '
+                        .'You are not the payer, and this is recorded against your staff identity. '
+                        .'Once confirmed, the buyer still waits out the claim window before it is released.')
+                    ->visible(fn ($record) => $record->state === 'paid_claimed')
+                    ->action(function ($record, TradeLedger $ledger) {
+                        $ledger->attest((int) $record->id, static::operatorIdentity());
+                    }),
                 Action::make('release')
                     ->label('Release')
                     ->icon(Heroicon::OutlinedLockOpen)
                     ->color('success')
                     ->requiresConfirmation()
                     ->modalHeading('Release this trade?')
-                    ->modalDescription('The claim window must have elapsed. The release is recorded against your staff identity and cannot be undone.')
-                    ->visible(fn ($record) => $record->state === 'paid_attested')
+                    ->modalDescription('The release is recorded against your staff identity and cannot be undone.')
+                    // Shown but disabled, not hidden. The locked mockup asks for a Release button that
+                    // carries its unlock condition, and the brand constitution requires a locked control to
+                    // say why it is locked. Hidden is worse than disabled: an operator looking at a
+                    // paid_claimed trade could not tell whether the button was missing, broken, or
+                    // deliberately withheld.
+                    ->disabled(fn ($record) => $record->state !== 'paid_attested')
+                    // There is no disabledReason() on this Filament version; the reason travels as a
+                    // tooltip. Written onto a disabled control rather than hidden, because an operator
+                    // looking at a paid_claimed trade otherwise cannot tell whether Release is missing,
+                    // broken, or deliberately withheld.
+                    ->tooltip(fn ($record) => $record->state === 'paid_attested'
+                        ? 'Release the naira to the buyer. The claim window has elapsed.'
+                        : ($record->state === 'paid_claimed'
+                            ? 'Locked: the payment has not been confirmed yet. Use "Confirm the payment arrived" first.'
+                            : 'Locked: release only applies to a confirmed payment.'))
+                    ->visible(fn ($record) => in_array($record->state, ['open', 'escrowed', 'paid_claimed', 'paid_attested'], true))
                     ->action(function ($record, TradeLedger $ledger) {
                         $ledger->release((int) $record->id, static::operatorIdentity());
                     }),

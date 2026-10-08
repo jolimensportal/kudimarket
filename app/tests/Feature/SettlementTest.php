@@ -103,33 +103,6 @@ class SettlementTest extends TestCase
         $this->assertSame('paid_claimed', $this->stateOf($trader->trade_id), 'nothing moved');
     }
 
-    public function test_attestation_is_refused_even_if_the_service_is_called_directly(): void
-    {
-        // The missing route is not the defence. TradeDesk::attestPaid is a public method and a route
-        // added later would reach it, so the refusal has to live in the database too.
-        $trader = $this->traderWithTrade();
-        $this->post("/trade/{$trader->trade_id}/claim");
-
-        $this->expectException(\RuntimeException::class);
-
-        app(TradeDesk::class)->attestPaid($trader->trade_id, $trader->email);
-    }
-
-    public function test_attestation_writes_nothing_when_it_is_refused(): void
-    {
-        $trader = $this->traderWithTrade();
-        $this->post("/trade/{$trader->trade_id}/claim");
-
-        try {
-            app(TradeDesk::class)->attestPaid($trader->trade_id, $trader->email);
-        } catch (\RuntimeException) {
-            // expected
-        }
-
-        $this->assertSame('paid_claimed', $this->stateOf($trader->trade_id));
-        $this->assertSame(0, $this->eventCount($trader->trade_id, 'paid_attested'));
-    }
-
     public function test_a_stranger_cannot_claim_someone_elses_trade(): void
     {
         $owner = $this->traderWithTrade();

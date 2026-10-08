@@ -32,9 +32,27 @@ return new class extends Migration
             ));
             // Sequences too: an identity column needs its sequence granted separately, and forgetting
             // it produces "permission denied for sequence" rather than anything about money.
-            DB::unprepared(sprintf(
-                "grant usage, select on sequence %s_id_seq to kudi_app", $table
-            ));
+            //
+            // Asked of the catalog rather than assumed from the table name. The obvious version -- grant
+            // "<table>_id_seq" for each table -- fails on password_reset_tokens, whose primary key is a
+            // string and which therefore has no sequence at all. That made `php artisan migrate`
+            // impossible to complete on a fresh database; this migration had only ever been skipped over,
+            // because the database on this machine was built by hand before it existed.
+            $sequences = DB::select(
+                "select sequencename from pg_sequences where schemaname = 'public'"
+            );
+
+            foreach ($sequences as $sequence) {
+                $name = $sequence->sequencename;
+
+                // Only the sequences belonging to the application tables listed above. The ledger's own
+                // sequences stay with the roles kudi-core granted them to.
+                if (! str_contains($name, '_id_seq') || ! in_array(substr($name, 0, -7), $this->appTables, true)) {
+                    continue;
+                }
+
+                DB::unprepared(sprintf('grant usage, select on sequence %s to kudi_app', $name));
+            }
         }
     }
 

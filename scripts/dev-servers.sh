@@ -17,8 +17,8 @@ LOG_DIR="${LOG_DIR:-/tmp/kudi-servers}"
 mkdir -p "$LOG_DIR"
 
 stop() {
-  pkill -f "php -S 127.0.0.1:8100" 2>/dev/null || true
-  pkill -f "php -S 127.0.0.1:8101" 2>/dev/null || true
+  pkill -f "artisan serve --host=127.0.0.1 --port=8100" 2>/dev/null || true
+  pkill -f "artisan serve --host=127.0.0.1 --port=8101" 2>/dev/null || true
 
   # By port rather than by command line. An earlier mockup server was started with a different
   # argument order, so matching on "http.server 8778" missed it, the new one could not bind, and the
@@ -38,13 +38,26 @@ stop() {
 start() {
   cd "$APP_DIR"
 
+  # artisan serve, not "php -S ... public/index.php".
+  #
+  # Two mistakes here, both of which leave the operations console looking perfect and doing nothing.
+  # Passing public/index.php as the router sends EVERY request through Laravel, static files included, so
+  # each /js/... and /css/... request matched the panel's auth middleware and answered 302 to the login
+  # page -- delivered as HTML where the browser expected JavaScript. Laravel 13 also has no server.php, so
+  # the first attempt at fixing it failed to open the router at all.
+  #
+  # artisan serve is the supported path and serves files from public/ directly. The symptom of getting this
+  # wrong was a console that rendered perfectly with every action button inert, because
+  # filamentActionModals, filamentTable and filamentSchema were all undefined. No server-side test can see
+  # that, which is how it survived three rounds of tests. SESSION_COOKIE still differs per app so the trader
+  # and the console keep separate sessions.
   SESSION_COOKIE=kudi-trader-session \
-    nohup php -S 127.0.0.1:8101 -t public public/index.php \
+    nohup php artisan serve --host=127.0.0.1 --port=8101 \
     > "$LOG_DIR/trader.log" 2>&1 &
   disown || true
 
   SESSION_COOKIE=kudi-ops-session \
-    nohup php -S 127.0.0.1:8100 -t public public/index.php \
+    nohup php artisan serve --host=127.0.0.1 --port=8100 \
     > "$LOG_DIR/ops.log" 2>&1 &
   disown || true
 

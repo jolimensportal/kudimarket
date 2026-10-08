@@ -93,6 +93,30 @@ final class TradeLedger
     }
 
     /**
+     * Operations confirms the money actually arrived.
+     *
+     * This was missing, and its absence stopped every trade dead. The rules are paid_claimed ->
+     * paid_attested for the seller, and for a trade where KudiMarket is the seller that means operations
+     * and nobody else. The operations console's Release button is visible only at paid_attested -- so
+     * before this method existed, a trade could be opened, paid and claimed, and then nothing could ever
+     * happen to it. It would sit at paid_claimed holding the buyer's money with no way out.
+     *
+     * TradeDesk::attestPaid does the same thing through ops_transition, but it runs on the trader
+     * connection, and the trader role is not granted ops_transition -- correctly, since a trader must
+     * not confirm their own payment. Attestation is an operations action and belongs here, on the ops
+     * connection, beside resolve() and release().
+     */
+    public function attest(int $tradeId, string $operator): void
+    {
+        $operator = $this->requireOperator($operator);
+
+        $this->call(fn () => DB::connection('pgsql_ops')->selectOne(
+            'select ops_transition(?, ?, ?, ?, ?) as ok',
+            [$tradeId, 'paid_claimed', 'paid_attested', $this->idempotencyKey($tradeId, 'paid_claimed', 'paid_attested', null), $operator]
+        ));
+    }
+
+    /**
      * Releases a trade whose claim window has elapsed.
      *
      * paid_attested -> released is a system step: no counterparty may take the buyer's money out of

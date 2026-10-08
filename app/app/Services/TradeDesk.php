@@ -80,16 +80,6 @@ final class TradeDesk
         );
     }
 
-    /** Operations confirms the money arrived. Never the payer. */
-    public function attestPaid(int $tradeId, string $staffEmail): void
-    {
-        $this->call(
-            'select ops_transition(?, ?, ?, ?, ?) as ok',
-            [$tradeId, 'paid_claimed', 'paid_attested', $this->key($tradeId, 'attest'), $staffEmail],
-            'The ledger refused that attestation.'
-        );
-    }
-
     /** The counterparty says something is wrong. Open, not adjudicated. */
     public function raiseDispute(int $tradeId, string $actor, string $reason): void
     {

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use Illuminate\Database\QueryException;
+use Tests\InterpretsPostgresBooleans;
 use Tests\TestCase;
 
 /**
@@ -16,12 +17,14 @@ use Tests\TestCase;
  */
 class LedgerConnectionTest extends TestCase
 {
+    use InterpretsPostgresBooleans;
+
     public function test_the_ledger_functions_exist_in_the_test_database(): void
     {
         // The pdo_pgsql driver returns Postgres booleans as '1' or '', not as 't'. Normalise here
         // rather than in every assertion, and say so, because a test that expects 't' from this driver
         // fails for a reason that has nothing to do with the ledger.
-        $this->assertTrue($this->ledgerSaysTrue($this->scalar('select verify_chain()')));
+        $this->assertTrue($this->postgresTrue($this->scalar('select verify_chain()')));
     }
 
     public function test_the_app_role_cannot_write_a_balance_directly(): void
@@ -53,12 +56,6 @@ class LedgerConnectionTest extends TestCase
         $values = array_values((array) $row);
 
         return (string) ($values[0] ?? '');
-    }
-
-    /** A Postgres boolean as pdo_pgsql hands it over. */
-    private function ledgerSaysTrue(string $value): bool
-    {
-        return in_array($value, ['t', 'true', '1'], true);
     }
 
     /** Runs SQL as the app role and returns the error text, or '' if it unexpectedly succeeded. */

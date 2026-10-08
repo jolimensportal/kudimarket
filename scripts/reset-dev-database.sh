@@ -31,26 +31,44 @@ psql -q -d postgres -c "drop database if exists ${DB};"
 psql -q -d postgres -c "create database ${DB};"
 psql -q -d postgres -c "grant connect on database ${DB} to kudi_app_login, kudi_ops_login, kudi_pricing_login, kudi_trader_login"
 
-say "loading the schema, 001 through 008"
-for f in "$ROOT"/kudi-core/00*.sql; do
-    printf '   %s\n' "$(basename "$f")"
-    psql -X -q -v ON_ERROR_STOP=1 -d "$DB" -f "$f" >/dev/null
-done
+say "Laravel migrations"
 
-say "assets and grants"
-psql -q -d "$DB" -c "insert into asset values ('GHS',2),('NGN',2),('USDT',6)"
-psql -q -d "$DB" -c "grant select, insert, update on trader to kudi_app, kudi_ops"
-psql -q -d "$DB" -c "grant usage, select on sequence trader_id_seq to kudi_app, kudi_ops"
+cd "$ROOT/app"
+# kudi-core is the FINANCIAL schema. The application has its own tables -- users, sessions, cache, the
+# Filament tables -- and those come from Laravel migrations. Loading kudi-core alone leaves the ops console
+# with no users table at all, which is exactly what happened: the script rebuilt the database from the core
+# files and silently threw away every application table with it.
+#
+# Migrations run AFTER kudi-core because the grant migration grants to the roles that the core files create.
+# As the schema owner, not as the application. The app connects as kudi_app_login, which is right: it has
+# no CREATE on schema public, so the application cannot alter its own schema. Creating tables is an
+# operator action. DB_USERNAME is overridden for this one command only.
+DB_USERNAME="${PGUSER}" DB_PASSWORD="${PGPASSWORD:-}" php artisan migrate --force --no-interaction
 
 say "seeding traders and trades through the application"
-cd "$ROOT/app"
 php artisan tinker --execute '
 use App\Models\Trader;
+use App\Models\User;
 use App\Services\TradeDesk;
 use App\Services\TradeLedger;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+
+// The operations staff account for the console. NOT optional: attestation and release both happen in the
+// console, so a database without an ops user cannot complete a single trade, and the console just bounces
+// you to a login that cannot succeed. It was missing here the first time this script ran, and the symptom
+// was an ops login that silently did nothing.
+// (No apostrophes in this comment: the whole block sits inside a bash single-quoted string, and one of
+// them ends the string early. That happened, and it produced "line 57: //: is a directory".)
+// Assigned one attribute at a time, not through an array. The User model fillable list is
+// name/email/password only, so email_verified_at passed in a mass-assignment array is dropped SILENTLY --
+// which is how every staff account here was created unverified and could not reach the console.
+$ops = \App\Models\User::firstOrNew(["email" => "ops@kudimarket.com"]);
+$ops->name = "KudiMarket Operations";
+$ops->password = Hash::make("kudi-dev-only");
+$ops->email_verified_at = now();
+$ops->save();
 
 // The demo traders. Same password for all of them so a tester can swap between accounts without
 // signing out, and the password is a fixed dev-only string rather than anything a human chose.
