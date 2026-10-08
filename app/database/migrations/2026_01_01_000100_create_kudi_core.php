@@ -27,7 +27,7 @@ return new class extends Migration
 
     public function up(): void
     {
-        foreach (['001_core.sql', '002_trade_types.sql', '003_fiat_leg.sql', '004_state_chain.sql', '005_creation_anchor.sql', '006_rate_card.sql'] as $file) {
+        foreach (['001_core.sql', '002_trade_types.sql', '003_fiat_leg.sql', '004_state_chain.sql', '005_creation_anchor.sql', '006_rate_card.sql', '007_trader_role.sql'] as $file) {
             DB::unprepared($this->sql($file));
         }
     }

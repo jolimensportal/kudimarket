@@ -17,7 +17,9 @@ return new class extends Migration
         // kudi_pricing joined with the rate card in 006. It publishes our own price and nothing
         // else: it cannot settle a trade, resolve a dispute, mint a deposit, or read a balance, so
         // whoever can reprice the book is never whoever judges it.
-        foreach (['kudi_app', 'kudi_ops', 'kudi_chain', 'kudi_pricing'] as $role) {
+        // kudi_trader joined with 007. It opens trades, claims, disputes and reads the board. It
+        // cannot attest its own payment, resolve a dispute, or write a ledger row.
+        foreach (['kudi_app', 'kudi_ops', 'kudi_chain', 'kudi_pricing', 'kudi_trader'] as $role) {
             DB::unprepared(sprintf(
                 "do \$\$ begin if not exists (select from pg_roles where rolname='%s_login') then create role %s_login login; end if; end \$\$;",
                 $role,
@@ -30,7 +32,7 @@ return new class extends Migration
 
     public function down(): void
     {
-        foreach (['kudi_app_login', 'kudi_ops_login', 'kudi_chain_login', 'kudi_pricing_login'] as $role) {
+        foreach (['kudi_app_login', 'kudi_ops_login', 'kudi_chain_login', 'kudi_pricing_login', 'kudi_trader_login'] as $role) {
             DB::unprepared(sprintf('drop role if exists %s;', $role));
         }
     }

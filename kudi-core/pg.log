@@ -10656,3 +10656,1206 @@
 2026-10-08 03:32:14.557 GMT [3763] STATEMENT:  update account set balance = 999999 where id = (select min(id) from account)
 2026-10-08 03:32:15.058 GMT [3765] ERROR:  permission denied for table posting
 2026-10-08 03:32:15.058 GMT [3765] STATEMENT:  insert into posting(tx_id, account_id, asset, amount) values (1, (select min(id) from account), 'GHS', 1)
+2026-10-08 03:36:10.002 GMT [34371] LOG:  checkpoint starting: immediate force wait
+2026-10-08 03:36:10.033 GMT [34371] LOG:  checkpoint complete: wrote 7 buffers (0.0%), wrote 1 SLRU buffers; 0 WAL file(s) added, 0 removed, 1 recycled; write=0.012 s, sync=0.002 s, total=0.031 s; sync files=7, longest=0.001 s, average=0.001 s; distance=5232 kB, estimate=5262 kB; lsn=0/A36FC80, redo lsn=0/A36FC28
+2026-10-08 03:36:21.399 GMT [4392] ERROR:  unbalanced transaction 1
+2026-10-08 03:36:21.399 GMT [4392] CONTEXT:  PL/pgSQL function posting_balanced() line 4 at RAISE
+2026-10-08 03:36:21.399 GMT [4392] STATEMENT:  select post_tx('t-unbal','x',null,jsonb_build_array(jsonb_build_object('account',1,'asset','USDT','amount',5),jsonb_build_object('account',2,'asset','USDT','amount',4)));
+2026-10-08 03:36:21.735 GMT [4398] ERROR:  insufficient funds on account 1
+2026-10-08 03:36:21.735 GMT [4398] CONTEXT:  PL/pgSQL function posting_apply() line 8 at RAISE
+	SQL statement "insert into posting(tx_id, account_id, asset, amount)
+	         values (v_id, (e->>'account')::bigint, (e->>'asset'), (e->>'amount')::numeric(78,0))"
+	PL/pgSQL function post_tx(text,text,bigint,jsonb,bytea) line 33 at SQL statement
+2026-10-08 03:36:21.735 GMT [4398] STATEMENT:  select post_tx('t-over','x',null,jsonb_build_array(jsonb_build_object('account',1,'asset','USDT','amount',-5),jsonb_build_object('account',2,'asset','USDT','amount',5)));
+2026-10-08 03:36:22.778 GMT [4418] ERROR:  UPDATE on posting is not allowed (append-only)
+2026-10-08 03:36:22.778 GMT [4418] CONTEXT:  PL/pgSQL function forbid_mutation() line 3 at RAISE
+2026-10-08 03:36:22.778 GMT [4418] STATEMENT:  update posting set amount = 1;
+2026-10-08 03:36:23.003 GMT [4423] ERROR:  DELETE on ledger_tx is not allowed (append-only)
+2026-10-08 03:36:23.003 GMT [4423] CONTEXT:  PL/pgSQL function forbid_mutation() line 3 at RAISE
+2026-10-08 03:36:23.003 GMT [4423] STATEMENT:  delete from ledger_tx;
+2026-10-08 03:36:23.090 GMT [4429] ERROR:  TRUNCATE on posting is not allowed (append-only)
+2026-10-08 03:36:23.090 GMT [4429] CONTEXT:  PL/pgSQL function forbid_mutation() line 3 at RAISE
+2026-10-08 03:36:23.090 GMT [4429] STATEMENT:  truncate posting;
+2026-10-08 03:36:23.163 GMT [4435] ERROR:  permission denied for table posting
+2026-10-08 03:36:23.163 GMT [4435] STATEMENT:  insert into posting(tx_id,account_id,asset,amount) values (1,1,'USDT',1);
+2026-10-08 03:36:23.234 GMT [4441] ERROR:  permission denied for table account
+2026-10-08 03:36:23.234 GMT [4441] STATEMENT:  update account set balance = 999999 where id=1;
+2026-10-08 03:36:23.300 GMT [4447] ERROR:  permission denied for function post_tx
+2026-10-08 03:36:23.300 GMT [4447] STATEMENT:  select post_tx('x','x',null,'[]'::jsonb);
+2026-10-08 03:36:23.434 GMT [4454] ERROR:  permission denied for function ledger_deposit
+2026-10-08 03:36:23.434 GMT [4454] STATEMENT:  select ledger_deposit('mallory','USDT',1000000,'steal-1');
+2026-10-08 03:36:23.751 GMT [4460] ERROR:  permission denied for function ledger_deposit
+2026-10-08 03:36:23.751 GMT [4460] STATEMENT:  select ledger_deposit('mallory','USDT',1000000,'steal-2');
+2026-10-08 03:36:23.968 GMT [4466] ERROR:  permission denied for function ops_transition
+2026-10-08 03:36:23.968 GMT [4466] STATEMENT:  select ops_transition(1,'a','b','x','ops-1');
+2026-10-08 03:36:24.075 GMT [4473] ERROR:  permission denied for function transition_trade
+2026-10-08 03:36:24.075 GMT [4473] STATEMENT:  select transition_trade(1,'a','b','x','u');
+2026-10-08 03:36:24.155 GMT [4479] ERROR:  permission denied for function _apply_transition
+2026-10-08 03:36:24.155 GMT [4479] STATEMENT:  select _apply_transition(1,'a','b','x','u',true,null);
+2026-10-08 03:36:26.015 GMT [4523] ERROR:  illegal transition escrowed -> released for p2p
+2026-10-08 03:36:26.015 GMT [4523] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 17 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:36:26.015 GMT [4523] STATEMENT:  select transition_trade(1,'escrowed','released','x-1','system');
+2026-10-08 03:36:26.927 GMT [4554] ERROR:  actor mallory may not do open -> escrowed on trade 2
+2026-10-08 03:36:26.927 GMT [4554] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 39 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:36:26.927 GMT [4554] STATEMENT:  select transition_trade(2,'open','escrowed','a1','mallory');
+2026-10-08 03:36:27.239 GMT [4562] ERROR:  actor au1 may not do escrowed -> paid_claimed on trade 2
+2026-10-08 03:36:27.239 GMT [4562] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 39 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:36:27.239 GMT [4562] STATEMENT:  select transition_trade(2,'escrowed','paid_claimed','a3','au1');
+2026-10-08 03:36:27.434 GMT [4569] ERROR:  actor au2 may not do paid_claimed -> paid_attested on trade 2
+2026-10-08 03:36:27.434 GMT [4569] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 39 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:36:27.434 GMT [4569] STATEMENT:  select transition_trade(2,'paid_claimed','paid_attested','a5','au2');
+2026-10-08 03:36:27.519 GMT [4574] ERROR:  illegal transition paid_claimed -> released for p2p
+2026-10-08 03:36:27.519 GMT [4574] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 17 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:36:27.519 GMT [4574] STATEMENT:  select transition_trade(2,'paid_claimed','released','a6','system');
+2026-10-08 03:36:27.879 GMT [4584] ERROR:  ops only: disputed -> resolved_refund
+2026-10-08 03:36:27.879 GMT [4584] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 24 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:36:27.879 GMT [4584] STATEMENT:  select transition_trade(2,'disputed','resolved_refund','a8','au1');
+2026-10-08 03:36:28.026 GMT [4589] ERROR:  fault applies only to vendor_vendor resolutions
+2026-10-08 03:36:28.026 GMT [4589] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 47 at RAISE
+	SQL function "ops_transition" statement 1
+2026-10-08 03:36:28.026 GMT [4589] STATEMENT:  select ops_transition(2,'disputed','resolved_refund','a9','ops-1','buyer');
+2026-10-08 03:36:32.073 GMT [4608] ERROR:  new row for relation "trade" violates check constraint "trade_platform_party"
+2026-10-08 03:36:32.073 GMT [4608] DETAIL:  Failing row contains (3, x, y, USDT, 1, open, 2026-10-08 03:36:32.061777+00, platform_inventory, USDT, 1, USDT, 1, 1.0000000000, USDT).
+2026-10-08 03:36:32.073 GMT [4608] CONTEXT:  SQL statement "insert into trade(seller, buyer, asset, amount, trade_type,
+	                    crypto_asset, crypto_amount, fiat_asset, fiat_amount, rate, deposit_asset)
+	       values (p_seller, p_buyer, p_asset, p_amount, p_type,
+	               p_asset, p_amount, p_asset, p_amount, 1, p_asset)
+	    returning id, state"
+	PL/pgSQL function create_trade(text,text,text,numeric,text) line 9 at SQL statement
+2026-10-08 03:36:32.073 GMT [4608] STATEMENT:  select create_trade('x','y','USDT',1,'platform_inventory');
+2026-10-08 03:36:32.402 GMT [4613] ERROR:  new row for relation "trade" violates check constraint "trade_platform_party"
+2026-10-08 03:36:32.402 GMT [4613] DETAIL:  Failing row contains (4, platform, y, USDT, 1, open, 2026-10-08 03:36:32.391439+00, p2p, USDT, 1, USDT, 1, 1.0000000000, USDT).
+2026-10-08 03:36:32.402 GMT [4613] CONTEXT:  SQL statement "insert into trade(seller, buyer, asset, amount, trade_type,
+	                    crypto_asset, crypto_amount, fiat_asset, fiat_amount, rate, deposit_asset)
+	       values (p_seller, p_buyer, p_asset, p_amount, p_type,
+	               p_asset, p_amount, p_asset, p_amount, 1, p_asset)
+	    returning id, state"
+	PL/pgSQL function create_trade(text,text,text,numeric,text) line 9 at SQL statement
+2026-10-08 03:36:32.402 GMT [4613] STATEMENT:  select create_trade('platform','y','USDT',1,'p2p');
+2026-10-08 03:36:36.506 GMT [4635] ERROR:  actor ivy may not do paid_claimed -> paid_attested on trade 5
+2026-10-08 03:36:36.506 GMT [4635] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 39 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:36:36.506 GMT [4635] STATEMENT:  select transition_trade(5,'paid_claimed','paid_attested','p3','ivy');
+2026-10-08 03:36:36.705 GMT [4640] ERROR:  actor platform may not do paid_claimed -> paid_attested on trade 5
+2026-10-08 03:36:36.705 GMT [4640] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 39 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:36:36.705 GMT [4640] STATEMENT:  select transition_trade(5,'paid_claimed','paid_attested','p4','platform');
+2026-10-08 03:36:42.990 GMT [4697] ERROR:  insufficient funds on account 8
+2026-10-08 03:36:42.990 GMT [4697] CONTEXT:  PL/pgSQL function posting_apply() line 8 at RAISE
+	SQL statement "insert into posting(tx_id, account_id, asset, amount)
+	         values (v_id, (e->>'account')::bigint, (e->>'asset'), (e->>'amount')::numeric(78,0))"
+	PL/pgSQL function post_tx(text,text,bigint,jsonb,bytea) line 33 at SQL statement
+	SQL statement "SELECT post_tx(p_idem || ':ledger', 'trade_' || p_to, t.id, v_post, v_ev)"
+	PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 125 at PERFORM
+	SQL function "transition_trade" statement 1
+2026-10-08 03:36:42.990 GMT [4697] STATEMENT:  select transition_trade(10,'open','escrowed','os-10','buyer5');
+2026-10-08 03:36:44.328 GMT [4720] ERROR:  actor jon may not do escrowed -> paid_claimed on trade 11
+2026-10-08 03:36:44.328 GMT [4720] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 39 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:36:44.328 GMT [4720] STATEMENT:  select transition_trade(11,'escrowed','paid_claimed','pb2','jon');
+2026-10-08 03:36:55.363 GMT [4855] ERROR:  fault buyer is inconsistent with resolved_release
+2026-10-08 03:36:55.363 GMT [4855] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 50 at RAISE
+	SQL function "ops_transition" statement 1
+2026-10-08 03:36:55.363 GMT [4855] STATEMENT:  select ops_transition(16,'disputed','resolved_release','v5x','ops-1','buyer');
+2026-10-08 03:36:55.447 GMT [4860] ERROR:  bad fault everyone
+2026-10-08 03:36:55.447 GMT [4860] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 45 at RAISE
+	SQL function "ops_transition" statement 1
+2026-10-08 03:36:55.447 GMT [4860] STATEMENT:  select ops_transition(16,'disputed','resolved_release','v5y','ops-1','everyone');
+2026-10-08 03:36:56.055 GMT [4871] ERROR:  insufficient funds on account 52
+2026-10-08 03:36:56.055 GMT [4871] CONTEXT:  PL/pgSQL function posting_apply() line 8 at RAISE
+	SQL statement "insert into posting(tx_id, account_id, asset, amount)
+	         values (v_id, (e->>'account')::bigint, (e->>'asset'), (e->>'amount')::numeric(78,0))"
+	PL/pgSQL function post_tx(text,text,bigint,jsonb,bytea) line 33 at SQL statement
+	SQL statement "SELECT post_tx(p_idem || ':ledger', 'trade_' || p_to, t.id, v_post, v_ev)"
+	PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 125 at PERFORM
+	SQL function "transition_trade" statement 1
+2026-10-08 03:36:56.055 GMT [4871] STATEMENT:  select transition_trade(17,'open','escrowed','v6e','va6');
+2026-10-08 03:36:57.414 GMT [4901] ERROR:  amount 6000 exceeds cap 5000 for vendor_vendor
+2026-10-08 03:36:57.414 GMT [4901] CONTEXT:  PL/pgSQL function create_trade(text,text,text,numeric,text) line 7 at RAISE
+2026-10-08 03:36:57.414 GMT [4901] STATEMENT:  select create_trade('cap1','cap2','USDT',6000,'vendor_vendor');
+2026-10-08 03:36:59.586 GMT [4946] ERROR:  claim window open until 2026-10-08 03:37:00.440903+00
+2026-10-08 03:36:59.586 GMT [4946] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 58 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:36:59.586 GMT [4946] STATEMENT:  select transition_trade(19,'paid_attested','released','wr1','system');
+2026-10-08 03:37:00.112 GMT [4952] ERROR:  claim window open until 2026-10-08 03:37:04.024696+00
+2026-10-08 03:37:00.112 GMT [4952] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 58 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:37:00.112 GMT [4952] STATEMENT:  select transition_trade(20,'paid_attested','released','wr2','system');
+2026-10-08 03:37:07.281 GMT [4997] ERROR:  trade 20 is not in state paid_attested
+2026-10-08 03:37:07.281 GMT [4997] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 71 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:37:07.281 GMT [4997] STATEMENT:  select transition_trade(20,'paid_attested','released','wr6','system'); select state from trade where id=20;
+2026-10-08 03:37:07.339 GMT [5000] ERROR:  system step: paid_attested -> released
+2026-10-08 03:37:07.339 GMT [5000] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 26 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:37:07.339 GMT [5000] STATEMENT:  select transition_trade(20,'paid_attested','released','wr7','alice');
+2026-10-08 03:37:08.769 GMT [5052] ERROR:  trade 22 is not in state paid_attested
+2026-10-08 03:37:08.769 GMT [5052] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 71 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:37:08.769 GMT [5052] STATEMENT:  select transition_trade(22,'paid_attested','released','race-22-1','system');
+2026-10-08 03:37:08.776 GMT [5056] ERROR:  trade 22 is not in state paid_attested
+2026-10-08 03:37:08.776 GMT [5056] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 71 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:37:08.776 GMT [5056] STATEMENT:  select transition_trade(22,'paid_attested','released','race-22-2','system');
+2026-10-08 03:37:08.779 GMT [5068] ERROR:  trade 22 is not in state paid_attested
+2026-10-08 03:37:08.779 GMT [5068] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 71 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:37:08.779 GMT [5068] STATEMENT:  select transition_trade(22,'paid_attested','released','race-22-12','system');
+2026-10-08 03:37:08.803 GMT [5095] ERROR:  trade 22 is not in state paid_attested
+2026-10-08 03:37:08.803 GMT [5095] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 71 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:37:08.803 GMT [5095] STATEMENT:  select transition_trade(22,'paid_attested','released','race-22-17','system');
+2026-10-08 03:37:08.807 GMT [5069] ERROR:  trade 22 is not in state paid_attested
+2026-10-08 03:37:08.807 GMT [5069] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 71 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:37:08.807 GMT [5069] STATEMENT:  select transition_trade(22,'paid_attested','released','race-22-14','system');
+2026-10-08 03:37:08.818 GMT [5071] ERROR:  trade 22 is not in state paid_attested
+2026-10-08 03:37:08.818 GMT [5071] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 71 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:37:08.818 GMT [5071] STATEMENT:  select transition_trade(22,'paid_attested','released','race-22-13','system');
+2026-10-08 03:37:08.818 GMT [5098] ERROR:  trade 22 is not in state paid_attested
+2026-10-08 03:37:08.818 GMT [5098] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 71 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:37:08.818 GMT [5098] STATEMENT:  select transition_trade(22,'paid_attested','released','race-22-19','system');
+2026-10-08 03:37:08.821 GMT [5063] ERROR:  trade 22 is not in state paid_attested
+2026-10-08 03:37:08.821 GMT [5063] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 71 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:37:08.821 GMT [5063] STATEMENT:  select transition_trade(22,'paid_attested','released','race-22-4','system');
+2026-10-08 03:37:08.841 GMT [5101] ERROR:  trade 22 is not in state paid_attested
+2026-10-08 03:37:08.841 GMT [5101] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 71 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:37:08.841 GMT [5101] STATEMENT:  select transition_trade(22,'paid_attested','released','race-22-20','system');
+2026-10-08 03:37:08.841 GMT [5073] ERROR:  trade 22 is not in state paid_attested
+2026-10-08 03:37:08.841 GMT [5073] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 71 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:37:08.841 GMT [5073] STATEMENT:  select transition_trade(22,'paid_attested','released','race-22-5','system');
+2026-10-08 03:37:08.850 GMT [5074] ERROR:  trade 22 is not in state paid_attested
+2026-10-08 03:37:08.850 GMT [5074] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 71 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:37:08.850 GMT [5074] STATEMENT:  select transition_trade(22,'paid_attested','released','race-22-7','system');
+2026-10-08 03:37:08.851 GMT [5093] ERROR:  trade 22 is not in state paid_attested
+2026-10-08 03:37:08.851 GMT [5093] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 71 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:37:08.851 GMT [5093] STATEMENT:  select transition_trade(22,'paid_attested','released','race-22-9','system');
+2026-10-08 03:37:08.860 GMT [5096] ERROR:  trade 22 is not in state paid_attested
+2026-10-08 03:37:08.860 GMT [5096] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 71 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:37:08.860 GMT [5096] STATEMENT:  select transition_trade(22,'paid_attested','released','race-22-18','system');
+2026-10-08 03:37:08.872 GMT [5077] ERROR:  trade 22 is not in state paid_attested
+2026-10-08 03:37:08.872 GMT [5077] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 71 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:37:08.872 GMT [5077] STATEMENT:  select transition_trade(22,'paid_attested','released','race-22-6','system');
+2026-10-08 03:37:08.875 GMT [5097] ERROR:  trade 22 is not in state paid_attested
+2026-10-08 03:37:08.875 GMT [5097] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 71 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:37:08.875 GMT [5097] STATEMENT:  select transition_trade(22,'paid_attested','released','race-22-16','system');
+2026-10-08 03:37:08.882 GMT [5099] ERROR:  trade 22 is not in state paid_attested
+2026-10-08 03:37:08.882 GMT [5099] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 71 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:37:08.882 GMT [5099] STATEMENT:  select transition_trade(22,'paid_attested','released','race-22-11','system');
+2026-10-08 03:37:08.884 GMT [5100] ERROR:  trade 22 is not in state paid_attested
+2026-10-08 03:37:08.884 GMT [5100] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 71 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:37:08.884 GMT [5100] STATEMENT:  select transition_trade(22,'paid_attested','released','race-22-15','system');
+2026-10-08 03:37:08.887 GMT [5067] ERROR:  trade 22 is not in state paid_attested
+2026-10-08 03:37:08.887 GMT [5067] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 71 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:37:08.887 GMT [5067] STATEMENT:  select transition_trade(22,'paid_attested','released','race-22-3','system');
+2026-10-08 03:37:08.891 GMT [5094] ERROR:  trade 22 is not in state paid_attested
+2026-10-08 03:37:08.891 GMT [5094] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 71 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:37:08.891 GMT [5094] STATEMENT:  select transition_trade(22,'paid_attested','released','race-22-10','system');
+2026-10-08 03:37:12.256 GMT [5239] ERROR:  insufficient funds on account 75
+2026-10-08 03:37:12.256 GMT [5239] CONTEXT:  PL/pgSQL function posting_apply() line 8 at RAISE
+	SQL statement "insert into posting(tx_id, account_id, asset, amount)
+	         values (v_id, (e->>'account')::bigint, (e->>'asset'), (e->>'amount')::numeric(78,0))"
+	PL/pgSQL function post_tx(text,text,bigint,jsonb,bytea) line 33 at SQL statement
+	SQL statement "SELECT post_tx(p_idem || ':ledger', 'trade_' || p_to, t.id, v_post, v_ev)"
+	PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 125 at PERFORM
+	SQL function "transition_trade" statement 1
+2026-10-08 03:37:12.256 GMT [5239] STATEMENT:  select transition_trade(25,'open','escrowed','g-25','gina');
+2026-10-08 03:37:12.273 GMT [5234] ERROR:  insufficient funds on account 75
+2026-10-08 03:37:12.273 GMT [5234] CONTEXT:  PL/pgSQL function posting_apply() line 8 at RAISE
+	SQL statement "insert into posting(tx_id, account_id, asset, amount)
+	         values (v_id, (e->>'account')::bigint, (e->>'asset'), (e->>'amount')::numeric(78,0))"
+	PL/pgSQL function post_tx(text,text,bigint,jsonb,bytea) line 33 at SQL statement
+	SQL statement "SELECT post_tx(p_idem || ':ledger', 'trade_' || p_to, t.id, v_post, v_ev)"
+	PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 125 at PERFORM
+	SQL function "transition_trade" statement 1
+2026-10-08 03:37:12.273 GMT [5234] STATEMENT:  select transition_trade(30,'open','escrowed','g-30','gina');
+2026-10-08 03:37:12.396 GMT [5240] ERROR:  insufficient funds on account 75
+2026-10-08 03:37:12.396 GMT [5240] CONTEXT:  PL/pgSQL function posting_apply() line 8 at RAISE
+	SQL statement "insert into posting(tx_id, account_id, asset, amount)
+	         values (v_id, (e->>'account')::bigint, (e->>'asset'), (e->>'amount')::numeric(78,0))"
+	PL/pgSQL function post_tx(text,text,bigint,jsonb,bytea) line 33 at SQL statement
+	SQL statement "SELECT post_tx(p_idem || ':ledger', 'trade_' || p_to, t.id, v_post, v_ev)"
+	PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 125 at PERFORM
+	SQL function "transition_trade" statement 1
+2026-10-08 03:37:12.396 GMT [5240] STATEMENT:  select transition_trade(24,'open','escrowed','g-24','gina');
+2026-10-08 03:37:12.522 GMT [5236] ERROR:  insufficient funds on account 75
+2026-10-08 03:37:12.522 GMT [5236] CONTEXT:  PL/pgSQL function posting_apply() line 8 at RAISE
+	SQL statement "insert into posting(tx_id, account_id, asset, amount)
+	         values (v_id, (e->>'account')::bigint, (e->>'asset'), (e->>'amount')::numeric(78,0))"
+	PL/pgSQL function post_tx(text,text,bigint,jsonb,bytea) line 33 at SQL statement
+	SQL statement "SELECT post_tx(p_idem || ':ledger', 'trade_' || p_to, t.id, v_post, v_ev)"
+	PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 125 at PERFORM
+	SQL function "transition_trade" statement 1
+2026-10-08 03:37:12.522 GMT [5236] STATEMENT:  select transition_trade(32,'open','escrowed','g-32','gina');
+2026-10-08 03:37:12.563 GMT [5235] ERROR:  insufficient funds on account 75
+2026-10-08 03:37:12.563 GMT [5235] CONTEXT:  PL/pgSQL function posting_apply() line 8 at RAISE
+	SQL statement "insert into posting(tx_id, account_id, asset, amount)
+	         values (v_id, (e->>'account')::bigint, (e->>'asset'), (e->>'amount')::numeric(78,0))"
+	PL/pgSQL function post_tx(text,text,bigint,jsonb,bytea) line 33 at SQL statement
+	SQL statement "SELECT post_tx(p_idem || ':ledger', 'trade_' || p_to, t.id, v_post, v_ev)"
+	PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 125 at PERFORM
+	SQL function "transition_trade" statement 1
+2026-10-08 03:37:12.563 GMT [5235] STATEMENT:  select transition_trade(31,'open','escrowed','g-31','gina');
+2026-10-08 03:37:12.589 GMT [5231] ERROR:  insufficient funds on account 75
+2026-10-08 03:37:12.589 GMT [5231] CONTEXT:  PL/pgSQL function posting_apply() line 8 at RAISE
+	SQL statement "insert into posting(tx_id, account_id, asset, amount)
+	         values (v_id, (e->>'account')::bigint, (e->>'asset'), (e->>'amount')::numeric(78,0))"
+	PL/pgSQL function post_tx(text,text,bigint,jsonb,bytea) line 33 at SQL statement
+	SQL statement "SELECT post_tx(p_idem || ':ledger', 'trade_' || p_to, t.id, v_post, v_ev)"
+	PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 125 at PERFORM
+	SQL function "transition_trade" statement 1
+2026-10-08 03:37:12.589 GMT [5231] STATEMENT:  select transition_trade(29,'open','escrowed','g-29','gina');
+2026-10-08 03:37:12.717 GMT [5242] ERROR:  insufficient funds on account 75
+2026-10-08 03:37:12.717 GMT [5242] CONTEXT:  PL/pgSQL function posting_apply() line 8 at RAISE
+	SQL statement "insert into posting(tx_id, account_id, asset, amount)
+	         values (v_id, (e->>'account')::bigint, (e->>'asset'), (e->>'amount')::numeric(78,0))"
+	PL/pgSQL function post_tx(text,text,bigint,jsonb,bytea) line 33 at SQL statement
+	SQL statement "SELECT post_tx(p_idem || ':ledger', 'trade_' || p_to, t.id, v_post, v_ev)"
+	PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 125 at PERFORM
+	SQL function "transition_trade" statement 1
+2026-10-08 03:37:12.717 GMT [5242] STATEMENT:  select transition_trade(26,'open','escrowed','g-26','gina');
+2026-10-08 03:37:12.722 GMT [5241] ERROR:  insufficient funds on account 75
+2026-10-08 03:37:12.722 GMT [5241] CONTEXT:  PL/pgSQL function posting_apply() line 8 at RAISE
+	SQL statement "insert into posting(tx_id, account_id, asset, amount)
+	         values (v_id, (e->>'account')::bigint, (e->>'asset'), (e->>'amount')::numeric(78,0))"
+	PL/pgSQL function post_tx(text,text,bigint,jsonb,bytea) line 33 at SQL statement
+	SQL statement "SELECT post_tx(p_idem || ':ledger', 'trade_' || p_to, t.id, v_post, v_ev)"
+	PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 125 at PERFORM
+	SQL function "transition_trade" statement 1
+2026-10-08 03:37:12.722 GMT [5241] STATEMENT:  select transition_trade(28,'open','escrowed','g-28','gina');
+2026-10-08 03:37:13.919 GMT [5295] ERROR:  insufficient funds on account 8
+2026-10-08 03:37:13.919 GMT [5295] CONTEXT:  PL/pgSQL function posting_apply() line 8 at RAISE
+	SQL statement "insert into posting(tx_id, account_id, asset, amount)
+	         values (v_id, (e->>'account')::bigint, (e->>'asset'), (e->>'amount')::numeric(78,0))"
+	PL/pgSQL function post_tx(text,text,bigint,jsonb,bytea) line 33 at SQL statement
+	SQL statement "SELECT post_tx(p_idem || ':ledger', 'trade_' || p_to, t.id, v_post, v_ev)"
+	PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 125 at PERFORM
+	SQL function "transition_trade" statement 1
+2026-10-08 03:37:13.919 GMT [5295] STATEMENT:  select transition_trade(37,'open','escrowed','pf-37','pu4');
+2026-10-08 03:37:13.924 GMT [5296] ERROR:  insufficient funds on account 8
+2026-10-08 03:37:13.924 GMT [5296] CONTEXT:  PL/pgSQL function posting_apply() line 8 at RAISE
+	SQL statement "insert into posting(tx_id, account_id, asset, amount)
+	         values (v_id, (e->>'account')::bigint, (e->>'asset'), (e->>'amount')::numeric(78,0))"
+	PL/pgSQL function post_tx(text,text,bigint,jsonb,bytea) line 33 at SQL statement
+	SQL statement "SELECT post_tx(p_idem || ':ledger', 'trade_' || p_to, t.id, v_post, v_ev)"
+	PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 125 at PERFORM
+	SQL function "transition_trade" statement 1
+2026-10-08 03:37:13.924 GMT [5296] STATEMENT:  select transition_trade(34,'open','escrowed','pf-34','pu1');
+2026-10-08 03:37:13.930 GMT [5292] ERROR:  insufficient funds on account 8
+2026-10-08 03:37:13.930 GMT [5292] CONTEXT:  PL/pgSQL function posting_apply() line 8 at RAISE
+	SQL statement "insert into posting(tx_id, account_id, asset, amount)
+	         values (v_id, (e->>'account')::bigint, (e->>'asset'), (e->>'amount')::numeric(78,0))"
+	PL/pgSQL function post_tx(text,text,bigint,jsonb,bytea) line 33 at SQL statement
+	SQL statement "SELECT post_tx(p_idem || ':ledger', 'trade_' || p_to, t.id, v_post, v_ev)"
+	PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 125 at PERFORM
+	SQL function "transition_trade" statement 1
+2026-10-08 03:37:13.930 GMT [5292] STATEMENT:  select transition_trade(36,'open','escrowed','pf-36','pu3');
+2026-10-08 03:37:13.936 GMT [5294] ERROR:  insufficient funds on account 8
+2026-10-08 03:37:13.936 GMT [5294] CONTEXT:  PL/pgSQL function posting_apply() line 8 at RAISE
+	SQL statement "insert into posting(tx_id, account_id, asset, amount)
+	         values (v_id, (e->>'account')::bigint, (e->>'asset'), (e->>'amount')::numeric(78,0))"
+	PL/pgSQL function post_tx(text,text,bigint,jsonb,bytea) line 33 at SQL statement
+	SQL statement "SELECT post_tx(p_idem || ':ledger', 'trade_' || p_to, t.id, v_post, v_ev)"
+	PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 125 at PERFORM
+	SQL function "transition_trade" statement 1
+2026-10-08 03:37:13.936 GMT [5294] STATEMENT:  select transition_trade(38,'open','escrowed','pf-38','pu5');
+2026-10-08 03:37:14.250 GMT [5317] ERROR:  trade 39 has no crypto leg to escrow
+2026-10-08 03:37:14.250 GMT [5317] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 63 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:37:14.250 GMT [5317] STATEMENT:  select transition_trade((select create_fiat_trade('f1','f2',null,null,'NGN',300000,1,'p2p')),'open','escrowed','fx0','f2');
+2026-10-08 03:37:14.851 GMT [5359] ERROR:  actor f3 may not do paid_claimed -> paid_attested on trade 40
+2026-10-08 03:37:14.851 GMT [5359] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 39 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:37:14.851 GMT [5359] STATEMENT:  select transition_trade(40,'paid_claimed','paid_attested','fx1','f3');
+2026-10-08 03:37:18.738 GMT [5485] ERROR:  a crypto leg needs the agreed rate
+2026-10-08 03:37:18.738 GMT [5485] CONTEXT:  PL/pgSQL function create_fiat_trade(text,text,text,numeric,text,numeric,numeric,text,text) line 8 at RAISE
+2026-10-08 03:37:18.738 GMT [5485] STATEMENT:  select create_fiat_trade('cr3','cr4','USDT',100,'GHS',1000,null,'p2p');
+2026-10-08 03:37:18.876 GMT [5491] ERROR:  a trade needs a positive fiat amount
+2026-10-08 03:37:18.876 GMT [5491] CONTEXT:  PL/pgSQL function create_fiat_trade(text,text,text,numeric,text,numeric,numeric,text,text) line 11 at RAISE
+2026-10-08 03:37:18.876 GMT [5491] STATEMENT:  select create_fiat_trade('cr5','cr6','USDT',100,'GHS',null,14,'p2p');
+2026-10-08 03:37:19.658 GMT [5528] ERROR:  idempotency key same-key was already used with a different payload
+2026-10-08 03:37:19.658 GMT [5528] CONTEXT:  PL/pgSQL function post_tx(text,text,bigint,jsonb,bytea) line 9 at RAISE
+2026-10-08 03:37:19.658 GMT [5528] STATEMENT:  select post_tx('same-key','x',null,jsonb_build_array(jsonb_build_object('account',120,'asset','USDT','amount',-400),jsonb_build_object('account',121,'asset','USDT','amount',400)));
+2026-10-08 03:37:26.707 GMT [5685] ERROR:  actor required: a rate with nobody's name on it cannot be defended later
+2026-10-08 03:37:26.707 GMT [5685] CONTEXT:  PL/pgSQL function set_rate(text,text,numeric,text,timestamp with time zone,text) line 7 at RAISE
+2026-10-08 03:37:26.707 GMT [5685] STATEMENT:  select set_rate('GHS','NGN',150,'  ');
+2026-10-08 03:37:26.960 GMT [5691] ERROR:  rate must be positive
+2026-10-08 03:37:26.960 GMT [5691] CONTEXT:  PL/pgSQL function set_rate(text,text,numeric,text,timestamp with time zone,text) line 10 at RAISE
+2026-10-08 03:37:26.960 GMT [5691] STATEMENT:  select set_rate('GHS','NGN',0,'pricing');
+2026-10-08 03:37:27.139 GMT [5697] ERROR:  rate must be positive
+2026-10-08 03:37:27.139 GMT [5697] CONTEXT:  PL/pgSQL function set_rate(text,text,numeric,text,timestamp with time zone,text) line 10 at RAISE
+2026-10-08 03:37:27.139 GMT [5697] STATEMENT:  select set_rate('GHS','NGN',-1,'pricing');
+2026-10-08 03:37:27.291 GMT [5703] ERROR:  a pair needs two different assets
+2026-10-08 03:37:27.291 GMT [5703] CONTEXT:  PL/pgSQL function set_rate(text,text,numeric,text,timestamp with time zone,text) line 9 at RAISE
+2026-10-08 03:37:27.291 GMT [5703] STATEMENT:  select set_rate('GHS','GHS',1,'pricing');
+2026-10-08 03:37:27.361 GMT [5710] ERROR:  unknown quote XYZ
+2026-10-08 03:37:27.361 GMT [5710] CONTEXT:  PL/pgSQL function set_rate(text,text,numeric,text,timestamp with time zone,text) line 12 at RAISE
+2026-10-08 03:37:27.361 GMT [5710] STATEMENT:  select set_rate('GHS','XYZ',1,'pricing');
+2026-10-08 03:37:27.427 GMT [5716] ERROR:  backdating refused: 2026-10-08 02:37:27.417708+00 is more than 00:00:05s in the past
+2026-10-08 03:37:27.427 GMT [5716] CONTEXT:  PL/pgSQL function set_rate(text,text,numeric,text,timestamp with time zone,text) line 17 at RAISE
+2026-10-08 03:37:27.427 GMT [5716] STATEMENT:  select set_rate('GHS','NGN',999,'pricing',now() - interval '1 hour');
+2026-10-08 03:37:27.585 GMT [5724] ERROR:  duplicate key value violates unique constraint "rate_card_one_per_moment"
+2026-10-08 03:37:27.585 GMT [5724] DETAIL:  Key (base_asset, quote_asset, effective_from)=(GHS, NGN, 2026-10-08 03:37:23.290139+00) already exists.
+2026-10-08 03:37:27.585 GMT [5724] STATEMENT:  insert into rate_card(base_asset,quote_asset,rate,effective_from,set_by) select 'GHS','NGN',150,min(effective_from),'dup' from rate_card where base_asset='GHS';
+2026-10-08 03:37:28.149 GMT [5763] ERROR:  permission denied for function set_rate
+2026-10-08 03:37:28.149 GMT [5763] STATEMENT:  select set_rate('GHS','NGN',150,'app');
+2026-10-08 03:37:28.230 GMT [5769] ERROR:  permission denied for function set_rate
+2026-10-08 03:37:28.230 GMT [5769] STATEMENT:  select set_rate('GHS','NGN',150,'ops-1');
+2026-10-08 03:37:28.298 GMT [5776] ERROR:  permission denied for function ops_transition
+2026-10-08 03:37:28.298 GMT [5776] STATEMENT:  select ops_transition(1,'x','y','k','z');
+2026-10-08 03:37:28.357 GMT [5782] ERROR:  permission denied for function ledger_deposit
+2026-10-08 03:37:28.357 GMT [5782] STATEMENT:  select ledger_deposit('pricing','USDT',999999,'steal-price');
+2026-10-08 03:37:28.414 GMT [5788] ERROR:  permission denied for table account
+2026-10-08 03:37:28.414 GMT [5788] STATEMENT:  select balance from account limit 1;
+2026-10-08 03:37:28.485 GMT [5794] ERROR:  permission denied for table rate_card
+2026-10-08 03:37:28.485 GMT [5794] STATEMENT:  insert into rate_card(base_asset,quote_asset,rate,set_by) values ('GHS','NGN',1500,'app');
+2026-10-08 03:37:28.549 GMT [5800] ERROR:  permission denied for table rate_card
+2026-10-08 03:37:28.549 GMT [5800] STATEMENT:  update rate_card set rate = 1500;
+2026-10-08 03:37:29.111 GMT [5834] ERROR:  permission denied for function transition_trade
+2026-10-08 03:37:29.111 GMT [5834] STATEMENT:  select transition_trade(46,'open','paid_claimed','tc1','tr1');
+2026-10-08 03:37:29.153 GMT [5838] ERROR:  permission denied for function transition_trade
+2026-10-08 03:37:29.153 GMT [5838] STATEMENT:  select transition_trade(46,'paid_claimed','paid_attested','tc2','tr1');
+2026-10-08 03:37:29.233 GMT [5845] ERROR:  permission denied for function ops_transition
+2026-10-08 03:37:29.233 GMT [5845] STATEMENT:  select ops_transition(46,'paid_claimed','disputed','tc3','tr1');
+2026-10-08 03:37:29.287 GMT [5851] ERROR:  permission denied for function set_rate
+2026-10-08 03:37:29.287 GMT [5851] STATEMENT:  select set_rate('GHS','NGN',999,'tr1');
+2026-10-08 03:37:29.344 GMT [5857] ERROR:  permission denied for function ledger_deposit
+2026-10-08 03:37:29.344 GMT [5857] STATEMENT:  select ledger_deposit('tr1','GHS',999999,'steal-trader');
+2026-10-08 03:37:29.407 GMT [5863] ERROR:  permission denied for function _apply_transition
+2026-10-08 03:37:29.407 GMT [5863] STATEMENT:  select _apply_transition(46,'paid_claimed','disputed','tc9','tr1',true,null);
+2026-10-08 03:37:29.525 GMT [5870] ERROR:  permission denied for table trade
+2026-10-08 03:37:29.525 GMT [5870] STATEMENT:  insert into trade(seller,buyer,asset,amount) values ('platform','x','GHS',1);
+2026-10-08 03:37:29.605 GMT [5876] ERROR:  permission denied for table posting
+2026-10-08 03:37:29.605 GMT [5876] STATEMENT:  insert into posting(tx_id,account_id,asset,amount) values (1,(select min(id) from account),'GHS',1);
+2026-10-08 03:37:29.670 GMT [5882] ERROR:  permission denied for table account
+2026-10-08 03:37:29.670 GMT [5882] STATEMENT:  update account set balance = 999999 where id=(select min(id) from account);
+2026-10-08 03:37:29.744 GMT [5888] ERROR:  permission denied for view rate_board
+2026-10-08 03:37:29.744 GMT [5888] STATEMENT:  select count(*) from rate_board;
+2026-10-08 03:37:29.793 GMT [5892] ERROR:  permission denied for table trade
+2026-10-08 03:37:29.793 GMT [5892] STATEMENT:  select state from trade where id=46;
+2026-10-08 03:37:30.299 GMT [34371] LOG:  checkpoint starting: immediate force wait
+2026-10-08 03:37:30.321 GMT [34371] LOG:  checkpoint complete: wrote 11 buffers (0.1%), wrote 3 SLRU buffers; 0 WAL file(s) added, 0 removed, 0 recycled; write=0.011 s, sync=0.002 s, total=0.022 s; sync files=12, longest=0.001 s, average=0.001 s; distance=5575 kB, estimate=5575 kB; lsn=0/A8E1C78, redo lsn=0/A8E1C20
+2026-10-08 03:38:19.873 GMT [6103] ERROR:  function transition_trade(bigint, text, text, text, text) does not exist
+2026-10-08 03:38:19.873 GMT [6103] STATEMENT:  grant execute on function create_fiat_trade(text, text, text, numeric, text, numeric, numeric, text, text),
+	                          create_trade(text, text, text, numeric, text),
+	                          transition_trade(bigint, text, text, text, text),
+	                          verify_chain(), verify_trade_chain(), verify_rate_chain() to kudi_trader;
+2026-10-08 03:38:40.439 GMT [34371] LOG:  checkpoint starting: immediate force wait
+2026-10-08 03:38:40.449 GMT [34371] LOG:  checkpoint complete: wrote 6 buffers (0.0%), wrote 1 SLRU buffers; 0 WAL file(s) added, 0 removed, 0 recycled; write=0.002 s, sync=0.001 s, total=0.011 s; sync files=7, longest=0.001 s, average=0.001 s; distance=5223 kB, estimate=5540 kB; lsn=0/ADFB960, redo lsn=0/ADFB908
+2026-10-08 03:38:42.683 GMT [6196] ERROR:  function transition_trade(bigint, text, text, text, text) does not exist
+2026-10-08 03:38:42.683 GMT [6196] STATEMENT:  grant execute on function create_fiat_trade(text, text, text, numeric, text, numeric, numeric, text, text),
+	                          create_trade(text, text, text, numeric, text),
+	                          transition_trade(bigint, text, text, text, text),
+	                          verify_chain(), verify_trade_chain(), verify_rate_chain() to kudi_trader;
+2026-10-08 03:40:05.037 GMT [34371] LOG:  checkpoint starting: immediate force wait
+2026-10-08 03:40:05.046 GMT [34371] LOG:  checkpoint complete: wrote 10 buffers (0.1%), wrote 1 SLRU buffers; 0 WAL file(s) added, 0 removed, 1 recycled; write=0.003 s, sync=0.003 s, total=0.010 s; sync files=9, longest=0.001 s, average=0.001 s; distance=5259 kB, estimate=5512 kB; lsn=0/B31E8F8, redo lsn=0/B31E8A0
+2026-10-08 03:40:08.426 GMT [6544] ERROR:  unbalanced transaction 1
+2026-10-08 03:40:08.426 GMT [6544] CONTEXT:  PL/pgSQL function posting_balanced() line 4 at RAISE
+2026-10-08 03:40:08.426 GMT [6544] STATEMENT:  select post_tx('t-unbal','x',null,jsonb_build_array(jsonb_build_object('account',1,'asset','USDT','amount',5),jsonb_build_object('account',2,'asset','USDT','amount',4)));
+2026-10-08 03:40:08.541 GMT [6553] ERROR:  insufficient funds on account 1
+2026-10-08 03:40:08.541 GMT [6553] CONTEXT:  PL/pgSQL function posting_apply() line 8 at RAISE
+	SQL statement "insert into posting(tx_id, account_id, asset, amount)
+	         values (v_id, (e->>'account')::bigint, (e->>'asset'), (e->>'amount')::numeric(78,0))"
+	PL/pgSQL function post_tx(text,text,bigint,jsonb,bytea) line 33 at SQL statement
+2026-10-08 03:40:08.541 GMT [6553] STATEMENT:  select post_tx('t-over','x',null,jsonb_build_array(jsonb_build_object('account',1,'asset','USDT','amount',-5),jsonb_build_object('account',2,'asset','USDT','amount',5)));
+2026-10-08 03:40:08.951 GMT [6573] ERROR:  UPDATE on posting is not allowed (append-only)
+2026-10-08 03:40:08.951 GMT [6573] CONTEXT:  PL/pgSQL function forbid_mutation() line 3 at RAISE
+2026-10-08 03:40:08.951 GMT [6573] STATEMENT:  update posting set amount = 1;
+2026-10-08 03:40:09.010 GMT [6578] ERROR:  DELETE on ledger_tx is not allowed (append-only)
+2026-10-08 03:40:09.010 GMT [6578] CONTEXT:  PL/pgSQL function forbid_mutation() line 3 at RAISE
+2026-10-08 03:40:09.010 GMT [6578] STATEMENT:  delete from ledger_tx;
+2026-10-08 03:40:09.064 GMT [6584] ERROR:  TRUNCATE on posting is not allowed (append-only)
+2026-10-08 03:40:09.064 GMT [6584] CONTEXT:  PL/pgSQL function forbid_mutation() line 3 at RAISE
+2026-10-08 03:40:09.064 GMT [6584] STATEMENT:  truncate posting;
+2026-10-08 03:40:09.131 GMT [6590] ERROR:  permission denied for table posting
+2026-10-08 03:40:09.131 GMT [6590] STATEMENT:  insert into posting(tx_id,account_id,asset,amount) values (1,1,'USDT',1);
+2026-10-08 03:40:09.214 GMT [6596] ERROR:  permission denied for table account
+2026-10-08 03:40:09.214 GMT [6596] STATEMENT:  update account set balance = 999999 where id=1;
+2026-10-08 03:40:09.272 GMT [6602] ERROR:  permission denied for function post_tx
+2026-10-08 03:40:09.272 GMT [6602] STATEMENT:  select post_tx('x','x',null,'[]'::jsonb);
+2026-10-08 03:40:09.326 GMT [6609] ERROR:  permission denied for function ledger_deposit
+2026-10-08 03:40:09.326 GMT [6609] STATEMENT:  select ledger_deposit('mallory','USDT',1000000,'steal-1');
+2026-10-08 03:40:09.381 GMT [6615] ERROR:  permission denied for function ledger_deposit
+2026-10-08 03:40:09.381 GMT [6615] STATEMENT:  select ledger_deposit('mallory','USDT',1000000,'steal-2');
+2026-10-08 03:40:09.434 GMT [6621] ERROR:  permission denied for function ops_transition
+2026-10-08 03:40:09.434 GMT [6621] STATEMENT:  select ops_transition(1,'a','b','x','ops-1');
+2026-10-08 03:40:09.500 GMT [6627] ERROR:  permission denied for function transition_trade
+2026-10-08 03:40:09.500 GMT [6627] STATEMENT:  select transition_trade(1,'a','b','x','u');
+2026-10-08 03:40:09.561 GMT [6633] ERROR:  permission denied for function _apply_transition
+2026-10-08 03:40:09.561 GMT [6633] STATEMENT:  select _apply_transition(1,'a','b','x','u',true,null);
+2026-10-08 03:40:10.278 GMT [6676] ERROR:  illegal transition escrowed -> released for p2p
+2026-10-08 03:40:10.278 GMT [6676] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 17 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:40:10.278 GMT [6676] STATEMENT:  select transition_trade(1,'escrowed','released','x-1','system');
+2026-10-08 03:40:11.050 GMT [6707] ERROR:  actor mallory may not do open -> escrowed on trade 2
+2026-10-08 03:40:11.050 GMT [6707] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 39 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:40:11.050 GMT [6707] STATEMENT:  select transition_trade(2,'open','escrowed','a1','mallory');
+2026-10-08 03:40:11.207 GMT [6714] ERROR:  actor au1 may not do escrowed -> paid_claimed on trade 2
+2026-10-08 03:40:11.207 GMT [6714] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 39 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:40:11.207 GMT [6714] STATEMENT:  select transition_trade(2,'escrowed','paid_claimed','a3','au1');
+2026-10-08 03:40:11.333 GMT [6722] ERROR:  actor au2 may not do paid_claimed -> paid_attested on trade 2
+2026-10-08 03:40:11.333 GMT [6722] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 39 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:40:11.333 GMT [6722] STATEMENT:  select transition_trade(2,'paid_claimed','paid_attested','a5','au2');
+2026-10-08 03:40:11.401 GMT [6727] ERROR:  illegal transition paid_claimed -> released for p2p
+2026-10-08 03:40:11.401 GMT [6727] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 17 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:40:11.401 GMT [6727] STATEMENT:  select transition_trade(2,'paid_claimed','released','a6','system');
+2026-10-08 03:40:11.628 GMT [6738] ERROR:  ops only: disputed -> resolved_refund
+2026-10-08 03:40:11.628 GMT [6738] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 24 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:40:11.628 GMT [6738] STATEMENT:  select transition_trade(2,'disputed','resolved_refund','a8','au1');
+2026-10-08 03:40:11.717 GMT [6743] ERROR:  fault applies only to vendor_vendor resolutions
+2026-10-08 03:40:11.717 GMT [6743] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 47 at RAISE
+	SQL function "ops_transition" statement 1
+2026-10-08 03:40:11.717 GMT [6743] STATEMENT:  select ops_transition(2,'disputed','resolved_refund','a9','ops-1','buyer');
+2026-10-08 03:40:12.013 GMT [6761] ERROR:  new row for relation "trade" violates check constraint "trade_platform_party"
+2026-10-08 03:40:12.013 GMT [6761] DETAIL:  Failing row contains (3, x, y, USDT, 1, open, 2026-10-08 03:40:12.006968+00, platform_inventory, USDT, 1, USDT, 1, 1.0000000000, USDT).
+2026-10-08 03:40:12.013 GMT [6761] CONTEXT:  SQL statement "insert into trade(seller, buyer, asset, amount, trade_type,
+	                    crypto_asset, crypto_amount, fiat_asset, fiat_amount, rate, deposit_asset)
+	       values (p_seller, p_buyer, p_asset, p_amount, p_type,
+	               p_asset, p_amount, p_asset, p_amount, 1, p_asset)
+	    returning id, state"
+	PL/pgSQL function create_trade(text,text,text,numeric,text) line 9 at SQL statement
+2026-10-08 03:40:12.013 GMT [6761] STATEMENT:  select create_trade('x','y','USDT',1,'platform_inventory');
+2026-10-08 03:40:12.076 GMT [6766] ERROR:  new row for relation "trade" violates check constraint "trade_platform_party"
+2026-10-08 03:40:12.076 GMT [6766] DETAIL:  Failing row contains (4, platform, y, USDT, 1, open, 2026-10-08 03:40:12.066356+00, p2p, USDT, 1, USDT, 1, 1.0000000000, USDT).
+2026-10-08 03:40:12.076 GMT [6766] CONTEXT:  SQL statement "insert into trade(seller, buyer, asset, amount, trade_type,
+	                    crypto_asset, crypto_amount, fiat_asset, fiat_amount, rate, deposit_asset)
+	       values (p_seller, p_buyer, p_asset, p_amount, p_type,
+	               p_asset, p_amount, p_asset, p_amount, 1, p_asset)
+	    returning id, state"
+	PL/pgSQL function create_trade(text,text,text,numeric,text) line 9 at SQL statement
+2026-10-08 03:40:12.076 GMT [6766] STATEMENT:  select create_trade('platform','y','USDT',1,'p2p');
+2026-10-08 03:40:12.480 GMT [6787] ERROR:  actor ivy may not do paid_claimed -> paid_attested on trade 5
+2026-10-08 03:40:12.480 GMT [6787] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 39 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:40:12.480 GMT [6787] STATEMENT:  select transition_trade(5,'paid_claimed','paid_attested','p3','ivy');
+2026-10-08 03:40:12.538 GMT [6792] ERROR:  actor platform may not do paid_claimed -> paid_attested on trade 5
+2026-10-08 03:40:12.538 GMT [6792] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 39 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:40:12.538 GMT [6792] STATEMENT:  select transition_trade(5,'paid_claimed','paid_attested','p4','platform');
+2026-10-08 03:40:13.672 GMT [6851] ERROR:  insufficient funds on account 8
+2026-10-08 03:40:13.672 GMT [6851] CONTEXT:  PL/pgSQL function posting_apply() line 8 at RAISE
+	SQL statement "insert into posting(tx_id, account_id, asset, amount)
+	         values (v_id, (e->>'account')::bigint, (e->>'asset'), (e->>'amount')::numeric(78,0))"
+	PL/pgSQL function post_tx(text,text,bigint,jsonb,bytea) line 33 at SQL statement
+	SQL statement "SELECT post_tx(p_idem || ':ledger', 'trade_' || p_to, t.id, v_post, v_ev)"
+	PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 125 at PERFORM
+	SQL function "transition_trade" statement 1
+2026-10-08 03:40:13.672 GMT [6851] STATEMENT:  select transition_trade(10,'open','escrowed','os-10','buyer5');
+2026-10-08 03:40:14.350 GMT [6873] ERROR:  actor jon may not do escrowed -> paid_claimed on trade 11
+2026-10-08 03:40:14.350 GMT [6873] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 39 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:40:14.350 GMT [6873] STATEMENT:  select transition_trade(11,'escrowed','paid_claimed','pb2','jon');
+2026-10-08 03:40:18.736 GMT [7001] ERROR:  fault buyer is inconsistent with resolved_release
+2026-10-08 03:40:18.736 GMT [7001] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 50 at RAISE
+	SQL function "ops_transition" statement 1
+2026-10-08 03:40:18.736 GMT [7001] STATEMENT:  select ops_transition(16,'disputed','resolved_release','v5x','ops-1','buyer');
+2026-10-08 03:40:18.836 GMT [7006] ERROR:  bad fault everyone
+2026-10-08 03:40:18.836 GMT [7006] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 45 at RAISE
+	SQL function "ops_transition" statement 1
+2026-10-08 03:40:18.836 GMT [7006] STATEMENT:  select ops_transition(16,'disputed','resolved_release','v5y','ops-1','everyone');
+2026-10-08 03:40:19.120 GMT [7017] ERROR:  insufficient funds on account 52
+2026-10-08 03:40:19.120 GMT [7017] CONTEXT:  PL/pgSQL function posting_apply() line 8 at RAISE
+	SQL statement "insert into posting(tx_id, account_id, asset, amount)
+	         values (v_id, (e->>'account')::bigint, (e->>'asset'), (e->>'amount')::numeric(78,0))"
+	PL/pgSQL function post_tx(text,text,bigint,jsonb,bytea) line 33 at SQL statement
+	SQL statement "SELECT post_tx(p_idem || ':ledger', 'trade_' || p_to, t.id, v_post, v_ev)"
+	PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 125 at PERFORM
+	SQL function "transition_trade" statement 1
+2026-10-08 03:40:19.120 GMT [7017] STATEMENT:  select transition_trade(17,'open','escrowed','v6e','va6');
+2026-10-08 03:40:19.765 GMT [7048] ERROR:  amount 6000 exceeds cap 5000 for vendor_vendor
+2026-10-08 03:40:19.765 GMT [7048] CONTEXT:  PL/pgSQL function create_trade(text,text,text,numeric,text) line 7 at RAISE
+2026-10-08 03:40:19.765 GMT [7048] STATEMENT:  select create_trade('cap1','cap2','USDT',6000,'vendor_vendor');
+2026-10-08 03:40:20.836 GMT [7089] ERROR:  claim window open until 2026-10-08 03:40:22.337294+00
+2026-10-08 03:40:20.836 GMT [7089] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 58 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:40:20.836 GMT [7089] STATEMENT:  select transition_trade(19,'paid_attested','released','wr1','system');
+2026-10-08 03:40:20.897 GMT [7095] ERROR:  claim window open until 2026-10-08 03:40:25.553474+00
+2026-10-08 03:40:20.897 GMT [7095] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 58 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:40:20.897 GMT [7095] STATEMENT:  select transition_trade(20,'paid_attested','released','wr2','system');
+2026-10-08 03:40:23.756 GMT [7121] ERROR:  claim window open until 2026-10-08 03:40:25.553474+00
+2026-10-08 03:40:23.756 GMT [7121] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 58 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:40:23.756 GMT [7121] STATEMENT:  select transition_trade(20,'paid_attested','released','wr5','system');
+2026-10-08 03:40:26.779 GMT [7144] ERROR:  system step: paid_attested -> released
+2026-10-08 03:40:26.779 GMT [7144] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 26 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:40:26.779 GMT [7144] STATEMENT:  select transition_trade(20,'paid_attested','released','wr7','alice');
+2026-10-08 03:40:27.701 GMT [7194] ERROR:  trade 22 is not in state paid_attested
+2026-10-08 03:40:27.701 GMT [7194] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 71 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:40:27.701 GMT [7194] STATEMENT:  select transition_trade(22,'paid_attested','released','race-22-3','system');
+2026-10-08 03:40:27.703 GMT [7197] ERROR:  trade 22 is not in state paid_attested
+2026-10-08 03:40:27.703 GMT [7197] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 71 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:40:27.703 GMT [7197] STATEMENT:  select transition_trade(22,'paid_attested','released','race-22-9','system');
+2026-10-08 03:40:27.710 GMT [7212] ERROR:  trade 22 is not in state paid_attested
+2026-10-08 03:40:27.710 GMT [7212] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 71 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:40:27.710 GMT [7212] STATEMENT:  select transition_trade(22,'paid_attested','released','race-22-8','system');
+2026-10-08 03:40:27.725 GMT [7230] ERROR:  trade 22 is not in state paid_attested
+2026-10-08 03:40:27.725 GMT [7230] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 71 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:40:27.725 GMT [7230] STATEMENT:  select transition_trade(22,'paid_attested','released','race-22-17','system');
+2026-10-08 03:40:27.788 GMT [7228] ERROR:  trade 22 is not in state paid_attested
+2026-10-08 03:40:27.788 GMT [7228] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 71 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:40:27.788 GMT [7228] STATEMENT:  select transition_trade(22,'paid_attested','released','race-22-10','system');
+2026-10-08 03:40:27.796 GMT [7231] ERROR:  trade 22 is not in state paid_attested
+2026-10-08 03:40:27.796 GMT [7231] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 71 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:40:27.796 GMT [7231] STATEMENT:  select transition_trade(22,'paid_attested','released','race-22-5','system');
+2026-10-08 03:40:27.802 GMT [7227] ERROR:  trade 22 is not in state paid_attested
+2026-10-08 03:40:27.802 GMT [7227] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 71 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:40:27.802 GMT [7227] STATEMENT:  select transition_trade(22,'paid_attested','released','race-22-6','system');
+2026-10-08 03:40:27.815 GMT [7189] ERROR:  trade 22 is not in state paid_attested
+2026-10-08 03:40:27.815 GMT [7189] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 71 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:40:27.815 GMT [7189] STATEMENT:  select transition_trade(22,'paid_attested','released','race-22-7','system');
+2026-10-08 03:40:27.819 GMT [7215] ERROR:  trade 22 is not in state paid_attested
+2026-10-08 03:40:27.819 GMT [7215] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 71 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:40:27.819 GMT [7215] STATEMENT:  select transition_trade(22,'paid_attested','released','race-22-11','system');
+2026-10-08 03:40:27.820 GMT [7233] ERROR:  trade 22 is not in state paid_attested
+2026-10-08 03:40:27.820 GMT [7233] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 71 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:40:27.820 GMT [7233] STATEMENT:  select transition_trade(22,'paid_attested','released','race-22-13','system');
+2026-10-08 03:40:27.824 GMT [7202] ERROR:  trade 22 is not in state paid_attested
+2026-10-08 03:40:27.824 GMT [7202] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 71 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:40:27.824 GMT [7202] STATEMENT:  select transition_trade(22,'paid_attested','released','race-22-4','system');
+2026-10-08 03:40:27.833 GMT [7244] ERROR:  trade 22 is not in state paid_attested
+2026-10-08 03:40:27.833 GMT [7244] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 71 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:40:27.833 GMT [7244] STATEMENT:  select transition_trade(22,'paid_attested','released','race-22-20','system');
+2026-10-08 03:40:27.833 GMT [7220] ERROR:  trade 22 is not in state paid_attested
+2026-10-08 03:40:27.833 GMT [7220] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 71 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:40:27.833 GMT [7220] STATEMENT:  select transition_trade(22,'paid_attested','released','race-22-14','system');
+2026-10-08 03:40:27.839 GMT [7223] ERROR:  trade 22 is not in state paid_attested
+2026-10-08 03:40:27.839 GMT [7223] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 71 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:40:27.839 GMT [7223] STATEMENT:  select transition_trade(22,'paid_attested','released','race-22-15','system');
+2026-10-08 03:40:27.839 GMT [7205] ERROR:  trade 22 is not in state paid_attested
+2026-10-08 03:40:27.839 GMT [7205] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 71 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:40:27.839 GMT [7205] STATEMENT:  select transition_trade(22,'paid_attested','released','race-22-1','system');
+2026-10-08 03:40:27.841 GMT [7229] ERROR:  trade 22 is not in state paid_attested
+2026-10-08 03:40:27.841 GMT [7229] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 71 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:40:27.841 GMT [7229] STATEMENT:  select transition_trade(22,'paid_attested','released','race-22-16','system');
+2026-10-08 03:40:27.843 GMT [7232] ERROR:  trade 22 is not in state paid_attested
+2026-10-08 03:40:27.843 GMT [7232] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 71 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:40:27.843 GMT [7232] STATEMENT:  select transition_trade(22,'paid_attested','released','race-22-12','system');
+2026-10-08 03:40:27.857 GMT [7242] ERROR:  trade 22 is not in state paid_attested
+2026-10-08 03:40:27.857 GMT [7242] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 71 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:40:27.857 GMT [7242] STATEMENT:  select transition_trade(22,'paid_attested','released','race-22-19','system');
+2026-10-08 03:40:27.861 GMT [7243] ERROR:  trade 22 is not in state paid_attested
+2026-10-08 03:40:27.861 GMT [7243] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 71 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:40:27.861 GMT [7243] STATEMENT:  select transition_trade(22,'paid_attested','released','race-22-18','system');
+2026-10-08 03:40:29.605 GMT [7376] ERROR:  insufficient funds on account 75
+2026-10-08 03:40:29.605 GMT [7376] CONTEXT:  PL/pgSQL function posting_apply() line 8 at RAISE
+	SQL statement "insert into posting(tx_id, account_id, asset, amount)
+	         values (v_id, (e->>'account')::bigint, (e->>'asset'), (e->>'amount')::numeric(78,0))"
+	PL/pgSQL function post_tx(text,text,bigint,jsonb,bytea) line 33 at SQL statement
+	SQL statement "SELECT post_tx(p_idem || ':ledger', 'trade_' || p_to, t.id, v_post, v_ev)"
+	PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 125 at PERFORM
+	SQL function "transition_trade" statement 1
+2026-10-08 03:40:29.605 GMT [7376] STATEMENT:  select transition_trade(31,'open','escrowed','g-31','gina');
+2026-10-08 03:40:29.620 GMT [7371] ERROR:  insufficient funds on account 75
+2026-10-08 03:40:29.620 GMT [7371] CONTEXT:  PL/pgSQL function posting_apply() line 8 at RAISE
+	SQL statement "insert into posting(tx_id, account_id, asset, amount)
+	         values (v_id, (e->>'account')::bigint, (e->>'asset'), (e->>'amount')::numeric(78,0))"
+	PL/pgSQL function post_tx(text,text,bigint,jsonb,bytea) line 33 at SQL statement
+	SQL statement "SELECT post_tx(p_idem || ':ledger', 'trade_' || p_to, t.id, v_post, v_ev)"
+	PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 125 at PERFORM
+	SQL function "transition_trade" statement 1
+2026-10-08 03:40:29.620 GMT [7371] STATEMENT:  select transition_trade(28,'open','escrowed','g-28','gina');
+2026-10-08 03:40:29.634 GMT [7379] ERROR:  insufficient funds on account 75
+2026-10-08 03:40:29.634 GMT [7379] CONTEXT:  PL/pgSQL function posting_apply() line 8 at RAISE
+	SQL statement "insert into posting(tx_id, account_id, asset, amount)
+	         values (v_id, (e->>'account')::bigint, (e->>'asset'), (e->>'amount')::numeric(78,0))"
+	PL/pgSQL function post_tx(text,text,bigint,jsonb,bytea) line 33 at SQL statement
+	SQL statement "SELECT post_tx(p_idem || ':ledger', 'trade_' || p_to, t.id, v_post, v_ev)"
+	PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 125 at PERFORM
+	SQL function "transition_trade" statement 1
+2026-10-08 03:40:29.634 GMT [7379] STATEMENT:  select transition_trade(25,'open','escrowed','g-25','gina');
+2026-10-08 03:40:29.640 GMT [7385] ERROR:  insufficient funds on account 75
+2026-10-08 03:40:29.640 GMT [7385] CONTEXT:  PL/pgSQL function posting_apply() line 8 at RAISE
+	SQL statement "insert into posting(tx_id, account_id, asset, amount)
+	         values (v_id, (e->>'account')::bigint, (e->>'asset'), (e->>'amount')::numeric(78,0))"
+	PL/pgSQL function post_tx(text,text,bigint,jsonb,bytea) line 33 at SQL statement
+	SQL statement "SELECT post_tx(p_idem || ':ledger', 'trade_' || p_to, t.id, v_post, v_ev)"
+	PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 125 at PERFORM
+	SQL function "transition_trade" statement 1
+2026-10-08 03:40:29.640 GMT [7385] STATEMENT:  select transition_trade(32,'open','escrowed','g-32','gina');
+2026-10-08 03:40:29.645 GMT [7372] ERROR:  insufficient funds on account 75
+2026-10-08 03:40:29.645 GMT [7372] CONTEXT:  PL/pgSQL function posting_apply() line 8 at RAISE
+	SQL statement "insert into posting(tx_id, account_id, asset, amount)
+	         values (v_id, (e->>'account')::bigint, (e->>'asset'), (e->>'amount')::numeric(78,0))"
+	PL/pgSQL function post_tx(text,text,bigint,jsonb,bytea) line 33 at SQL statement
+	SQL statement "SELECT post_tx(p_idem || ':ledger', 'trade_' || p_to, t.id, v_post, v_ev)"
+	PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 125 at PERFORM
+	SQL function "transition_trade" statement 1
+2026-10-08 03:40:29.645 GMT [7372] STATEMENT:  select transition_trade(29,'open','escrowed','g-29','gina');
+2026-10-08 03:40:29.658 GMT [7366] ERROR:  insufficient funds on account 75
+2026-10-08 03:40:29.658 GMT [7366] CONTEXT:  PL/pgSQL function posting_apply() line 8 at RAISE
+	SQL statement "insert into posting(tx_id, account_id, asset, amount)
+	         values (v_id, (e->>'account')::bigint, (e->>'asset'), (e->>'amount')::numeric(78,0))"
+	PL/pgSQL function post_tx(text,text,bigint,jsonb,bytea) line 33 at SQL statement
+	SQL statement "SELECT post_tx(p_idem || ':ledger', 'trade_' || p_to, t.id, v_post, v_ev)"
+	PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 125 at PERFORM
+	SQL function "transition_trade" statement 1
+2026-10-08 03:40:29.658 GMT [7366] STATEMENT:  select transition_trade(24,'open','escrowed','g-24','gina');
+2026-10-08 03:40:29.667 GMT [7386] ERROR:  insufficient funds on account 75
+2026-10-08 03:40:29.667 GMT [7386] CONTEXT:  PL/pgSQL function posting_apply() line 8 at RAISE
+	SQL statement "insert into posting(tx_id, account_id, asset, amount)
+	         values (v_id, (e->>'account')::bigint, (e->>'asset'), (e->>'amount')::numeric(78,0))"
+	PL/pgSQL function post_tx(text,text,bigint,jsonb,bytea) line 33 at SQL statement
+	SQL statement "SELECT post_tx(p_idem || ':ledger', 'trade_' || p_to, t.id, v_post, v_ev)"
+	PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 125 at PERFORM
+	SQL function "transition_trade" statement 1
+2026-10-08 03:40:29.667 GMT [7386] STATEMENT:  select transition_trade(33,'open','escrowed','g-33','gina');
+2026-10-08 03:40:29.676 GMT [7384] ERROR:  insufficient funds on account 75
+2026-10-08 03:40:29.676 GMT [7384] CONTEXT:  PL/pgSQL function posting_apply() line 8 at RAISE
+	SQL statement "insert into posting(tx_id, account_id, asset, amount)
+	         values (v_id, (e->>'account')::bigint, (e->>'asset'), (e->>'amount')::numeric(78,0))"
+	PL/pgSQL function post_tx(text,text,bigint,jsonb,bytea) line 33 at SQL statement
+	SQL statement "SELECT post_tx(p_idem || ':ledger', 'trade_' || p_to, t.id, v_post, v_ev)"
+	PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 125 at PERFORM
+	SQL function "transition_trade" statement 1
+2026-10-08 03:40:29.676 GMT [7384] STATEMENT:  select transition_trade(26,'open','escrowed','g-26','gina');
+2026-10-08 03:40:30.313 GMT [7438] ERROR:  insufficient funds on account 8
+2026-10-08 03:40:30.313 GMT [7438] CONTEXT:  PL/pgSQL function posting_apply() line 8 at RAISE
+	SQL statement "insert into posting(tx_id, account_id, asset, amount)
+	         values (v_id, (e->>'account')::bigint, (e->>'asset'), (e->>'amount')::numeric(78,0))"
+	PL/pgSQL function post_tx(text,text,bigint,jsonb,bytea) line 33 at SQL statement
+	SQL statement "SELECT post_tx(p_idem || ':ledger', 'trade_' || p_to, t.id, v_post, v_ev)"
+	PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 125 at PERFORM
+	SQL function "transition_trade" statement 1
+2026-10-08 03:40:30.313 GMT [7438] STATEMENT:  select transition_trade(35,'open','escrowed','pf-35','pu2');
+2026-10-08 03:40:30.317 GMT [7439] ERROR:  insufficient funds on account 8
+2026-10-08 03:40:30.317 GMT [7439] CONTEXT:  PL/pgSQL function posting_apply() line 8 at RAISE
+	SQL statement "insert into posting(tx_id, account_id, asset, amount)
+	         values (v_id, (e->>'account')::bigint, (e->>'asset'), (e->>'amount')::numeric(78,0))"
+	PL/pgSQL function post_tx(text,text,bigint,jsonb,bytea) line 33 at SQL statement
+	SQL statement "SELECT post_tx(p_idem || ':ledger', 'trade_' || p_to, t.id, v_post, v_ev)"
+	PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 125 at PERFORM
+	SQL function "transition_trade" statement 1
+2026-10-08 03:40:30.317 GMT [7439] STATEMENT:  select transition_trade(38,'open','escrowed','pf-38','pu5');
+2026-10-08 03:40:30.327 GMT [7436] ERROR:  insufficient funds on account 8
+2026-10-08 03:40:30.327 GMT [7436] CONTEXT:  PL/pgSQL function posting_apply() line 8 at RAISE
+	SQL statement "insert into posting(tx_id, account_id, asset, amount)
+	         values (v_id, (e->>'account')::bigint, (e->>'asset'), (e->>'amount')::numeric(78,0))"
+	PL/pgSQL function post_tx(text,text,bigint,jsonb,bytea) line 33 at SQL statement
+	SQL statement "SELECT post_tx(p_idem || ':ledger', 'trade_' || p_to, t.id, v_post, v_ev)"
+	PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 125 at PERFORM
+	SQL function "transition_trade" statement 1
+2026-10-08 03:40:30.327 GMT [7436] STATEMENT:  select transition_trade(36,'open','escrowed','pf-36','pu3');
+2026-10-08 03:40:30.336 GMT [7440] ERROR:  insufficient funds on account 8
+2026-10-08 03:40:30.336 GMT [7440] CONTEXT:  PL/pgSQL function posting_apply() line 8 at RAISE
+	SQL statement "insert into posting(tx_id, account_id, asset, amount)
+	         values (v_id, (e->>'account')::bigint, (e->>'asset'), (e->>'amount')::numeric(78,0))"
+	PL/pgSQL function post_tx(text,text,bigint,jsonb,bytea) line 33 at SQL statement
+	SQL statement "SELECT post_tx(p_idem || ':ledger', 'trade_' || p_to, t.id, v_post, v_ev)"
+	PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 125 at PERFORM
+	SQL function "transition_trade" statement 1
+2026-10-08 03:40:30.336 GMT [7440] STATEMENT:  select transition_trade(37,'open','escrowed','pf-37','pu4');
+2026-10-08 03:40:30.552 GMT [7455] ERROR:  trade 39 has no crypto leg to escrow
+2026-10-08 03:40:30.552 GMT [7455] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 63 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:40:30.552 GMT [7455] STATEMENT:  select transition_trade((select create_fiat_trade('f1','f2',null,null,'NGN',300000,1,'p2p')),'open','escrowed','fx0','f2');
+2026-10-08 03:40:30.988 GMT [7478] ERROR:  actor f3 may not do paid_claimed -> paid_attested on trade 40
+2026-10-08 03:40:30.988 GMT [7478] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 39 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:40:30.988 GMT [7478] STATEMENT:  select transition_trade(40,'paid_claimed','paid_attested','fx1','f3');
+2026-10-08 03:40:33.699 GMT [7584] ERROR:  a crypto leg needs the agreed rate
+2026-10-08 03:40:33.699 GMT [7584] CONTEXT:  PL/pgSQL function create_fiat_trade(text,text,text,numeric,text,numeric,numeric,text,text) line 8 at RAISE
+2026-10-08 03:40:33.699 GMT [7584] STATEMENT:  select create_fiat_trade('cr3','cr4','USDT',100,'GHS',1000,null,'p2p');
+2026-10-08 03:40:33.886 GMT [7589] ERROR:  a trade needs a positive fiat amount
+2026-10-08 03:40:33.886 GMT [7589] CONTEXT:  PL/pgSQL function create_fiat_trade(text,text,text,numeric,text,numeric,numeric,text,text) line 11 at RAISE
+2026-10-08 03:40:33.886 GMT [7589] STATEMENT:  select create_fiat_trade('cr5','cr6','USDT',100,'GHS',null,14,'p2p');
+2026-10-08 03:40:34.864 GMT [7629] ERROR:  idempotency key same-key was already used with a different payload
+2026-10-08 03:40:34.864 GMT [7629] CONTEXT:  PL/pgSQL function post_tx(text,text,bigint,jsonb,bytea) line 9 at RAISE
+2026-10-08 03:40:34.864 GMT [7629] STATEMENT:  select post_tx('same-key','x',null,jsonb_build_array(jsonb_build_object('account',120,'asset','USDT','amount',-400),jsonb_build_object('account',121,'asset','USDT','amount',400)));
+2026-10-08 03:40:39.248 GMT [7784] ERROR:  actor required: a rate with nobody's name on it cannot be defended later
+2026-10-08 03:40:39.248 GMT [7784] CONTEXT:  PL/pgSQL function set_rate(text,text,numeric,text,timestamp with time zone,text) line 7 at RAISE
+2026-10-08 03:40:39.248 GMT [7784] STATEMENT:  select set_rate('GHS','NGN',150,'  ');
+2026-10-08 03:40:39.392 GMT [7791] ERROR:  rate must be positive
+2026-10-08 03:40:39.392 GMT [7791] CONTEXT:  PL/pgSQL function set_rate(text,text,numeric,text,timestamp with time zone,text) line 10 at RAISE
+2026-10-08 03:40:39.392 GMT [7791] STATEMENT:  select set_rate('GHS','NGN',0,'pricing');
+2026-10-08 03:40:39.474 GMT [7797] ERROR:  rate must be positive
+2026-10-08 03:40:39.474 GMT [7797] CONTEXT:  PL/pgSQL function set_rate(text,text,numeric,text,timestamp with time zone,text) line 10 at RAISE
+2026-10-08 03:40:39.474 GMT [7797] STATEMENT:  select set_rate('GHS','NGN',-1,'pricing');
+2026-10-08 03:40:39.525 GMT [7803] ERROR:  a pair needs two different assets
+2026-10-08 03:40:39.525 GMT [7803] CONTEXT:  PL/pgSQL function set_rate(text,text,numeric,text,timestamp with time zone,text) line 9 at RAISE
+2026-10-08 03:40:39.525 GMT [7803] STATEMENT:  select set_rate('GHS','GHS',1,'pricing');
+2026-10-08 03:40:39.611 GMT [7809] ERROR:  unknown quote XYZ
+2026-10-08 03:40:39.611 GMT [7809] CONTEXT:  PL/pgSQL function set_rate(text,text,numeric,text,timestamp with time zone,text) line 12 at RAISE
+2026-10-08 03:40:39.611 GMT [7809] STATEMENT:  select set_rate('GHS','XYZ',1,'pricing');
+2026-10-08 03:40:39.675 GMT [7815] ERROR:  backdating refused: 2026-10-08 02:40:39.668741+00 is more than 00:00:05s in the past
+2026-10-08 03:40:39.675 GMT [7815] CONTEXT:  PL/pgSQL function set_rate(text,text,numeric,text,timestamp with time zone,text) line 17 at RAISE
+2026-10-08 03:40:39.675 GMT [7815] STATEMENT:  select set_rate('GHS','NGN',999,'pricing',now() - interval '1 hour');
+2026-10-08 03:40:39.782 GMT [7824] ERROR:  duplicate key value violates unique constraint "rate_card_one_per_moment"
+2026-10-08 03:40:39.782 GMT [7824] DETAIL:  Key (base_asset, quote_asset, effective_from)=(GHS, NGN, 2026-10-08 03:40:38.499076+00) already exists.
+2026-10-08 03:40:39.782 GMT [7824] STATEMENT:  insert into rate_card(base_asset,quote_asset,rate,effective_from,set_by) select 'GHS','NGN',150,min(effective_from),'dup' from rate_card where base_asset='GHS';
+2026-10-08 03:40:40.522 GMT [7867] ERROR:  permission denied for function set_rate
+2026-10-08 03:40:40.522 GMT [7867] STATEMENT:  select set_rate('GHS','NGN',150,'app');
+2026-10-08 03:40:40.576 GMT [7873] ERROR:  permission denied for function set_rate
+2026-10-08 03:40:40.576 GMT [7873] STATEMENT:  select set_rate('GHS','NGN',150,'ops-1');
+2026-10-08 03:40:40.630 GMT [7879] ERROR:  permission denied for function ops_transition
+2026-10-08 03:40:40.630 GMT [7879] STATEMENT:  select ops_transition(1,'x','y','k','z');
+2026-10-08 03:40:40.684 GMT [7885] ERROR:  permission denied for function ledger_deposit
+2026-10-08 03:40:40.684 GMT [7885] STATEMENT:  select ledger_deposit('pricing','USDT',999999,'steal-price');
+2026-10-08 03:40:40.744 GMT [7891] ERROR:  permission denied for table account
+2026-10-08 03:40:40.744 GMT [7891] STATEMENT:  select balance from account limit 1;
+2026-10-08 03:40:40.831 GMT [7897] ERROR:  permission denied for table rate_card
+2026-10-08 03:40:40.831 GMT [7897] STATEMENT:  insert into rate_card(base_asset,quote_asset,rate,set_by) values ('GHS','NGN',1500,'app');
+2026-10-08 03:40:40.874 GMT [7903] ERROR:  permission denied for table rate_card
+2026-10-08 03:40:40.874 GMT [7903] STATEMENT:  update rate_card set rate = 1500;
+2026-10-08 03:40:41.510 GMT [7940] ERROR:  actor tr1 may not do paid_claimed -> paid_attested on trade 46
+2026-10-08 03:40:41.510 GMT [7940] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 39 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:40:41.510 GMT [7940] STATEMENT:  select transition_trade(46,'paid_claimed','paid_attested','tc2','tr1');
+2026-10-08 03:40:41.552 GMT [7946] ERROR:  permission denied for function ops_transition
+2026-10-08 03:40:41.552 GMT [7946] STATEMENT:  select ops_transition(46,'paid_claimed','disputed','tc3','tr1');
+2026-10-08 03:40:41.604 GMT [7952] ERROR:  permission denied for function set_rate
+2026-10-08 03:40:41.604 GMT [7952] STATEMENT:  select set_rate('GHS','NGN',999,'tr1');
+2026-10-08 03:40:41.783 GMT [7959] ERROR:  permission denied for function ledger_deposit
+2026-10-08 03:40:41.783 GMT [7959] STATEMENT:  select ledger_deposit('tr1','GHS',999999,'steal-trader');
+2026-10-08 03:40:41.845 GMT [7965] ERROR:  permission denied for function _apply_transition
+2026-10-08 03:40:41.845 GMT [7965] STATEMENT:  select _apply_transition(46,'paid_claimed','disputed','tc9','tr1',true,null);
+2026-10-08 03:40:41.931 GMT [7971] ERROR:  permission denied for table trade
+2026-10-08 03:40:41.931 GMT [7971] STATEMENT:  insert into trade(seller,buyer,asset,amount) values ('platform','x','GHS',1);
+2026-10-08 03:40:42.074 GMT [7977] ERROR:  permission denied for table posting
+2026-10-08 03:40:42.074 GMT [7977] STATEMENT:  insert into posting(tx_id,account_id,asset,amount) values (1,(select min(id) from account),'GHS',1);
+2026-10-08 03:40:42.125 GMT [7983] ERROR:  permission denied for table account
+2026-10-08 03:40:42.125 GMT [7983] STATEMENT:  update account set balance = 999999 where id=(select min(id) from account);
+2026-10-08 03:40:42.592 GMT [34371] LOG:  checkpoint starting: immediate force wait
+2026-10-08 03:40:42.598 GMT [34371] LOG:  checkpoint complete: wrote 6 buffers (0.0%), wrote 3 SLRU buffers; 0 WAL file(s) added, 0 removed, 0 recycled; write=0.003 s, sync=0.001 s, total=0.007 s; sync files=9, longest=0.001 s, average=0.001 s; distance=5570 kB, estimate=5570 kB; lsn=0/B88F4B0, redo lsn=0/B88F458
+2026-10-08 03:41:40.857 GMT [8197] ERROR:  unbalanced transaction 1
+2026-10-08 03:41:40.857 GMT [8197] CONTEXT:  PL/pgSQL function posting_balanced() line 4 at RAISE
+2026-10-08 03:41:40.857 GMT [8197] STATEMENT:  select post_tx('t-unbal','x',null,jsonb_build_array(jsonb_build_object('account',1,'asset','USDT','amount',5),jsonb_build_object('account',2,'asset','USDT','amount',4)));
+2026-10-08 03:41:40.952 GMT [8202] ERROR:  insufficient funds on account 1
+2026-10-08 03:41:40.952 GMT [8202] CONTEXT:  PL/pgSQL function posting_apply() line 8 at RAISE
+	SQL statement "insert into posting(tx_id, account_id, asset, amount)
+	         values (v_id, (e->>'account')::bigint, (e->>'asset'), (e->>'amount')::numeric(78,0))"
+	PL/pgSQL function post_tx(text,text,bigint,jsonb,bytea) line 33 at SQL statement
+2026-10-08 03:41:40.952 GMT [8202] STATEMENT:  select post_tx('t-over','x',null,jsonb_build_array(jsonb_build_object('account',1,'asset','USDT','amount',-5),jsonb_build_object('account',2,'asset','USDT','amount',5)));
+2026-10-08 03:41:41.769 GMT [8223] ERROR:  UPDATE on posting is not allowed (append-only)
+2026-10-08 03:41:41.769 GMT [8223] CONTEXT:  PL/pgSQL function forbid_mutation() line 3 at RAISE
+2026-10-08 03:41:41.769 GMT [8223] STATEMENT:  update posting set amount = 1;
+2026-10-08 03:41:42.291 GMT [8228] ERROR:  DELETE on ledger_tx is not allowed (append-only)
+2026-10-08 03:41:42.291 GMT [8228] CONTEXT:  PL/pgSQL function forbid_mutation() line 3 at RAISE
+2026-10-08 03:41:42.291 GMT [8228] STATEMENT:  delete from ledger_tx;
+2026-10-08 03:41:42.613 GMT [8233] ERROR:  TRUNCATE on posting is not allowed (append-only)
+2026-10-08 03:41:42.613 GMT [8233] CONTEXT:  PL/pgSQL function forbid_mutation() line 3 at RAISE
+2026-10-08 03:41:42.613 GMT [8233] STATEMENT:  truncate posting;
+2026-10-08 03:41:42.668 GMT [8239] ERROR:  permission denied for table posting
+2026-10-08 03:41:42.668 GMT [8239] STATEMENT:  insert into posting(tx_id,account_id,asset,amount) values (1,1,'USDT',1);
+2026-10-08 03:41:43.055 GMT [8246] ERROR:  permission denied for table account
+2026-10-08 03:41:43.055 GMT [8246] STATEMENT:  update account set balance = 999999 where id=1;
+2026-10-08 03:41:43.201 GMT [8253] ERROR:  permission denied for function post_tx
+2026-10-08 03:41:43.201 GMT [8253] STATEMENT:  select post_tx('x','x',null,'[]'::jsonb);
+2026-10-08 03:41:43.332 GMT [8260] ERROR:  permission denied for function ledger_deposit
+2026-10-08 03:41:43.332 GMT [8260] STATEMENT:  select ledger_deposit('mallory','USDT',1000000,'steal-1');
+2026-10-08 03:41:43.453 GMT [8266] ERROR:  permission denied for function ledger_deposit
+2026-10-08 03:41:43.453 GMT [8266] STATEMENT:  select ledger_deposit('mallory','USDT',1000000,'steal-2');
+2026-10-08 03:41:43.602 GMT [8272] ERROR:  permission denied for function ops_transition
+2026-10-08 03:41:43.602 GMT [8272] STATEMENT:  select ops_transition(1,'a','b','x','ops-1');
+2026-10-08 03:41:43.736 GMT [8278] ERROR:  permission denied for function transition_trade
+2026-10-08 03:41:43.736 GMT [8278] STATEMENT:  select transition_trade(1,'a','b','x','u');
+2026-10-08 03:41:43.831 GMT [8284] ERROR:  permission denied for function _apply_transition
+2026-10-08 03:41:43.831 GMT [8284] STATEMENT:  select _apply_transition(1,'a','b','x','u',true,null);
+2026-10-08 03:41:46.497 GMT [8326] ERROR:  illegal transition escrowed -> released for p2p
+2026-10-08 03:41:46.497 GMT [8326] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 17 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:41:46.497 GMT [8326] STATEMENT:  select transition_trade(1,'escrowed','released','x-1','system');
+2026-10-08 03:41:47.839 GMT [8358] ERROR:  actor mallory may not do open -> escrowed on trade 2
+2026-10-08 03:41:47.839 GMT [8358] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 39 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:41:47.839 GMT [8358] STATEMENT:  select transition_trade(2,'open','escrowed','a1','mallory');
+2026-10-08 03:41:48.071 GMT [8366] ERROR:  actor au1 may not do escrowed -> paid_claimed on trade 2
+2026-10-08 03:41:48.071 GMT [8366] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 39 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:41:48.071 GMT [8366] STATEMENT:  select transition_trade(2,'escrowed','paid_claimed','a3','au1');
+2026-10-08 03:41:48.294 GMT [8373] ERROR:  actor au2 may not do paid_claimed -> paid_attested on trade 2
+2026-10-08 03:41:48.294 GMT [8373] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 39 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:41:48.294 GMT [8373] STATEMENT:  select transition_trade(2,'paid_claimed','paid_attested','a5','au2');
+2026-10-08 03:41:48.411 GMT [8379] ERROR:  illegal transition paid_claimed -> released for p2p
+2026-10-08 03:41:48.411 GMT [8379] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 17 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:41:48.411 GMT [8379] STATEMENT:  select transition_trade(2,'paid_claimed','released','a6','system');
+2026-10-08 03:41:48.680 GMT [8390] ERROR:  ops only: disputed -> resolved_refund
+2026-10-08 03:41:48.680 GMT [8390] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 24 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:41:48.680 GMT [8390] STATEMENT:  select transition_trade(2,'disputed','resolved_refund','a8','au1');
+2026-10-08 03:41:48.785 GMT [8395] ERROR:  fault applies only to vendor_vendor resolutions
+2026-10-08 03:41:48.785 GMT [8395] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 47 at RAISE
+	SQL function "ops_transition" statement 1
+2026-10-08 03:41:48.785 GMT [8395] STATEMENT:  select ops_transition(2,'disputed','resolved_refund','a9','ops-1','buyer');
+2026-10-08 03:41:49.186 GMT [8413] ERROR:  new row for relation "trade" violates check constraint "trade_platform_party"
+2026-10-08 03:41:49.186 GMT [8413] DETAIL:  Failing row contains (3, x, y, USDT, 1, open, 2026-10-08 03:41:49.174337+00, platform_inventory, USDT, 1, USDT, 1, 1.0000000000, USDT).
+2026-10-08 03:41:49.186 GMT [8413] CONTEXT:  SQL statement "insert into trade(seller, buyer, asset, amount, trade_type,
+	                    crypto_asset, crypto_amount, fiat_asset, fiat_amount, rate, deposit_asset)
+	       values (p_seller, p_buyer, p_asset, p_amount, p_type,
+	               p_asset, p_amount, p_asset, p_amount, 1, p_asset)
+	    returning id, state"
+	PL/pgSQL function create_trade(text,text,text,numeric,text) line 9 at SQL statement
+2026-10-08 03:41:49.186 GMT [8413] STATEMENT:  select create_trade('x','y','USDT',1,'platform_inventory');
+2026-10-08 03:41:49.265 GMT [8418] ERROR:  new row for relation "trade" violates check constraint "trade_platform_party"
+2026-10-08 03:41:49.265 GMT [8418] DETAIL:  Failing row contains (4, platform, y, USDT, 1, open, 2026-10-08 03:41:49.256257+00, p2p, USDT, 1, USDT, 1, 1.0000000000, USDT).
+2026-10-08 03:41:49.265 GMT [8418] CONTEXT:  SQL statement "insert into trade(seller, buyer, asset, amount, trade_type,
+	                    crypto_asset, crypto_amount, fiat_asset, fiat_amount, rate, deposit_asset)
+	       values (p_seller, p_buyer, p_asset, p_amount, p_type,
+	               p_asset, p_amount, p_asset, p_amount, 1, p_asset)
+	    returning id, state"
+	PL/pgSQL function create_trade(text,text,text,numeric,text) line 9 at SQL statement
+2026-10-08 03:41:49.265 GMT [8418] STATEMENT:  select create_trade('platform','y','USDT',1,'p2p');
+2026-10-08 03:41:49.834 GMT [8440] ERROR:  actor ivy may not do paid_claimed -> paid_attested on trade 5
+2026-10-08 03:41:49.834 GMT [8440] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 39 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:41:49.834 GMT [8440] STATEMENT:  select transition_trade(5,'paid_claimed','paid_attested','p3','ivy');
+2026-10-08 03:41:49.912 GMT [8445] ERROR:  actor platform may not do paid_claimed -> paid_attested on trade 5
+2026-10-08 03:41:49.912 GMT [8445] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 39 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:41:49.912 GMT [8445] STATEMENT:  select transition_trade(5,'paid_claimed','paid_attested','p4','platform');
+2026-10-08 03:41:51.509 GMT [8503] ERROR:  insufficient funds on account 8
+2026-10-08 03:41:51.509 GMT [8503] CONTEXT:  PL/pgSQL function posting_apply() line 8 at RAISE
+	SQL statement "insert into posting(tx_id, account_id, asset, amount)
+	         values (v_id, (e->>'account')::bigint, (e->>'asset'), (e->>'amount')::numeric(78,0))"
+	PL/pgSQL function post_tx(text,text,bigint,jsonb,bytea) line 33 at SQL statement
+	SQL statement "SELECT post_tx(p_idem || ':ledger', 'trade_' || p_to, t.id, v_post, v_ev)"
+	PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 125 at PERFORM
+	SQL function "transition_trade" statement 1
+2026-10-08 03:41:51.509 GMT [8503] STATEMENT:  select transition_trade(10,'open','escrowed','os-10','buyer5');
+2026-10-08 03:41:52.416 GMT [8525] ERROR:  actor jon may not do escrowed -> paid_claimed on trade 11
+2026-10-08 03:41:52.416 GMT [8525] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 39 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:41:52.416 GMT [8525] STATEMENT:  select transition_trade(11,'escrowed','paid_claimed','pb2','jon');
+2026-10-08 03:41:57.830 GMT [8647] ERROR:  fault buyer is inconsistent with resolved_release
+2026-10-08 03:41:57.830 GMT [8647] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 50 at RAISE
+	SQL function "ops_transition" statement 1
+2026-10-08 03:41:57.830 GMT [8647] STATEMENT:  select ops_transition(16,'disputed','resolved_release','v5x','ops-1','buyer');
+2026-10-08 03:41:57.924 GMT [8652] ERROR:  bad fault everyone
+2026-10-08 03:41:57.924 GMT [8652] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 45 at RAISE
+	SQL function "ops_transition" statement 1
+2026-10-08 03:41:57.924 GMT [8652] STATEMENT:  select ops_transition(16,'disputed','resolved_release','v5y','ops-1','everyone');
+2026-10-08 03:41:58.196 GMT [8663] ERROR:  insufficient funds on account 52
+2026-10-08 03:41:58.196 GMT [8663] CONTEXT:  PL/pgSQL function posting_apply() line 8 at RAISE
+	SQL statement "insert into posting(tx_id, account_id, asset, amount)
+	         values (v_id, (e->>'account')::bigint, (e->>'asset'), (e->>'amount')::numeric(78,0))"
+	PL/pgSQL function post_tx(text,text,bigint,jsonb,bytea) line 33 at SQL statement
+	SQL statement "SELECT post_tx(p_idem || ':ledger', 'trade_' || p_to, t.id, v_post, v_ev)"
+	PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 125 at PERFORM
+	SQL function "transition_trade" statement 1
+2026-10-08 03:41:58.196 GMT [8663] STATEMENT:  select transition_trade(17,'open','escrowed','v6e','va6');
+2026-10-08 03:41:58.791 GMT [8692] ERROR:  amount 6000 exceeds cap 5000 for vendor_vendor
+2026-10-08 03:41:58.791 GMT [8692] CONTEXT:  PL/pgSQL function create_trade(text,text,text,numeric,text) line 7 at RAISE
+2026-10-08 03:41:58.791 GMT [8692] STATEMENT:  select create_trade('cap1','cap2','USDT',6000,'vendor_vendor');
+2026-10-08 03:41:59.891 GMT [8734] ERROR:  claim window open until 2026-10-08 03:42:01.367752+00
+2026-10-08 03:41:59.891 GMT [8734] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 58 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:41:59.891 GMT [8734] STATEMENT:  select transition_trade(19,'paid_attested','released','wr1','system');
+2026-10-08 03:41:59.964 GMT [8740] ERROR:  claim window open until 2026-10-08 03:42:04.603134+00
+2026-10-08 03:41:59.964 GMT [8740] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 58 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:41:59.964 GMT [8740] STATEMENT:  select transition_trade(20,'paid_attested','released','wr2','system');
+2026-10-08 03:42:02.874 GMT [8766] ERROR:  claim window open until 2026-10-08 03:42:04.603134+00
+2026-10-08 03:42:02.874 GMT [8766] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 58 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:42:02.874 GMT [8766] STATEMENT:  select transition_trade(20,'paid_attested','released','wr5','system');
+2026-10-08 03:42:05.911 GMT [8787] ERROR:  system step: paid_attested -> released
+2026-10-08 03:42:05.911 GMT [8787] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 26 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:42:05.911 GMT [8787] STATEMENT:  select transition_trade(20,'paid_attested','released','wr7','alice');
+2026-10-08 03:42:06.903 GMT [8887] ERROR:  trade 22 is not in state paid_attested
+2026-10-08 03:42:06.903 GMT [8887] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 71 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:42:06.903 GMT [8887] STATEMENT:  select transition_trade(22,'paid_attested','released','race-22-18','system');
+2026-10-08 03:42:06.907 GMT [8851] ERROR:  trade 22 is not in state paid_attested
+2026-10-08 03:42:06.907 GMT [8851] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 71 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:42:06.907 GMT [8851] STATEMENT:  select transition_trade(22,'paid_attested','released','race-22-5','system');
+2026-10-08 03:42:06.911 GMT [8837] ERROR:  trade 22 is not in state paid_attested
+2026-10-08 03:42:06.911 GMT [8837] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 71 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:42:06.911 GMT [8837] STATEMENT:  select transition_trade(22,'paid_attested','released','race-22-2','system');
+2026-10-08 03:42:06.913 GMT [8867] ERROR:  trade 22 is not in state paid_attested
+2026-10-08 03:42:06.913 GMT [8867] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 71 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:42:06.913 GMT [8867] STATEMENT:  select transition_trade(22,'paid_attested','released','race-22-6','system');
+2026-10-08 03:42:06.914 GMT [8857] ERROR:  trade 22 is not in state paid_attested
+2026-10-08 03:42:06.914 GMT [8857] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 71 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:42:06.914 GMT [8857] STATEMENT:  select transition_trade(22,'paid_attested','released','race-22-4','system');
+2026-10-08 03:42:06.922 GMT [8863] ERROR:  trade 22 is not in state paid_attested
+2026-10-08 03:42:06.922 GMT [8863] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 71 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:42:06.922 GMT [8863] STATEMENT:  select transition_trade(22,'paid_attested','released','race-22-11','system');
+2026-10-08 03:42:06.923 GMT [8864] ERROR:  trade 22 is not in state paid_attested
+2026-10-08 03:42:06.923 GMT [8864] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 71 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:42:06.923 GMT [8864] STATEMENT:  select transition_trade(22,'paid_attested','released','race-22-15','system');
+2026-10-08 03:42:06.930 GMT [8865] ERROR:  trade 22 is not in state paid_attested
+2026-10-08 03:42:06.930 GMT [8865] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 71 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:42:06.930 GMT [8865] STATEMENT:  select transition_trade(22,'paid_attested','released','race-22-14','system');
+2026-10-08 03:42:06.931 GMT [8861] ERROR:  trade 22 is not in state paid_attested
+2026-10-08 03:42:06.931 GMT [8861] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 71 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:42:06.931 GMT [8861] STATEMENT:  select transition_trade(22,'paid_attested','released','race-22-10','system');
+2026-10-08 03:42:06.934 GMT [8862] ERROR:  trade 22 is not in state paid_attested
+2026-10-08 03:42:06.934 GMT [8862] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 71 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:42:06.934 GMT [8862] STATEMENT:  select transition_trade(22,'paid_attested','released','race-22-12','system');
+2026-10-08 03:42:06.936 GMT [8881] ERROR:  trade 22 is not in state paid_attested
+2026-10-08 03:42:06.936 GMT [8881] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 71 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:42:06.936 GMT [8881] STATEMENT:  select transition_trade(22,'paid_attested','released','race-22-17','system');
+2026-10-08 03:42:06.939 GMT [8866] ERROR:  trade 22 is not in state paid_attested
+2026-10-08 03:42:06.939 GMT [8866] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 71 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:42:06.939 GMT [8866] STATEMENT:  select transition_trade(22,'paid_attested','released','race-22-8','system');
+2026-10-08 03:42:06.944 GMT [8860] ERROR:  trade 22 is not in state paid_attested
+2026-10-08 03:42:06.944 GMT [8860] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 71 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:42:06.944 GMT [8860] STATEMENT:  select transition_trade(22,'paid_attested','released','race-22-9','system');
+2026-10-08 03:42:06.946 GMT [8859] ERROR:  trade 22 is not in state paid_attested
+2026-10-08 03:42:06.946 GMT [8859] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 71 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:42:06.946 GMT [8859] STATEMENT:  select transition_trade(22,'paid_attested','released','race-22-7','system');
+2026-10-08 03:42:06.952 GMT [8884] ERROR:  trade 22 is not in state paid_attested
+2026-10-08 03:42:06.952 GMT [8884] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 71 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:42:06.952 GMT [8884] STATEMENT:  select transition_trade(22,'paid_attested','released','race-22-19','system');
+2026-10-08 03:42:06.952 GMT [8845] ERROR:  trade 22 is not in state paid_attested
+2026-10-08 03:42:06.952 GMT [8845] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 71 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:42:06.952 GMT [8845] STATEMENT:  select transition_trade(22,'paid_attested','released','race-22-3','system');
+2026-10-08 03:42:06.962 GMT [8885] ERROR:  trade 22 is not in state paid_attested
+2026-10-08 03:42:06.962 GMT [8885] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 71 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:42:06.962 GMT [8885] STATEMENT:  select transition_trade(22,'paid_attested','released','race-22-20','system');
+2026-10-08 03:42:06.963 GMT [8871] ERROR:  trade 22 is not in state paid_attested
+2026-10-08 03:42:06.963 GMT [8871] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 71 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:42:06.963 GMT [8871] STATEMENT:  select transition_trade(22,'paid_attested','released','race-22-13','system');
+2026-10-08 03:42:06.968 GMT [8886] ERROR:  trade 22 is not in state paid_attested
+2026-10-08 03:42:06.968 GMT [8886] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 71 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:42:06.968 GMT [8886] STATEMENT:  select transition_trade(22,'paid_attested','released','race-22-16','system');
+2026-10-08 03:42:08.634 GMT [9006] ERROR:  insufficient funds on account 75
+2026-10-08 03:42:08.634 GMT [9006] CONTEXT:  PL/pgSQL function posting_apply() line 8 at RAISE
+	SQL statement "insert into posting(tx_id, account_id, asset, amount)
+	         values (v_id, (e->>'account')::bigint, (e->>'asset'), (e->>'amount')::numeric(78,0))"
+	PL/pgSQL function post_tx(text,text,bigint,jsonb,bytea) line 33 at SQL statement
+	SQL statement "SELECT post_tx(p_idem || ':ledger', 'trade_' || p_to, t.id, v_post, v_ev)"
+	PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 125 at PERFORM
+	SQL function "transition_trade" statement 1
+2026-10-08 03:42:08.634 GMT [9006] STATEMENT:  select transition_trade(26,'open','escrowed','g-26','gina');
+2026-10-08 03:42:08.647 GMT [9021] ERROR:  insufficient funds on account 75
+2026-10-08 03:42:08.647 GMT [9021] CONTEXT:  PL/pgSQL function posting_apply() line 8 at RAISE
+	SQL statement "insert into posting(tx_id, account_id, asset, amount)
+	         values (v_id, (e->>'account')::bigint, (e->>'asset'), (e->>'amount')::numeric(78,0))"
+	PL/pgSQL function post_tx(text,text,bigint,jsonb,bytea) line 33 at SQL statement
+	SQL statement "SELECT post_tx(p_idem || ':ledger', 'trade_' || p_to, t.id, v_post, v_ev)"
+	PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 125 at PERFORM
+	SQL function "transition_trade" statement 1
+2026-10-08 03:42:08.647 GMT [9021] STATEMENT:  select transition_trade(30,'open','escrowed','g-30','gina');
+2026-10-08 03:42:08.651 GMT [9011] ERROR:  insufficient funds on account 75
+2026-10-08 03:42:08.651 GMT [9011] CONTEXT:  PL/pgSQL function posting_apply() line 8 at RAISE
+	SQL statement "insert into posting(tx_id, account_id, asset, amount)
+	         values (v_id, (e->>'account')::bigint, (e->>'asset'), (e->>'amount')::numeric(78,0))"
+	PL/pgSQL function post_tx(text,text,bigint,jsonb,bytea) line 33 at SQL statement
+	SQL statement "SELECT post_tx(p_idem || ':ledger', 'trade_' || p_to, t.id, v_post, v_ev)"
+	PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 125 at PERFORM
+	SQL function "transition_trade" statement 1
+2026-10-08 03:42:08.651 GMT [9011] STATEMENT:  select transition_trade(29,'open','escrowed','g-29','gina');
+2026-10-08 03:42:08.660 GMT [9008] ERROR:  insufficient funds on account 75
+2026-10-08 03:42:08.660 GMT [9008] CONTEXT:  PL/pgSQL function posting_apply() line 8 at RAISE
+	SQL statement "insert into posting(tx_id, account_id, asset, amount)
+	         values (v_id, (e->>'account')::bigint, (e->>'asset'), (e->>'amount')::numeric(78,0))"
+	PL/pgSQL function post_tx(text,text,bigint,jsonb,bytea) line 33 at SQL statement
+	SQL statement "SELECT post_tx(p_idem || ':ledger', 'trade_' || p_to, t.id, v_post, v_ev)"
+	PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 125 at PERFORM
+	SQL function "transition_trade" statement 1
+2026-10-08 03:42:08.660 GMT [9008] STATEMENT:  select transition_trade(28,'open','escrowed','g-28','gina');
+2026-10-08 03:42:08.665 GMT [9003] ERROR:  insufficient funds on account 75
+2026-10-08 03:42:08.665 GMT [9003] CONTEXT:  PL/pgSQL function posting_apply() line 8 at RAISE
+	SQL statement "insert into posting(tx_id, account_id, asset, amount)
+	         values (v_id, (e->>'account')::bigint, (e->>'asset'), (e->>'amount')::numeric(78,0))"
+	PL/pgSQL function post_tx(text,text,bigint,jsonb,bytea) line 33 at SQL statement
+	SQL statement "SELECT post_tx(p_idem || ':ledger', 'trade_' || p_to, t.id, v_post, v_ev)"
+	PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 125 at PERFORM
+	SQL function "transition_trade" statement 1
+2026-10-08 03:42:08.665 GMT [9003] STATEMENT:  select transition_trade(24,'open','escrowed','g-24','gina');
+2026-10-08 03:42:08.671 GMT [9023] ERROR:  insufficient funds on account 75
+2026-10-08 03:42:08.671 GMT [9023] CONTEXT:  PL/pgSQL function posting_apply() line 8 at RAISE
+	SQL statement "insert into posting(tx_id, account_id, asset, amount)
+	         values (v_id, (e->>'account')::bigint, (e->>'asset'), (e->>'amount')::numeric(78,0))"
+	PL/pgSQL function post_tx(text,text,bigint,jsonb,bytea) line 33 at SQL statement
+	SQL statement "SELECT post_tx(p_idem || ':ledger', 'trade_' || p_to, t.id, v_post, v_ev)"
+	PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 125 at PERFORM
+	SQL function "transition_trade" statement 1
+2026-10-08 03:42:08.671 GMT [9023] STATEMENT:  select transition_trade(31,'open','escrowed','g-31','gina');
+2026-10-08 03:42:08.678 GMT [9026] ERROR:  insufficient funds on account 75
+2026-10-08 03:42:08.678 GMT [9026] CONTEXT:  PL/pgSQL function posting_apply() line 8 at RAISE
+	SQL statement "insert into posting(tx_id, account_id, asset, amount)
+	         values (v_id, (e->>'account')::bigint, (e->>'asset'), (e->>'amount')::numeric(78,0))"
+	PL/pgSQL function post_tx(text,text,bigint,jsonb,bytea) line 33 at SQL statement
+	SQL statement "SELECT post_tx(p_idem || ':ledger', 'trade_' || p_to, t.id, v_post, v_ev)"
+	PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 125 at PERFORM
+	SQL function "transition_trade" statement 1
+2026-10-08 03:42:08.678 GMT [9026] STATEMENT:  select transition_trade(33,'open','escrowed','g-33','gina');
+2026-10-08 03:42:08.685 GMT [9027] ERROR:  insufficient funds on account 75
+2026-10-08 03:42:08.685 GMT [9027] CONTEXT:  PL/pgSQL function posting_apply() line 8 at RAISE
+	SQL statement "insert into posting(tx_id, account_id, asset, amount)
+	         values (v_id, (e->>'account')::bigint, (e->>'asset'), (e->>'amount')::numeric(78,0))"
+	PL/pgSQL function post_tx(text,text,bigint,jsonb,bytea) line 33 at SQL statement
+	SQL statement "SELECT post_tx(p_idem || ':ledger', 'trade_' || p_to, t.id, v_post, v_ev)"
+	PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 125 at PERFORM
+	SQL function "transition_trade" statement 1
+2026-10-08 03:42:08.685 GMT [9027] STATEMENT:  select transition_trade(32,'open','escrowed','g-32','gina');
+2026-10-08 03:42:09.417 GMT [9078] ERROR:  insufficient funds on account 8
+2026-10-08 03:42:09.417 GMT [9078] CONTEXT:  PL/pgSQL function posting_apply() line 8 at RAISE
+	SQL statement "insert into posting(tx_id, account_id, asset, amount)
+	         values (v_id, (e->>'account')::bigint, (e->>'asset'), (e->>'amount')::numeric(78,0))"
+	PL/pgSQL function post_tx(text,text,bigint,jsonb,bytea) line 33 at SQL statement
+	SQL statement "SELECT post_tx(p_idem || ':ledger', 'trade_' || p_to, t.id, v_post, v_ev)"
+	PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 125 at PERFORM
+	SQL function "transition_trade" statement 1
+2026-10-08 03:42:09.417 GMT [9078] STATEMENT:  select transition_trade(35,'open','escrowed','pf-35','pu2');
+2026-10-08 03:42:09.421 GMT [9079] ERROR:  insufficient funds on account 8
+2026-10-08 03:42:09.421 GMT [9079] CONTEXT:  PL/pgSQL function posting_apply() line 8 at RAISE
+	SQL statement "insert into posting(tx_id, account_id, asset, amount)
+	         values (v_id, (e->>'account')::bigint, (e->>'asset'), (e->>'amount')::numeric(78,0))"
+	PL/pgSQL function post_tx(text,text,bigint,jsonb,bytea) line 33 at SQL statement
+	SQL statement "SELECT post_tx(p_idem || ':ledger', 'trade_' || p_to, t.id, v_post, v_ev)"
+	PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 125 at PERFORM
+	SQL function "transition_trade" statement 1
+2026-10-08 03:42:09.421 GMT [9079] STATEMENT:  select transition_trade(36,'open','escrowed','pf-36','pu3');
+2026-10-08 03:42:09.439 GMT [9080] ERROR:  insufficient funds on account 8
+2026-10-08 03:42:09.439 GMT [9080] CONTEXT:  PL/pgSQL function posting_apply() line 8 at RAISE
+	SQL statement "insert into posting(tx_id, account_id, asset, amount)
+	         values (v_id, (e->>'account')::bigint, (e->>'asset'), (e->>'amount')::numeric(78,0))"
+	PL/pgSQL function post_tx(text,text,bigint,jsonb,bytea) line 33 at SQL statement
+	SQL statement "SELECT post_tx(p_idem || ':ledger', 'trade_' || p_to, t.id, v_post, v_ev)"
+	PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 125 at PERFORM
+	SQL function "transition_trade" statement 1
+2026-10-08 03:42:09.439 GMT [9080] STATEMENT:  select transition_trade(37,'open','escrowed','pf-37','pu4');
+2026-10-08 03:42:09.446 GMT [9077] ERROR:  insufficient funds on account 8
+2026-10-08 03:42:09.446 GMT [9077] CONTEXT:  PL/pgSQL function posting_apply() line 8 at RAISE
+	SQL statement "insert into posting(tx_id, account_id, asset, amount)
+	         values (v_id, (e->>'account')::bigint, (e->>'asset'), (e->>'amount')::numeric(78,0))"
+	PL/pgSQL function post_tx(text,text,bigint,jsonb,bytea) line 33 at SQL statement
+	SQL statement "SELECT post_tx(p_idem || ':ledger', 'trade_' || p_to, t.id, v_post, v_ev)"
+	PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 125 at PERFORM
+	SQL function "transition_trade" statement 1
+2026-10-08 03:42:09.446 GMT [9077] STATEMENT:  select transition_trade(34,'open','escrowed','pf-34','pu1');
+2026-10-08 03:42:09.785 GMT [9097] ERROR:  trade 39 has no crypto leg to escrow
+2026-10-08 03:42:09.785 GMT [9097] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 63 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:42:09.785 GMT [9097] STATEMENT:  select transition_trade((select create_fiat_trade('f1','f2',null,null,'NGN',300000,1,'p2p')),'open','escrowed','fx0','f2');
+2026-10-08 03:42:10.279 GMT [9120] ERROR:  actor f3 may not do paid_claimed -> paid_attested on trade 40
+2026-10-08 03:42:10.279 GMT [9120] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 39 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:42:10.279 GMT [9120] STATEMENT:  select transition_trade(40,'paid_claimed','paid_attested','fx1','f3');
+2026-10-08 03:42:12.719 GMT [9223] ERROR:  a crypto leg needs the agreed rate
+2026-10-08 03:42:12.719 GMT [9223] CONTEXT:  PL/pgSQL function create_fiat_trade(text,text,text,numeric,text,numeric,numeric,text,text) line 8 at RAISE
+2026-10-08 03:42:12.719 GMT [9223] STATEMENT:  select create_fiat_trade('cr3','cr4','USDT',100,'GHS',1000,null,'p2p');
+2026-10-08 03:42:12.797 GMT [9228] ERROR:  a trade needs a positive fiat amount
+2026-10-08 03:42:12.797 GMT [9228] CONTEXT:  PL/pgSQL function create_fiat_trade(text,text,text,numeric,text,numeric,numeric,text,text) line 11 at RAISE
+2026-10-08 03:42:12.797 GMT [9228] STATEMENT:  select create_fiat_trade('cr5','cr6','USDT',100,'GHS',null,14,'p2p');
+2026-10-08 03:42:13.512 GMT [9264] ERROR:  idempotency key same-key was already used with a different payload
+2026-10-08 03:42:13.512 GMT [9264] CONTEXT:  PL/pgSQL function post_tx(text,text,bigint,jsonb,bytea) line 9 at RAISE
+2026-10-08 03:42:13.512 GMT [9264] STATEMENT:  select post_tx('same-key','x',null,jsonb_build_array(jsonb_build_object('account',120,'asset','USDT','amount',-400),jsonb_build_object('account',121,'asset','USDT','amount',400)));
+2026-10-08 03:42:16.416 GMT [9420] ERROR:  actor required: a rate with nobody's name on it cannot be defended later
+2026-10-08 03:42:16.416 GMT [9420] CONTEXT:  PL/pgSQL function set_rate(text,text,numeric,text,timestamp with time zone,text) line 7 at RAISE
+2026-10-08 03:42:16.416 GMT [9420] STATEMENT:  select set_rate('GHS','NGN',150,'  ');
+2026-10-08 03:42:16.470 GMT [9427] ERROR:  rate must be positive
+2026-10-08 03:42:16.470 GMT [9427] CONTEXT:  PL/pgSQL function set_rate(text,text,numeric,text,timestamp with time zone,text) line 10 at RAISE
+2026-10-08 03:42:16.470 GMT [9427] STATEMENT:  select set_rate('GHS','NGN',0,'pricing');
+2026-10-08 03:42:16.525 GMT [9433] ERROR:  rate must be positive
+2026-10-08 03:42:16.525 GMT [9433] CONTEXT:  PL/pgSQL function set_rate(text,text,numeric,text,timestamp with time zone,text) line 10 at RAISE
+2026-10-08 03:42:16.525 GMT [9433] STATEMENT:  select set_rate('GHS','NGN',-1,'pricing');
+2026-10-08 03:42:16.632 GMT [9439] ERROR:  a pair needs two different assets
+2026-10-08 03:42:16.632 GMT [9439] CONTEXT:  PL/pgSQL function set_rate(text,text,numeric,text,timestamp with time zone,text) line 9 at RAISE
+2026-10-08 03:42:16.632 GMT [9439] STATEMENT:  select set_rate('GHS','GHS',1,'pricing');
+2026-10-08 03:42:16.701 GMT [9445] ERROR:  unknown quote XYZ
+2026-10-08 03:42:16.701 GMT [9445] CONTEXT:  PL/pgSQL function set_rate(text,text,numeric,text,timestamp with time zone,text) line 12 at RAISE
+2026-10-08 03:42:16.701 GMT [9445] STATEMENT:  select set_rate('GHS','XYZ',1,'pricing');
+2026-10-08 03:42:16.759 GMT [9452] ERROR:  backdating refused: 2026-10-08 02:42:16.751102+00 is more than 00:00:05s in the past
+2026-10-08 03:42:16.759 GMT [9452] CONTEXT:  PL/pgSQL function set_rate(text,text,numeric,text,timestamp with time zone,text) line 17 at RAISE
+2026-10-08 03:42:16.759 GMT [9452] STATEMENT:  select set_rate('GHS','NGN',999,'pricing',now() - interval '1 hour');
+2026-10-08 03:42:16.859 GMT [9460] ERROR:  duplicate key value violates unique constraint "rate_card_one_per_moment"
+2026-10-08 03:42:16.859 GMT [9460] DETAIL:  Key (base_asset, quote_asset, effective_from)=(GHS, NGN, 2026-10-08 03:42:15.488369+00) already exists.
+2026-10-08 03:42:16.859 GMT [9460] STATEMENT:  insert into rate_card(base_asset,quote_asset,rate,effective_from,set_by) select 'GHS','NGN',150,min(effective_from),'dup' from rate_card where base_asset='GHS';
+2026-10-08 03:42:17.347 GMT [9506] ERROR:  permission denied for function set_rate
+2026-10-08 03:42:17.347 GMT [9506] STATEMENT:  select set_rate('GHS','NGN',150,'app');
+2026-10-08 03:42:17.418 GMT [9512] ERROR:  permission denied for function set_rate
+2026-10-08 03:42:17.418 GMT [9512] STATEMENT:  select set_rate('GHS','NGN',150,'ops-1');
+2026-10-08 03:42:17.491 GMT [9518] ERROR:  permission denied for function ops_transition
+2026-10-08 03:42:17.491 GMT [9518] STATEMENT:  select ops_transition(1,'x','y','k','z');
+2026-10-08 03:42:17.543 GMT [9525] ERROR:  permission denied for function ledger_deposit
+2026-10-08 03:42:17.543 GMT [9525] STATEMENT:  select ledger_deposit('pricing','USDT',999999,'steal-price');
+2026-10-08 03:42:17.620 GMT [9531] ERROR:  permission denied for table account
+2026-10-08 03:42:17.620 GMT [9531] STATEMENT:  select balance from account limit 1;
+2026-10-08 03:42:17.693 GMT [9537] ERROR:  permission denied for table rate_card
+2026-10-08 03:42:17.693 GMT [9537] STATEMENT:  insert into rate_card(base_asset,quote_asset,rate,set_by) values ('GHS','NGN',1500,'app');
+2026-10-08 03:42:17.748 GMT [9543] ERROR:  permission denied for table rate_card
+2026-10-08 03:42:17.748 GMT [9543] STATEMENT:  update rate_card set rate = 1500;
+2026-10-08 03:42:18.311 GMT [9580] ERROR:  actor tr1 may not do paid_claimed -> paid_attested on trade 46
+2026-10-08 03:42:18.311 GMT [9580] CONTEXT:  PL/pgSQL function _apply_transition(bigint,text,text,text,text,boolean,text) line 39 at RAISE
+	SQL function "transition_trade" statement 1
+2026-10-08 03:42:18.311 GMT [9580] STATEMENT:  select transition_trade(46,'paid_claimed','paid_attested','tc2','tr1');
+2026-10-08 03:42:18.368 GMT [9586] ERROR:  permission denied for function ops_transition
+2026-10-08 03:42:18.368 GMT [9586] STATEMENT:  select ops_transition(46,'paid_claimed','disputed','tc3','tr1');
+2026-10-08 03:42:18.435 GMT [9593] ERROR:  permission denied for function set_rate
+2026-10-08 03:42:18.435 GMT [9593] STATEMENT:  select set_rate('GHS','NGN',999,'tr1');
+2026-10-08 03:42:18.488 GMT [9599] ERROR:  permission denied for function ledger_deposit
+2026-10-08 03:42:18.488 GMT [9599] STATEMENT:  select ledger_deposit('tr1','GHS',999999,'steal-trader');
+2026-10-08 03:42:18.572 GMT [9605] ERROR:  permission denied for function _apply_transition
+2026-10-08 03:42:18.572 GMT [9605] STATEMENT:  select _apply_transition(46,'paid_claimed','disputed','tc9','tr1',true,null);
+2026-10-08 03:42:18.667 GMT [9611] ERROR:  permission denied for table trade
+2026-10-08 03:42:18.667 GMT [9611] STATEMENT:  insert into trade(seller,buyer,asset,amount) values ('platform','x','GHS',1);
+2026-10-08 03:42:18.739 GMT [9618] ERROR:  permission denied for table posting
+2026-10-08 03:42:18.739 GMT [9618] STATEMENT:  insert into posting(tx_id,account_id,asset,amount) values (1,(select min(id) from account),'GHS',1);
+2026-10-08 03:42:18.804 GMT [9624] ERROR:  permission denied for table account
+2026-10-08 03:42:18.804 GMT [9624] STATEMENT:  update account set balance = 999999 where id=(select min(id) from account);
+2026-10-08 03:42:19.445 GMT [34371] LOG:  checkpoint starting: immediate force wait
+2026-10-08 03:42:19.458 GMT [34371] LOG:  checkpoint complete: wrote 15 buffers (0.1%), wrote 3 SLRU buffers; 0 WAL file(s) added, 0 removed, 0 recycled; write=0.008 s, sync=0.002 s, total=0.013 s; sync files=14, longest=0.001 s, average=0.001 s; distance=5627 kB, estimate=5627 kB; lsn=0/BE0E1A8, redo lsn=0/BE0E150
+2026-10-08 03:45:44.529 GMT [10556] ERROR:  permission denied for table account
+2026-10-08 03:45:44.529 GMT [10556] STATEMENT:  update account set balance = 999999 where id = (select min(id) from account)
+2026-10-08 03:45:44.789 GMT [10558] ERROR:  permission denied for table posting
+2026-10-08 03:45:44.789 GMT [10558] STATEMENT:  insert into posting(tx_id, account_id, asset, amount) values (1, (select min(id) from account), 'GHS', 1)

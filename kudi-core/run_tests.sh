@@ -12,6 +12,7 @@ asrole(){ printf 'set role %s;\n%s\n' "$1" "$2" | psql -X -q -t -A -v ON_ERROR_S
 asapp(){ asrole kudi_app "$1"; }
 asops(){ asrole kudi_ops "$1"; }
 asprice(){ asrole kudi_pricing "$1"; }
+astrader(){ asrole kudi_trader "$1"; }
 expect_eq()   { [ "$2" = "$3" ] && ok "$1" || bad "$1" "'$2' expected '$3'"; }
 expect_fail() { if echo "$2" | grep -qi "$3"; then ok "$1"; else bad "$1" "$2"; fi; }
 bal()  { sql "select balance from account where owner='$1' and asset='USDT' and kind='${2:-available}';"; }
@@ -20,7 +21,7 @@ ops()  { sql "select ops_transition($1,'$2','$3','$4','$5'${6:+,'$6'});" >/dev/n
 
 
 dropdb --if-exists "$DB" >/dev/null 2>&1; createdb "$DB" || exit 1
-for f in 001_core.sql 002_trade_types.sql 003_fiat_leg.sql 004_state_chain.sql 005_creation_anchor.sql 006_rate_card.sql; do
+for f in 001_core.sql 002_trade_types.sql 003_fiat_leg.sql 004_state_chain.sql 005_creation_anchor.sql 006_rate_card.sql 007_trader_role.sql; do
   psql -X -q -v ON_ERROR_STOP=1 -d "$DB" -f "$HERE/$f" >/dev/null || { echo "schema $f failed"; exit 1; }
 done
 sql "insert into asset values ('USDT',6),('GHS',2);" >/dev/null
@@ -450,6 +451,41 @@ expect_fail "the app cannot update a rate row" "$(asapp "update rate_card set ra
 expect_eq "the board is readable by both roles" "$(asops "select count(*) from rate_board;")" "2"
 expect_eq "the rate chain is verifiable by both" "$(asapp "select verify_rate_chain();")" "t"
 expect_eq "and the report now carries it" "$(asapp "select rate_chain_ok from integrity_report;")" "t"
+
+
+echo "== a trader can trade and cannot judge"
+asprice "select set_rate('GHS','NGN',148.20,'pricing@kudimarket.com');" >/dev/null
+sql "select ledger_deposit('tr1','GHS',500000,'dtr1');" >/dev/null
+TRD=$(sql "select create_fiat_trade('platform','tr1',null,null,'NGN',200000,148.20,'platform_inventory');")
+expect_eq "trader can open a trade against us" "$(sql "select state from trade where id=$TRD;")" "open"
+expect_eq "trader can claim their own payment" \
+  "$(astrader "select transition_trade($TRD,'open','paid_claimed','tc1','tr1'); select state from trade where id=$TRD;" | tail -1)" "paid_claimed"
+
+# Each of these asserts something the trader role must NOT be able to do. Using astrader rather than
+# asops matters: asops would pass for the wrong reason, because ops cannot set a rate either. Only
+# astrader proves the grant did not leak to the wrong account.
+expect_fail "a trader cannot attest their own payment" \
+  "$(astrader "select transition_trade($TRD,'paid_claimed','paid_attested','tc2','tr1');")" "system step\|may not"
+expect_fail "a trader cannot resolve a dispute" \
+  "$(astrader "select ops_transition($TRD,'paid_claimed','disputed','tc3','tr1');")" "permission denied\|ops only\|may not"
+expect_fail "a trader cannot publish a rate" \
+  "$(astrader "select set_rate('GHS','NGN',999,'tr1');")" "permission denied"
+expect_fail "a trader cannot mint a deposit" \
+  "$(astrader "select ledger_deposit('tr1','GHS',999999,'steal-trader');")" "permission denied"
+expect_fail "a trader cannot call the internal transition function" \
+  "$(astrader "select _apply_transition($TRD,'paid_claimed','disputed','tc9','tr1',true,null);")" "permission denied"
+expect_fail "a trader cannot write a trade row" \
+  "$(astrader "insert into trade(seller,buyer,asset,amount) values ('platform','x','GHS',1);")" "permission denied"
+expect_fail "a trader cannot write a posting" \
+  "$(astrader "insert into posting(tx_id,account_id,asset,amount) values (1,(select min(id) from account),'GHS',1);")" "permission denied"
+expect_fail "a trader cannot edit a balance" \
+  "$(astrader "update account set balance = 999999 where id=(select min(id) from account);")" "permission denied"
+# Both directions are on the card by this point, and rate_board lists one row per direction, so the
+# count is 2. Asserting 1 here would have been a test written to match the number I expected rather
+# than the number the product produces.
+expect_eq "a trader can read the board" "$(astrader "select count(*) from rate_board;")" "2"
+expect_eq "a trader can read their own trade" "$(astrader "select state from trade where id=$TRD;")" "paid_claimed"
+expect_eq "the ledger still balances" "$(sql "select count(*) from check_balances();")" "0"
 
 
 echo "== integrity"
