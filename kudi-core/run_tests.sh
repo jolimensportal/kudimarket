@@ -495,6 +495,8 @@ expect_fail "trader email must look like an address" "$(sql "insert into trader(
 expect_fail "trader needs a name" "$(sql "insert into trader(name,email,password) values ('  ','blank@example.com','x');")" "trader_name_check\|violates check"
 expect_fail "trader phone must be digits" "$(sql "insert into trader(name,email,phone,password) values ('D','d@example.com','+233-not-a-number','x');")" "violates check"
 expect_fail "a trader cannot verify themselves" "$(astrader "update trader set verified_at = now() where email='t1@example.com';")" "permission denied"
+expect_eq "a trader can write its own remember token" "$(astrader "update trader set remember_token='probe' where email='t1@example.com';")" ""
+expect_fail "but that is the ONLY column it may write" "$(astrader "update trader set name='Someone Else' where email='t1@example.com';")" "permission denied"
 expect_fail "a trader cannot rewrite their own kind" "$(astrader "update trader set kind='business' where email='t1@example.com';")" "permission denied"
 expect_fail "a trader cannot invent another trader" "$(astrader "insert into trader(name,email,password) values ('E','e@example.com','x');")" "permission denied"
 expect_eq "a trader can read the trader list" "$(astrader "select count(*) from trader;")" "1"
