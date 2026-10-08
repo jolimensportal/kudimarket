@@ -42,6 +42,36 @@
         <env name="DB_OPS_USERNAME" value="kudi_ops_login"/>
         <env name="DB_OPS_PASSWORD" value=""/>
 
+        <!-- The trader connection, for the same reason: the board must be read as kudi_trader, or a
+             test passes against a role the product never uses. -->
+        <env name="DB_TRADER_SOCKET" value="/tmp"/>
+        <env name="DB_TRADER_PORT" value="5433"/>
+        <env name="DB_TRADER_DATABASE" value="kudi_test"/>
+        <env name="DB_TRADER_USERNAME" value="kudi_trader_login"/>
+        <env name="DB_TRADER_PASSWORD" value=""/>
+
+        <!-- Pricing, because a test must publish a rate through the pricing role and SET ROLE is
+             session state that would otherwise leak into every later query on a shared connection. -->
+        <env name="DB_PRICING_SOCKET" value="/tmp"/>
+        <env name="DB_PRICING_PORT" value="5433"/>
+        <env name="DB_PRICING_DATABASE" value="kudi_test"/>
+        <env name="DB_PRICING_USERNAME" value="kudi_pricing_login"/>
+        <env name="DB_PRICING_PASSWORD" value=""/>
+
+        <!--
+            The admin connection too, and this one bit me. It reads DB_ADMIN_DATABASE, not
+            DB_DATABASE, so without these lines a test that publishes a rate through the admin
+            connection writes it into the development database while the application reads the test
+            database. The test then fails with "we have not published a rate" while quietly filling
+            kudi_dev with rows. Every connection the application has needs naming here, not just the
+            default one.
+        -->
+        <env name="DB_ADMIN_SOCKET" value="/tmp"/>
+        <env name="DB_ADMIN_PORT" value="5433"/>
+        <env name="DB_ADMIN_DATABASE" value="kudi_test"/>
+        <env name="DB_ADMIN_USERNAME" value="kudi"/>
+        <env name="DB_ADMIN_PASSWORD" value=""/>
+
         <!-- No DB_URL. It overrides every individual setting above and silently wins. -->
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>

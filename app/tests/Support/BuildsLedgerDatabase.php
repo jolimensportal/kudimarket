@@ -28,11 +28,25 @@ trait BuildsLedgerDatabase
         '005_creation_anchor.sql',
         '006_rate_card.sql',
         '007_trader_role.sql',
+        '008_traders.sql',
     ];
 
     protected function buildLedgerDatabase(): void
     {
         if (self::$built) {
+            return;
+        }
+
+        // One database for the whole run, not one per test file. set_rate() refuses to backdate and the
+        // unique index refuses two rates at the same moment, so a second publish of the same pair in
+        // the same transaction is an error rather than a no-op. Rebuilding per file would make the
+        // second file's setup fail for a reason that has nothing to do with what it is testing.
+        //
+        // The cost is that test files share one database and must not assume they are alone. They do
+        // not: each creates its own traders and trades and asserts on those ids.
+        if (self::databaseExists()) {
+            self::$built = true;
+
             return;
         }
 
@@ -71,21 +85,52 @@ trait BuildsLedgerDatabase
         $this->psql($admin, 'postgres', "grant connect on database {$database} to kudi_app_login, kudi_ops_login, kudi_pricing_login, kudi_trader_login");
 
         foreach (self::CORE_FILES as $file) {
-            $sql = @file_get_contents("{$core}/{$file}");
+            $path = "{$core}/{$file}";
 
-            // 007 does not exist yet while Task 1 runs. Skipped rather than failed, because the task
-            // that creates it is Task 2 and this one is only about the database.
-            if ($sql === false) {
+            // Skipped rather than failed, so a task can run against the schema as it exists today
+            // rather than the schema the whole plan intends. The alternative is every task failing
+            // because a later file has not been written yet.
+            if (! is_readable($path)) {
                 continue;
             }
 
-            $this->psql($admin, $database, $sql);
+            $this->psql($admin, $database, (string) file_get_contents($path));
         }
 
         $this->psql($admin, $database, "insert into asset values ('GHS',2),('NGN',2),('USDT',6)");
         $this->psql($admin, $database, "update trade_policy set claim_window = '0 seconds'");
 
+        // Trades are written by kudi_trader and read by kudi_app; the console reads and adjudicates as
+        // kudi_ops. Every connection the application has needs to be able to reach the rows it is
+        // responsible for, or a test passes against a role the product never uses.
+        $this->psql($admin, $database, 'grant select, insert, update on trader to kudi_app, kudi_ops');
+
+        // And the sequence behind its identity column. A table grant without its sequence grants
+        // produces "permission denied for sequence", which is a confusing way to learn nothing.
+        $this->psql($admin, $database, 'grant usage, select on sequence trader_id_seq to kudi_app, kudi_ops');
+
         self::$built = true;
+    }
+
+    /**
+     * Whether the scratch database is already there.
+     *
+     * Checked before rebuilding because a fresh database means empty rate_card, and the rate-card
+     * tests legitimately need to publish a rate before others can read it. This is a deliberate
+     * trade: shared state, in exchange for a suite that can assert on a rate existing.
+     */
+    private static function databaseExists(): bool
+    {
+        $command = sprintf(
+            'psql -X -q -t -A -h /tmp -p 5433 -U %s -d postgres -c %s 2>&1',
+            escapeshellarg((string) config('database.connections.pgsql_admin.username')),
+            escapeshellarg('select 1 from pg_database where datname = \'kudi_test\'')
+        );
+
+        $output = [];
+        exec($command, $output, $status);
+
+        return $status === 0 && trim(implode('', $output)) === '1';
     }
 
     private function psql(array $connection, string $database, string $sql): void

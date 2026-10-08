@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Trader;
 use App\Models\User;
 
 return [
@@ -42,6 +43,14 @@ return [
             'driver' => 'session',
             'provider' => 'users',
         ],
+
+        // Traders get their own guard and their own session. Not tidiness: the Filament console signs
+        // operators in on 'web', and a trader session that shared that guard would put a customer's
+        // browser session and an operator's on the same footing.
+        'trader' => [
+            'driver' => 'session',
+            'provider' => 'traders',
+        ],
     ],
 
     /*
@@ -65,6 +74,11 @@ return [
         'users' => [
             'driver' => 'eloquent',
             'model' => env('AUTH_MODEL', User::class),
+        ],
+
+        'traders' => [
+            'driver' => 'eloquent',
+            'model' => Trader::class,
         ],
 
         // 'users' => [

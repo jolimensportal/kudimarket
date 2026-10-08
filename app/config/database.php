@@ -118,6 +118,44 @@ return [
         // Ops connection for the Filament console. The web app role cannot call ops_transition;
         // a dispute decision is a staff action and is recorded under this role. Separate from the
         // app connection so a compromise of the trader-facing app does not carry desk authority.
+        // The trader app's connection. A separate entry rather than reusing 'pgsql', because it is a
+        // different database role with different limits: kudi_trader can open a trade and claim, and
+        // cannot resolve a dispute or write a ledger row. If the trader app ever ran as kudi_app the
+        // two would look the same in code and stop being different in fact.
+        'pgsql_trader' => [
+            'driver' => 'pgsql',
+            'url' => env('DB_TRADER_URL'),
+            'host' => env('DB_TRADER_HOST', '127.0.0.1'),
+            'unix_socket' => env('DB_TRADER_SOCKET', ''),
+            'port' => env('DB_TRADER_PORT', '5432'),
+            'database' => env('DB_TRADER_DATABASE', 'kudi_dev'),
+            'username' => env('DB_TRADER_USERNAME', 'kudi_trader_login'),
+            'password' => env('DB_TRADER_PASSWORD', ''),
+            'charset' => 'utf8',
+            'prefix' => '',
+            'prefix_indexes' => true,
+        ],
+
+        // Pricing gets its own connection for the same reason ops and trader do: SET ROLE is session
+        // state, so switching a shared connection to kudi_pricing leaves every later query on that
+        // connection running as pricing. That bit once and looked like a permissions bug in 008.
+        'pgsql_pricing' => [
+            'driver' => 'pgsql',
+            'url' => env('DB_PRICING_URL'),
+            // host defaults to the socket, not 127.0.0.1. The pgsql driver prefers host over
+            // unix_socket, so a host defaulting to TCP silently wins over a configured socket and the
+            // connection is refused by a cluster that listens on a socket only. Matching pgsql_ops.
+            'host' => env('DB_PRICING_HOST', '/tmp'),
+            'unix_socket' => env('DB_PRICING_SOCKET', ''),
+            'port' => env('DB_PRICING_PORT', '5432'),
+            'database' => env('DB_PRICING_DATABASE', 'kudi_dev'),
+            'username' => env('DB_PRICING_USERNAME', 'kudi_pricing_login'),
+            'password' => env('DB_PRICING_PASSWORD', ''),
+            'charset' => 'utf8',
+            'prefix' => '',
+            'prefix_indexes' => true,
+        ],
+
         'pgsql_ops' => [
             'driver' => 'pgsql',
             'url' => env('DB_OPS_URL'),

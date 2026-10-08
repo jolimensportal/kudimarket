@@ -21,7 +21,7 @@ ops()  { sql "select ops_transition($1,'$2','$3','$4','$5'${6:+,'$6'});" >/dev/n
 
 
 dropdb --if-exists "$DB" >/dev/null 2>&1; createdb "$DB" || exit 1
-for f in 001_core.sql 002_trade_types.sql 003_fiat_leg.sql 004_state_chain.sql 005_creation_anchor.sql 006_rate_card.sql 007_trader_role.sql; do
+for f in 001_core.sql 002_trade_types.sql 003_fiat_leg.sql 004_state_chain.sql 005_creation_anchor.sql 006_rate_card.sql 007_trader_role.sql 008_traders.sql; do
   psql -X -q -v ON_ERROR_STOP=1 -d "$DB" -f "$HERE/$f" >/dev/null || { echo "schema $f failed"; exit 1; }
 done
 sql "insert into asset values ('USDT',6),('GHS',2);" >/dev/null
@@ -487,6 +487,19 @@ expect_eq "a trader can read the board" "$(astrader "select count(*) from rate_b
 expect_eq "a trader can read their own trade" "$(astrader "select state from trade where id=$TRD;")" "paid_claimed"
 expect_eq "the ledger still balances" "$(sql "select count(*) from check_balances();")" "0"
 
+
+echo "== traders"
+sql "insert into trader(name,email,password) values ('Trader One','t1@example.com','x');" >/dev/null
+expect_fail "trader email must be unique" "$(sql "insert into trader(name,email,password) values ('A','dup@example.com','x'); insert into trader(name,email,password) values ('B','dup@example.com','x');")" "duplicate key"
+expect_fail "trader email must look like an address" "$(sql "insert into trader(name,email,password) values ('C','notanemail','x');")" "trader_email_check\|violates check"
+expect_fail "trader needs a name" "$(sql "insert into trader(name,email,password) values ('  ','blank@example.com','x');")" "trader_name_check\|violates check"
+expect_fail "trader phone must be digits" "$(sql "insert into trader(name,email,phone,password) values ('D','d@example.com','+233-not-a-number','x');")" "violates check"
+expect_fail "a trader cannot verify themselves" "$(astrader "update trader set verified_at = now() where email='t1@example.com';")" "permission denied"
+expect_fail "a trader cannot rewrite their own kind" "$(astrader "update trader set kind='business' where email='t1@example.com';")" "permission denied"
+expect_fail "a trader cannot invent another trader" "$(astrader "insert into trader(name,email,password) values ('E','e@example.com','x');")" "permission denied"
+expect_eq "a trader can read the trader list" "$(astrader "select count(*) from trader;")" "1"
+expect_eq "trader table holds no balance column" "$(sql "select count(*) from information_schema.columns where table_name='trader' and column_name like '%balance%';")" "0"
+expect_eq "and the ledger still balances" "$(sql "select count(*) from check_balances();")" "0"
 
 echo "== integrity"
 expect_eq "cached balances equal sum of postings" "$(sql "select count(*) from check_balances();")" "0"
