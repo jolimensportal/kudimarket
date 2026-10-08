@@ -141,7 +141,15 @@
 <body>
     <header class="bar">
         <span class="mark">kudi<b>market</b></span>
-        <span class="num" style="font-size:14px;opacity:.75">{{ auth()->user()?->name }}</span>
+        @auth('trader')
+            <form method="post" action="{{ route('sign-out') }}" style="margin:0">
+                @csrf
+                <button type="submit" class="ghost"
+                        style="background:transparent;color:var(--bone);border:1px solid rgba(252,246,238,.35);min-height:36px;font-size:14px;font-weight:500;padding:4px 12px">
+                    {{ auth('trader')->user()->name }} &middot; sign out
+                </button>
+            </form>
+        @endauth
     </header>
 
     <main>
