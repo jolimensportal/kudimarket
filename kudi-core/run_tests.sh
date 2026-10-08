@@ -21,7 +21,7 @@ ops()  { sql "select ops_transition($1,'$2','$3','$4','$5'${6:+,'$6'});" >/dev/n
 
 
 dropdb --if-exists "$DB" >/dev/null 2>&1; createdb "$DB" || exit 1
-for f in 001_core.sql 002_trade_types.sql 003_fiat_leg.sql 004_state_chain.sql 005_creation_anchor.sql 006_rate_card.sql 007_trader_role.sql 008_traders.sql; do
+for f in 001_core.sql 002_trade_types.sql 003_fiat_leg.sql 004_state_chain.sql 005_creation_anchor.sql 006_rate_card.sql 007_trader_role.sql 008_traders.sql 009_offer_book.sql; do
   psql -X -q -v ON_ERROR_STOP=1 -d "$DB" -f "$HERE/$f" >/dev/null || { echo "schema $f failed"; exit 1; }
 done
 sql "insert into asset values ('USDT',6),('GHS',2);" >/dev/null
@@ -302,7 +302,8 @@ echo "== fiat leg: a crypto trade keeps both legs and its rate"
 sql "update trade_policy set claim_window='0 seconds';" >/dev/null
 sql "select ledger_deposit('cr1','USDT',5000,'dcr1');" >/dev/null
 T=$(sql "select create_fiat_trade('cr1','cr2','USDT',2000,'GHS',28000,14,'p2p');")
-expect_eq "rate is recorded" "$(sql "select rate from trade where id=$T;")" "14.0000000000"
+# 18 places, not 10: 009 widened trade.rate to match rate_card.rate. Same number.
+expect_eq "rate is recorded" "$(sql "select rate from trade where id=$T;")" "14.000000000000000000"
 expect_eq "quote view computes the actual rate" "$(sql "select actual_rate from trade_quote where id=$T;")" "14.000000000000"
 expect_eq "fiat amount is stored" "$(sql "select fiat_amount from trade where id=$T;")" "28000"
 tt $T open escrowed cr-e cr1; tt $T escrowed paid_claimed cr-c cr2; tt $T paid_claimed paid_attested cr-a cr1
@@ -546,6 +547,97 @@ expect_fail "a trader cannot rewrite their own kind" "$(astrader "update trader 
 expect_fail "a trader cannot invent another trader" "$(astrader "insert into trader(name,email,password) values ('E','e@example.com','x');")" "permission denied"
 expect_eq "a trader can read the trader list" "$(astrader "select count(*) from trader;")" "1"
 expect_eq "trader table holds no balance column" "$(sql "select count(*) from information_schema.columns where table_name='trader' and column_name like '%balance%';")" "0"
+expect_eq "and the ledger still balances" "$(sql "select count(*) from check_balances();")" "0"
+
+echo "== the offer book"
+# The supply side. Everything here is about a seller being unable to change what they said after a buyer
+# acted on it, and about an offer never being a price KudiMarket must honour.
+sql "select ledger_deposit('ama','NGN',5000000,'naira-for-ama');" >/dev/null
+sql "select ledger_deposit('kwesi','GHS',900000,'cedi-for-kwesi');" >/dev/null
+
+OF1=$(sql "select publish_offer('kwesi','NGN','GHS',200000,0.0060);")
+expect_eq "a seller can publish an offer" "$(sql "select seller from offer where id=$OF1;")" "kwesi"
+expect_eq "it is open and not expired" "$(sql "select expired from open_offer where id=$OF1;")" "f"
+expect_eq "nothing is escrowed by listing" "$(sql "select count(*) from account where owner like 'offer:%';")" "0"
+expect_eq "the offer chain verifies" "$(sql "select verify_offer_chain();")" "t"
+expect_eq "and the regulator-facing report says so" "$(sql "select offer_chain_ok from integrity_report;")" "t"
+expect_fail "a seller cannot publish an offer for themselves in both directions" \
+  "$(astrader "select publish_offer('kwesi','GHS','GHS',1000,1);")" "two different assets"
+expect_fail "an offer needs a positive amount" \
+  "$(astrader "select publish_offer('kwesi','NGN','GHS',0,0.0060);")" "must be positive"
+expect_fail "an offer needs a positive walk-away rate" \
+  "$(astrader "select publish_offer('kwesi','NGN','GHS',1000,0);")" "must be positive"
+expect_fail "an offer needs a lifetime" \
+  "$(astrader "select publish_offer('kwesi','NGN','GHS',1000,0.0060,interval '0 seconds');")" "lifetime"
+expect_fail "an offer may not live forever" \
+  "$(astrader "select publish_offer('kwesi','NGN','GHS',1000,0.0060,interval '2 days');")" "one day"
+expect_fail "an offer needs somebody's name on it" \
+  "$(astrader "select publish_offer('  ','NGN','GHS',1000,0.0060);")" "seller required"
+
+# APPEND-ONLY. This is the property the whole file exists for: a seller who can edit their walk-away after
+# a buyer acted on it can rewrite the terms of a deal that already happened.
+expect_fail "an offer cannot be edited" \
+  "$(sql "update offer set min_rate = 0.0001 where id=$OF1;")" "append.only\|immutable"
+expect_fail "an offer cannot be deleted" \
+  "$(sql "delete from offer where id=$OF1;")" "append.only\|immutable"
+# The trigger stays off across BOTH the tamper and the restore, and is switched back on only once the row
+# holds what the seller said. Re-enabling between them made the restore UPDATE itself get refused, so the
+# walk-away stayed rewritten and every later chain assertion in this file failed.
+sql "alter table offer disable trigger offer_append_only; update offer set min_rate = 0.0001 where id=$OF1;" >/dev/null
+expect_eq "rewriting the walk-away breaks the chain" "$(sql "select verify_offer_chain();")" "f"
+# Restore first, THEN re-enable. Written the other way round the update is refused by the very trigger
+# being restored, the walk-away stays rewritten, and the next assertion fails for a reason that looks like
+# a bug in the chain rather than a refused UPDATE.
+sql "update offer set min_rate = 0.0060 where id=$OF1; alter table offer enable trigger offer_append_only;" >/dev/null
+expect_eq "restoring the walk-away restores the chain" "$(sql "select verify_offer_chain();")" "t"
+
+# A WITHDRAWAL is an insert of a fact, not the erasure of the original statement.
+OF2=$(sql "select publish_offer('kwesi','NGN','GHS',150000,0.0060);")
+astrader "select cancel_offer($OF2,'kwesi');" >/dev/null
+expect_eq "a withdrawn offer keeps its original amount on the record" "$(sql "select amount from offer where id=$OF2;")" "150000"
+expect_eq "and is marked withdrawn" "$(sql "select reason from offer_withdrawal where offer_id=$OF2;")" "withdrawn"
+expect_eq "and is off the board" "$(sql "select count(*) from open_offer where id=$OF2;")" "0"
+expect_eq "and the chain still verifies" "$(sql "select verify_offer_chain();")" "t"
+expect_fail "a stranger cannot withdraw somebody else''s offer" \
+  "$(astrader "select cancel_offer($OF2,'ama');")" "may not withdraw"
+expect_fail "an offer cannot be withdrawn twice" \
+  "$(astrader "select cancel_offer($OF2,'kwesi');")" "no longer open"
+
+# THE WALK-AWAY IS NOT A PRICE. This is the distinction brand/product.html turns on: KudiMarket quotes its
+# own rate and is not a matching platform. An acceptance is priced by the CARD, so a seller whose
+# walk-away is met still trades at the board rate, not at the number they typed.
+asprice "select set_rate('NGN','GHS',0.006756756756756756,'pricing@kudimarket.com');" >/dev/null
+OF3=$(sql "select publish_offer('kwesi','NGN','GHS',200000,0.0060);")
+TRD_V=$(astrader "select accept_offer($OF3,'ama','ama');" 2>&1 | grep -oE '[0-9]+$' | head -1)
+expect_eq "accepting an offer creates a vendor_to_vendor trade" \
+  "$(sql "select trade_type from trade where id=$TRD_V;")" "vendor_vendor"
+expect_eq "priced by the rate card, not by the walk-away" \
+  "$(sql "select rate from trade where id=$TRD_V;")" "0.006756756756756756"
+expect_eq "the seller is the offer's seller" "$(sql "select seller from trade where id=$TRD_V;")" "kwesi"
+expect_eq "the buyer is whoever accepted" "$(sql "select buyer from trade where id=$TRD_V;")" "ama"
+expect_eq "accepting consumes the offer" "$(sql "select count(*) from open_offer where id=$OF3;")" "0"
+expect_eq "and records that it was filled, not withdrawn" "$(sql "select reason from offer_withdrawal where offer_id=$OF3;")" "filled"
+expect_eq "the offer chain still verifies" "$(sql "select verify_offer_chain();")" "t"
+expect_fail "the same offer cannot be sold twice" \
+  "$(astrader "select accept_offer($OF3,'ama','ama');")" "no longer open"
+
+# A walk-away the board no longer meets means the seller does not trade. This is the guard that stops a
+# seller being quietly filled at a price worse than the one they agreed to accept.
+OF4=$(sql "select publish_offer('kwesi','NGN','GHS',100000,0.0090);")
+expect_fail "an offer whose walk-away the board does not meet will not clear" \
+  "$(astrader "select accept_offer($OF4,'ama','ama');")" "will not clear"
+expect_eq "and it is still on the board for later" "$(sql "select count(*) from open_offer where id=$OF4;")" "1"
+OF5=$(sql "select publish_offer('ama','NGN','GHS',100000,0.0060);")
+expect_fail "a seller cannot accept their own offer" \
+  "$(astrader "select accept_offer($OF5,'ama','ama');")" "own offer"
+expect_fail "an expired offer cannot be accepted" \
+  "$(astrader "select accept_offer((select id from offer where seller='kwesi' and cancelled_at is null and expires_at <= now() limit 1),'ama','ama');")" "expired\|does not exist"
+
+# Permissions. The walk-away is the seller's own; the PRICE is not anybody's but pricing's.
+expect_fail "a trader cannot publish somebody else''s rate card" \
+  "$(astrader "select set_rate('NGN','GHS',9,'tr1');")" "permission denied"
+expect_eq "the offer book holds no balance column" \
+  "$(sql "select count(*) from information_schema.columns where table_name='offer' and column_name like '%balance%';")" "0"
 expect_eq "and the ledger still balances" "$(sql "select count(*) from check_balances();")" "0"
 
 echo "== integrity"
