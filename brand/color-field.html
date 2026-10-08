@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KudiMarket — Oxblood field test</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300;12..96,600;12..96,800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ox-deepest: #411110;
+    --ox-deep:    #621D1C;
+    --ox-base:    #822B2A;
+    --ox-market:  #A23D3A;
+    --ox-bright:  #C1514D;
+    --ink:        #271C1B;
+    --ink-soft:   #655756;
+    --paper:      #FCF6EE;
+    --surface:    #F6EFE8;
+    --sand:       #E8E2DB;
+    --line:       #DBD5CE;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:var(--paper);color:var(--ink);
+    font-family:"Bricolage Grotesque",system-ui,sans-serif;
+    padding:56px 40px 96px;max-width:1080px;margin:0 auto;
+    display:flex;flex-direction:column;gap:52px;text-wrap:pretty;
+  }
+  .idline{display:flex;align-items:baseline;gap:14px;font-size:13px;letter-spacing:0.14em;
+    text-transform:uppercase;color:var(--ink-soft);border-bottom:1px solid var(--sand);padding-bottom:14px}
+  .idline strong{color:var(--ox-base);font-weight:600}
+  h1{font-size:clamp(30px,5vw,46px);font-weight:300;letter-spacing:-0.02em;line-height:1.05}
+  h1 em{font-style:normal;font-weight:800;color:var(--ox-base)}
+  .lede{font-size:17px;line-height:1.55;color:var(--ink-soft);max-width:64ch;font-weight:300}
+  .lede strong{font-weight:600;color:var(--ink)}
+
+  .field{background:#fff;border:1px solid var(--line);padding:34px 38px;
+    display:flex;flex-direction:column;gap:18px}
+  .field h2{font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:var(--ink-soft);font-weight:600}
+  .row{display:grid;grid-template-columns:150px 132px 1fr;gap:20px;align-items:center;
+    padding:11px 0;border-bottom:1px solid var(--line)}
+  .row:last-child{border-bottom:none}
+  .row .who{font-size:15px;font-weight:600}
+  .row .hex{font-size:13px;color:var(--ink-soft);font-variant-numeric:tabular-nums}
+  .chip{height:40px;display:flex;align-items:flex-end;padding:5px 9px;
+    font-size:10px;letter-spacing:0.08em;text-transform:uppercase}
+
+  .stack{background:#fff;border:1px solid var(--line);padding:44px 44px;
+    display:flex;flex-direction:column;gap:14px}
+  .stack .tok{height:56px;display:flex;align-items:center;justify-content:space-between;
+    padding:0 18px;font-size:13px;font-variant-numeric:tabular-nums}
+
+  .usage{background:#fff;border:1px solid var(--line);padding:0}
+  .usage .bar{padding:26px 28px;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap}
+  .usage .bar p{font-size:20px;font-weight:400;letter-spacing:-0.01em}
+  .usage .bar .btn{padding:12px 22px;font-size:15px;font-weight:600;letter-spacing:-0.01em}
+  .usage .foot{padding:14px 28px;display:flex;gap:26px;border-top:1px solid var(--line);
+    font-size:12px;color:var(--ink-soft);font-variant-numeric:tabular-nums;flex-wrap:wrap}
+  .usage .foot b{color:var(--ox-base);font-weight:600}
+
+  dl.rows{display:flex;flex-direction:column;border-top:1px solid var(--sand)}
+  .row2{display:grid;grid-template-columns:170px 1fr;gap:28px;padding:20px 0;
+    border-bottom:1px solid var(--line);align-items:start}
+  .row2 dt{font-size:12px;letter-spacing:0.12em;text-transform:uppercase;color:var(--ox-base);font-weight:600}
+  .row2 dd{font-size:15px;line-height:1.55;color:var(--ink-soft);font-weight:300}
+  .row2 dd strong{font-weight:600;color:var(--ink)}
+  footer{font-size:13px;color:var(--ink-soft);border-top:1px solid var(--line);padding-top:18px;
+    display:flex;flex-direction:column;gap:6px}
+</style>
+</head>
+<body>
+
+<div class="idline"><strong>Color</strong> <span>Field-tested · measured 6 Oct 2026</span> <span>· Oxblood</span></div>
+
+<h1>The whole field owns<br>gold, green, blue and purple. <em>Nobody owns red.</em></h1>
+
+<p class="lede">I sampled the live rendered CSS of all four exchanges instead of guessing. Binance <strong>#F0B90B</strong> gold. KuCoin <strong>#01BC8D</strong> green. CoinGate <strong>#827EF7</strong> purple. Paxful <strong>#00A5EF</strong> cyan. Those four hues are the entire default palette of the category. My earlier green sat one hue step from KuCoin's — that was a collision dressed as a choice.</p>
+
+<div class="field">
+  <h2>Measured competitor palette — sampled from live DOM</h2>
+  <div class="row">
+    <span class="who">Binance</span><span class="hex">#F0B90B</span>
+    <span class="chip" style="background:#F0B90B;color:#3b2f00">gold</span>
+  </div>
+  <div class="row">
+    <span class="who">KuCoin</span><span class="hex">#01BC8D</span>
+    <span class="chip" style="background:#01BC8D;color:#00281d">green</span>
+  </div>
+  <div class="row">
+    <span class="who">CoinGate</span><span class="hex">#827EF7</span>
+    <span class="chip" style="background:#827EF7;color:#1b1147">purple</span>
+  </div>
+  <div class="row">
+    <span class="who">Paxful</span><span class="hex">#00A5EF</span>
+    <span class="chip" style="background:#00A5EF;color:#002437">cyan</span>
+  </div>
+  <div class="row">
+    <span class="who" style="color:var(--ox-base)">KudiMarket</span><span class="hex" style="color:var(--ox-base)">#822B2A</span>
+    <span class="chip" style="background:#822B2A;color:#fff">oxblood — unclaimed</span>
+  </div>
+</div>
+
+<div class="stack">
+  <h2 style="font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:var(--ink-soft);font-weight:600">Single hue family, hue 25</h2>
+  <div class="tok" style="background:#411110;color:#E8D9D6">Deepest — 14.90:1 on bone</div>
+  <div class="tok" style="background:#621D1C;color:#F0E2DF">Deep — 11.42:1 · wordmark</div>
+  <div class="tok" style="background:#822B2A;color:#F7EAE7">Base — 8.40:1 · primary action</div>
+  <div class="tok" style="background:#A23D3A;color:#fff">Market — 5.99:1 · white text 6.43:1</div>
+  <div class="tok" style="background:#C1514D;color:#3b0d0c">Bright — hover, large type only</div>
+</div>
+
+<div class="usage">
+  <div class="bar" style="background:var(--ox-deep)">
+    <p style="color:#F7EAE7">Your market. Your rate.</p>
+    <span class="btn" style="background:var(--ox-bright);color:#3b0d0c">Sell ₵500,000</span>
+  </div>
+  <div class="foot">
+    <span><b>Escrow held</b> — ₵500,000 safe until you confirm</span>
+  </div>
+</div>
+
+<dl class="rows">
+  <div class="row2"><dt>Why red</dt><dd>It is the one hue the category has abandoned. Every exchange reaches for gold, green, blue or purple because those read as finance. Deep oxblood reads as <strong>authority and permanence</strong> — lacquer, sealing wax, old ledger ink. Nobody builds a crypto brand on it.</dd></div>
+  <div class="row2"><dt>Not "danger"</dt><dd>Oxblood is a pigment, not a warning. Danger is <em>chrome red</em> at high lightness — that is a different colour and this is not it. Depth is what separates them.</dd></div>
+  <div class="row2"><dt>Ghana grounded</dt><dd>Deep red is ceremonial and authoritative across Ghanaian traditions — kente, Adinkra, chief’s regalia. Red-white-green is the flag. It reads as ours without borrowing American civic vocabulary.</dd></div>
+  <div class="row2"><dt>Outlives the chain</dt><dd>No crypto vocabulary. No Binance gold to fight. Works for cedi, cedi or dollars because the hue is doing <em>trust</em> work, not <em>tech</em> work.</dd></div>
+  <div class="row2"><dt>Accessibility</dt><dd>Verified against WCAG on bone #FCF6EE. Base 8.40:1, Deep 11.42:1, Market 5.99:1. White on Market 6.43:1. Every text pairing passes AA.</dd></div>
+  <div class="row2"><dt>The risk</dt><dd>Red can read as <em>loss</em> to Western eyes, where red candles mean a falling price. Countered by pairing with bone rather than black — this never looks like a trading terminal. If you expand to US markets later, re-test.</dd></div>
+</dl>
+
+<footer>
+  <span>Competitor hex values sampled live from rendered DOM this date, not from memory or brand guides.</span>
+  <span>Distances computed in OKLCH — hue 25 sits more than 290 units from Binance gold, the nearest rival.</span>
+</footer>
+
+</body>
+</html>

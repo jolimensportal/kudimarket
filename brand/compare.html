@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KudiMarket — oxblood vs pine, same screens</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300;12..96,400;12..96,600;12..96,800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#FCF6EE; --surface:#F6EFE8; --sand:#E8E2DB; --line:#DBD5CE;
+    --bone:#F7EAE7;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--paper);font-family:"Bricolage Grotesque",system-ui,sans-serif;
+    padding:56px 40px 96px;max-width:1240px;margin:0 auto;display:flex;flex-direction:column;gap:44px;text-wrap:pretty}
+
+  .head{display:flex;flex-direction:column;gap:14px;border-bottom:1px solid var(--line);padding-bottom:24px}
+  .eyebrow{font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:#655756}
+  h1{font-size:clamp(28px,4.6vw,44px);font-weight:300;letter-spacing:-0.025em;line-height:1.06;color:#271C1B}
+  h1 b{font-weight:800}
+  .lede{font-size:17px;line-height:1.55;color:#655756;max-width:70ch;font-weight:300}
+  .lede b{color:#271C1B;font-weight:600}
+
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:28px}
+  .col{display:flex;flex-direction:column;gap:16px}
+  .colhead{display:flex;align-items:baseline;gap:12px;padding-bottom:12px;border-bottom:2px solid var(--line)}
+  .colhead .tag{font-size:13px;font-weight:600;letter-spacing:0.02em;padding:5px 11px}
+  .colhead .nm{font-size:20px;font-weight:600;letter-spacing:-0.02em;color:#271C1B}
+  .colhead .hxh{font-size:12px;color:#655756;font-variant-numeric:tabular-nums;margin-left:auto}
+
+  /* ============ SHARED PRODUCT SCREEN ============ */
+  .app{border:1px solid var(--line);background:#fff}
+  .app .bar{padding:16px 20px;display:flex;align-items:center;justify-content:space-between;gap:14px}
+  .app .bar .t{font-size:16px;font-weight:600;letter-spacing:-0.01em}
+  .app .bar .r{font-size:12px;font-variant-numeric:tabular-nums;opacity:.78}
+
+  .row2{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--line)}
+  .cellA{padding:16px 20px;border-right:1px solid var(--line)}
+  .cellA:last-child{border-right:none}
+  .cellA .lab{font-size:10.5px;letter-spacing:0.09em;text-transform:uppercase;opacity:.72;margin-bottom:9px;display:block}
+  .cellA .big{font-size:23px;font-weight:300;letter-spacing:-0.02em;font-variant-numeric:tabular-nums}
+  .cellA .big b{font-weight:700}
+  .delta{display:inline-flex;align-items:center;gap:5px;font-size:13px;font-weight:600;
+    padding:4px 9px;margin-top:9px;font-variant-numeric:tabular-nums}
+
+  .spark{padding:18px 20px;border-top:1px solid var(--line)}
+  .spark .hd{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px}
+  .spark .hd .n{font-size:13px;font-weight:600}
+  .spark .hd .p{font-size:12px;font-variant-numeric:tabular-nums}
+
+  .escrow{margin:14px;padding:12px 15px;display:flex;align-items:flex-start;gap:10px;font-size:13px;line-height:1.4}
+  .escrow .dot{font-size:10px;line-height:1.55}
+
+  .cta{margin:0 14px 14px;display:flex;gap:10px;align-items:center}
+  .cta .btn{flex:1;padding:13px 18px;font-size:14.5px;font-weight:700;text-align:center;letter-spacing:-0.01em}
+
+  .listing{margin:0 14px 14px;border:1px solid var(--line);padding:14px 16px;display:flex;
+    align-items:center;justify-content:space-between;gap:14px}
+  .listing .who{display:flex;flex-direction:column;gap:5px}
+  .listing .nm{font-size:14px;font-weight:600}
+  .listing .mt{font-size:11.5px;color:#655756;font-variant-numeric:tabular-nums}
+  .listing .rt{text-align:right}
+  .listing .rt .px{font-size:17px;font-weight:700;font-variant-numeric:tabular-nums}
+  .listing .rt .av{font-size:11px;color:#655756}
+
+  .verdict{border:1px solid var(--line);background:#fff;padding:26px 30px;display:flex;flex-direction:column;gap:16px}
+  .verdict h2{font-size:12px;letter-spacing:0.13em;text-transform:uppercase;color:#655756;font-weight:600}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+  .grid2 section{display:flex;flex-direction:column;gap:9px}
+  .grid2 h3{font-size:15px;font-weight:700;letter-spacing:-0.01em}
+  .grid2 ul{list-style:none;display:flex;flex-direction:column;gap:8px}
+  .grid2 li{font-size:14.5px;line-height:1.5;color:#655756;display:grid;grid-template-columns:16px 1fr;gap:9px}
+  .grid2 li i{font-style:normal;font-weight:700;grid-column:1}
+  .grid2 li span{grid-column:2}
+  .grid2 li b{color:#271C1B;font-weight:600}
+
+  .note{border-left:3px solid #822B2A;background:#fff;padding:18px 22px;font-size:14.5px;line-height:1.55;color:#655756}
+  .note b{color:#271C1B;font-weight:600}
+  footer{font-size:12.5px;color:#655756;border-top:1px solid var(--line);padding-top:16px;
+    display:flex;flex-direction:column;gap:5px}
+
+  /* ============ PALETTE A: OXBLOOD ============ */
+  .ox{--pri:#822B2A;--deep:#621D1C;--bright:#C1514D;--ink:#271C1B;--onbone:#411110;--ok:#2F7D4F}
+  .ox .bar{background:#621D1C;color:#F7EAE7}
+  .ox .tag{background:#822B2A;color:#fff}
+  .ox .up{background:#2F7D4F;color:#fff}
+  .ox .down{background:#C1514D;color:#3b0d0c}
+  .ox .cellA .big b{color:#822B2A}
+  .ox .escrow{background:#D7E8DC;color:#1B3D28}
+  .ox .btn{background:#F7EAE7;color:#411110}
+  .ox .cta .alt{background:#822B2A;color:#fff}
+  .ox .listing .px{color:#271C1B}
+
+  /* ============ PALETTE B: PINE ============ */
+  .pn{--pri:#1E4E2E;--deep:#163620;--bright:#2B663E;--ink:#163620;--onbone:#0E2A1A;--ok:#2B663E}
+  .pn .bar{background:#163620;color:#E4EFE7}
+  .pn .tag{background:#1E4E2E;color:#fff}
+  .pn .up{background:#2B663E;color:#fff}
+  .pn .down{background:#C1514D;color:#3b0d0c}
+  .pn .cellA .big b{color:#1E4E2E}
+  .pn .escrow{background:#D7E8DC;color:#1B3D28}
+  .pn .btn{background:#E4EFE7;color:#0E2A1A}
+  .pn .cta .alt{background:#1E4E2E;color:#fff}
+  .pn .listing .px{color:#163620}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <span class="eyebrow">Same product · same screens · two palettes</span>
+  <h1>Look at the loss state in column one.<br>Then tell me which logo you can live with.</h1>
+  <p class="lede">You cannot decide this from swatches. The oxblood problem is invisible in a palette strip and obvious in a live P2P listing. Watch what happens when a seller's rate moves <b>down</b> on an oxblood brand — the brand colour and the bad-news colour are the same family.</p>
+</div>
+
+<div class="cols">
+
+  <!-- ============ COLUMN A: OXBLOOD ============ -->
+  <div class="col ox">
+    <div class="colhead">
+      <span class="tag" style="background:#822B2A;color:#fff">A</span>
+      <span class="nm">Oxblood</span>
+      <span class="hxh">#822B2A</span>
+    </div>
+
+    <div class="app">
+      <div class="bar">
+        <span class="t">Sell USDT · Cedi</span>
+        <span class="r">30 sellers · 2 min ago</span>
+      </div>
+      <div class="row2">
+        <div class="cellA">
+          <span class="lab">Best rate</span>
+          <span class="big">₵1,742<small style="font-size:13px;opacity:.6"> / $1</small></span>
+          <span class="delta up">▲ 12.4 today</span>
+        </div>
+        <div class="cellA">
+          <span class="lab">24h range</span>
+          <span class="big">₵1,690<small style="font-size:13px;opacity:.6">–₵1,748</small></span>
+          <span class="delta down">▼ 3.1% today</span>
+        </div>
+      </div>
+      <div class="spark">
+        <div class="hd"><span class="n">BTC / NGN</span><span class="p" style="color:#1E4E2E">−3.1% today</span></div>
+        <svg viewBox="0 0 340 76" width="100%" height="76" role="img" aria-label="price trending down">
+          <polyline points="0,20 34,26 68,18 102,32 136,28 170,44 204,40 238,56 272,50 306,64 340,58"
+            fill="none" stroke="#C1514D" stroke-width="2.4" stroke-linejoin="round"/>
+          <circle cx="340" cy="58" r="4" fill="#C1514D"/>
+        </svg>
+      </div>
+    </div>
+
+    <div class="app">
+      <div class="listing">
+        <span class="who">
+          <span class="nm">ade_tunde</span>
+          <span class="mt">18 sales · verified · 4 min</span>
+        </span>
+        <span class="rt"><span class="px">₵1,742</span><br><span class="av">0.0% spread</span></span>
+      </div>
+    </div>
+
+    <div class="app">
+      <div class="escrow"><span class="dot">●</span><span><b>Escrow holding ₵1,742,000.</b> Released when you confirm. Nothing moves until you tap.</span></div>
+      <div class="cta">
+        <span class="btn">Sell ₵1,742,000</span>
+        <span class="btn alt">Cancel</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ COLUMN B: PINE ============ -->
+  <div class="col pn">
+    <div class="colhead">
+      <span class="tag" style="background:#1E4E2E;color:#fff">B</span>
+      <span class="nm">Deep pine</span>
+      <span class="hxh">#1E4E2E</span>
+    </div>
+
+    <div class="app">
+      <div class="bar">
+        <span class="t">Sell USDT · Cedi</span>
+        <span class="r">30 sellers · 2 min ago</span>
+      </div>
+      <div class="row2">
+        <div class="cellA">
+          <span class="lab">Best rate</span>
+          <span class="big">₵1,742<small style="font-size:13px;opacity:.6"> / $1</small></span>
+          <span class="delta up">▲ 12.4 today</span>
+        </div>
+        <div class="cellA">
+          <span class="lab">24h range</span>
+          <span class="big">₵1,690<small style="font-size:13px;opacity:.6">–₵1,748</small></span>
+          <span class="delta down">▼ 3.1% today</span>
+        </div>
+      </div>
+      <div class="spark">
+        <div class="hd"><span class="n">BTC / NGN</span><span class="p" style="color:#1E4E2E">−3.1% today</span></div>
+        <svg viewBox="0 0 340 76" width="100%" height="76" role="img" aria-label="price trending down">
+          <polyline points="0,20 34,26 68,18 102,32 136,28 170,44 204,40 238,56 272,50 306,64 340,58"
+            fill="none" stroke="#C1514D" stroke-width="2.4" stroke-linejoin="round"/>
+          <circle cx="340" cy="58" r="4" fill="#C1514D"/>
+        </svg>
+      </div>
+    </div>
+
+    <div class="app">
+      <div class="listing">
+        <span class="who">
+          <span class="nm">ade_tunde</span>
+          <span class="mt">18 sales · verified · 4 min</span>
+        </span>
+        <span class="rt"><span class="px">₵1,742</span><br><span class="av">0.0% spread</span></span>
+      </div>
+    </div>
+
+    <div class="app">
+      <div class="escrow"><span class="dot">●</span><span><b>Escrow holding ₵1,742,000.</b> Released when you confirm. Nothing moves until you tap.</span></div>
+      <div class="cta">
+        <span class="btn">Sell ₵1,742,000</span>
+        <span class="btn alt">Cancel</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="note">
+  <b>What to look at.</b> In both columns the falling rate is <span style="color:#C1514D;font-weight:600">#C1514D</span> — the same in both, because that colour is fixed by convention. In column A your brand <b>is</b> that family, so a bad rate reads as "the app is bleeding." In column B your brand is clearly separate, so red means only one thing: the rate dropped.
+</div>
+
+<div class="verdict">
+  <h2>What each one buys and costs</h2>
+  <div class="grid2">
+    <section>
+      <h3>A — Oxblood</h3>
+      <ul>
+        <li><i>+</i><span>Nobody in crypto owns it. <b>290 units clear of Binance</b>, 1965 of KuCoin.</span></li>
+        <li><i>+</i><span>Reads as lacquer, sealing wax, ledger ink — permanence.</span></li>
+        <li><i>+</i><span>Ceremonial red is deeply Ghanaian: kente, Adinkra, the Ashanti goldweights.</span></li>
+        <li><i>−</i><span><b>Fights your own loss state.</b> Brand hue and bad-news hue are one family.</span></li>
+        <li><i>−</i><span>Forced a second green for escrow, which then doubles as "gain."</span></li>
+        <li><i>−</i><span>Under deuteranopia it reads brown. Depth, not hue, carries it.</span></li>
+      </ul>
+    </section>
+    <section>
+      <h3>B — Deep pine</h3>
+      <ul>
+        <li><i>+</i><span><b>Cedi green.</b> The colour NG banking already teaches as "safe."</span></li>
+        <li><i>+</i><span>Red stays free to mean only one thing: the rate dropped.</span></li>
+        <li><i>+</i><span>Escrow green and gain green are the same idea, not two ideas.</span></li>
+        <li><i>−</i><span>Only 4.5 units from KuCoin — but that gap is almost all <b>lightness</b> (0.38 vs 0.71).</span></li>
+        <li><i>−</i><span>Close to existing NG bank greens. Needs a collision check before launch.</span></li>
+        <li><i>−</i><span>Less ownable. A competitor could sit next to you without looking absurd.</span></li>
+      </ul>
+    </section>
+  </div>
+</div>
+
+<footer>
+  <span>Both palettes rendered on identical markup — only colour variables differ. No screenshot tricks.</span>
+  <span>Loss colour #C1514D is held constant across both columns so the comparison is fair.</span>
+</footer>
+
+</body>
+</html>

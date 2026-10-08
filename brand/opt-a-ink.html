@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KudiMarket — Option A · Ink</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0D0906; --ink-base:#1C1916; --ink-mkt:#2E2925; --ink-brt:#45403A; --ink-lt:#625D58;
+    --loss:#933331; --loss-fill:#C1514D; --settled:#185B37; --settled-bg:#D7E8DC; --settled-ink:#1B3D28;
+    --bone:#FCF6EE; --surf:#F6EFE8; --sand:#E8E2DB; --line:#DBD5CE; --txt:#1C1916; --txt2:#6B635C;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bone);color:var(--txt);font-family:"Instrument Sans",system-ui,sans-serif;
+    padding:56px 40px 90px;max-width:1140px;margin:0 auto;display:flex;flex-direction:column;gap:44px;text-wrap:pretty}
+  .idline{display:flex;align-items:baseline;gap:14px;font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--txt2);border-bottom:1px solid var(--sand);padding-bottom:14px}
+  .idline strong{color:var(--ink-base);font-weight:600}
+  h1{font-size:clamp(28px,4.6vw,43px);font-weight:300;letter-spacing:-.025em;line-height:1.06}
+  h1 b{font-weight:800;color:var(--ink-base)}
+  .lede{font-size:17px;line-height:1.55;color:var(--txt2);max-width:66ch;font-weight:300}
+  .lede b{color:var(--txt);font-weight:600}
+
+  .lockup{background:#fff;border:1px solid var(--line);padding:46px 48px;display:flex;
+    align-items:center;justify-content:space-between;gap:26px;flex-wrap:wrap}
+  .wm{display:flex;flex-direction:column;line-height:.86}
+  .wm .k{font-size:clamp(42px,8.5vw,92px);font-weight:300;color:var(--ink);letter-spacing:.02em}
+  .wm .m{font-size:clamp(42px,8.5vw,92px);font-weight:800;color:var(--ink-base);letter-spacing:-.035em;margin-left:-.04em}
+  .lockup .side{display:flex;flex-direction:column;gap:8px;align-items:flex-end}
+  .lockup .side .tg{font-size:18px;color:var(--ink-base);letter-spacing:-.01em}
+  .lockup .side .hx{font-size:11.5px;color:var(--txt2);font-variant-numeric:tabular-nums}
+
+  .scale{background:#fff;border:1px solid var(--line);padding:0}
+  .scale .r{display:grid;grid-template-columns:150px 130px 1fr;gap:20px;align-items:center;
+    padding:14px 24px;border-bottom:1px solid var(--line)}
+  .scale .r:last-child{border-bottom:none}
+  .scale .sw{height:38px}
+  .scale .nm{font-size:14px;font-weight:600}
+  .scale .nm span{display:block;font-size:11px;color:var(--txt2);font-weight:400;
+    font-variant-numeric:tabular-nums;margin-top:2px}
+  .scale .jd{font-size:14px;line-height:1.5;color:var(--txt2)}
+  .scale .jd b{color:var(--txt);font-weight:600}
+
+  .screens{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+  .scr{border:1px solid var(--line);background:#fff}
+  .scr .hd{padding:13px 20px;display:flex;align-items:center;justify-content:space-between;
+    border-bottom:1px solid var(--line)}
+  .scr .hd .t{font-size:12.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--txt2);font-weight:600}
+  .scr .hd .c{font-size:11px;color:var(--txt2);font-variant-numeric:tabular-nums}
+  .scr .bd{padding:18px 20px;display:flex;flex-direction:column;gap:13px}
+
+  .band{background:var(--ink-base);color:#F2EFE9;padding:16px 20px;display:flex;align-items:center;
+    justify-content:space-between;gap:12px}
+  .band .l{font-size:14.5px;font-weight:600}
+  .band .r{font-size:19px;font-weight:800;font-variant-numeric:tabular-nums}
+  .flash{background:var(--settled-bg);color:var(--settled-ink);padding:13px 16px;display:flex;gap:10px;
+    align-items:flex-start;font-size:13.5px;line-height:1.45}
+  .flash .d,.alert .d{font-size:9px;line-height:1.75}
+  .alert{background:#F8E7E5;color:#5A1A18;padding:13px 16px;display:flex;gap:10px;align-items:flex-start;
+    font-size:13.5px;line-height:1.45}
+  .kv{display:flex;flex-direction:column;border:1px solid var(--line)}
+  .kv .line{display:flex;justify-content:space-between;gap:14px;padding:11px 15px;
+    border-bottom:1px solid var(--line);font-size:13.5px}
+  .kv .line:last-child{border-bottom:none}
+  .kv .k{color:var(--txt2)} .kv .v{font-weight:600;font-variant-numeric:tabular-nums}
+  .acts{display:flex;gap:9px}
+  .b{flex:1;padding:13px 16px;font-size:14px;font-weight:700;text-align:center;letter-spacing:-.01em}
+  .b-fill{background:var(--ink-base);color:#fff}
+  .b-ghost{background:var(--surf);color:var(--ink-base);border:1px solid var(--sand)}
+  .b-kill{background:var(--loss-fill);color:#fff}
+
+  .proof{border:1px solid var(--line);background:#fff;padding:26px 30px;display:flex;flex-direction:column;gap:15px}
+  .proof h2{font-size:12px;letter-spacing:.13em;text-transform:uppercase;color:var(--txt2);font-weight:600}
+  .prow{display:grid;grid-template-columns:190px 1fr 108px;gap:20px;align-items:center;
+    padding:12px 0;border-bottom:1px solid var(--line)}
+  .prow:last-child{border-bottom:none}
+  .prow .bn{font-size:14px;font-weight:600}
+  .prow .bn span{display:block;font-size:11px;color:var(--txt2);font-weight:400;margin-top:2px;
+    font-variant-numeric:tabular-nums}
+  .prow .ds{display:flex;gap:5px}
+  .prow .ds .b2{flex:1;height:30px}
+  .prow .v{font-size:14px;font-weight:700;text-align:right;font-variant-numeric:tabular-nums}
+
+  .note{border-left:3px solid var(--ink-base);background:#fff;padding:19px 24px;font-size:14.5px;
+    line-height:1.55;color:var(--txt2)}
+  .note b{color:var(--txt);font-weight:600}
+  dl.rules{display:flex;flex-direction:column;border-top:1px solid var(--line)}
+  .rules .r{display:grid;grid-template-columns:172px 1fr;gap:26px;padding:18px 0;
+    border-bottom:1px solid var(--line);align-items:start}
+  .rules dt{font-size:12px;letter-spacing:.11em;text-transform:uppercase;color:var(--txt2);font-weight:600}
+  .rules dd{font-size:15px;line-height:1.55;color:var(--txt2);font-weight:300}
+  .rules dd b{color:var(--txt);font-weight:600}
+  .nav{display:flex;gap:12px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:18px}
+  .nav{display:flex;gap:12px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:18px}
+  .nav a{font-size:13.5px;color:var(--txt2);text-decoration:none;border:1px solid var(--line);
+    padding:9px 15px;background:#fff;display:inline-block}
+  .nav a:hover{border-color:var(--ink-brt);color:var(--ink-base)}
+  .nav a.cur{background:var(--ink-base);color:#fff;border-color:var(--ink-base)}
+  footer{font-size:12.5px;color:var(--txt2);display:flex;flex-direction:column;gap:5px}
+</style>
+</head>
+<body>
+
+<div class="idline"><strong>Option A</strong> <span>No hue · deepest</span> <span>· Ink #1C1916</span></div>
+
+<h1>The brand has no colour.<br>It has <b>weight.</b></h1>
+
+<p class="lede">Achromatic on purpose. Every competitor in the measured field uses hue as its identity — <b>green 11 brands, blue 8</b>. Ink refuses that axis entirely. What it gains is depth: the whole crypto field averages lightness <b>0.61</b>, Ghanaian banks <b>0.51</b>. Ink sits at <b>0.216</b>. Nearest neighbour across all 38 brands is <b>6.67 units</b> away.</p>
+
+<div class="lockup">
+  <div class="wm"><span class="k">kudi</span><span class="m">market</span></div>
+  <div class="side">
+    <span class="tg">Your market. Your rate.</span>
+    <span class="hx">#0D0906 / #1C1916</span>
+  </div>
+</div>
+
+<div class="scale">
+  <div class="r"><span class="sw" style="background:#0D0906"></span>
+    <span class="nm">Ink<span>#0D0906</span></span>
+    <span class="jd">Wordmark first line, deepest chrome. <b>19.4:1</b> on bone.</span></div>
+  <div class="r"><span class="sw" style="background:#1C1916"></span>
+    <span class="nm">Ink Base<span>#1C1916</span></span>
+    <span class="jd">Primary buttons, navigation, wordmark second line. <b>17.5:1</b> with white text.</span></div>
+  <div class="r"><span class="sw" style="background:#2E2925"></span>
+    <span class="nm">Ink Mkt<span>#2E2925</span></span>
+    <span class="jd">Hover, secondary surfaces, table headers.</span></div>
+  <div class="r"><span class="sw" style="background:#45403A"></span>
+    <span class="nm">Ink Bright<span>#45403A</span></span>
+    <span class="jd">Focus rings, active indicators, disabled labels.</span></div>
+  <div class="r"><span class="sw" style="background:#625D58"></span>
+    <span class="nm">Ink Light<span>#625D58</span></span>
+    <span class="jd">Secondary text and metadata. <b>5.4:1</b> on bone — AA at body size.</span></div>
+</div>
+
+<div class="screens">
+  <div class="scr">
+    <div class="hd"><span class="t">Active trade</span><span class="c">2 min ago</span></div>
+    <div class="bd">
+      <div class="band"><span class="l">Selling USDT</span><span class="r">₵1,742,000</span></div>
+      <div class="flash"><span class="d">●</span><span><b>Escrow holding ₵1,742,000.</b> Released when you confirm. Nothing moves until you tap.</span></div>
+      <div class="kv">
+        <div class="line"><span class="k">Counterparty</span><span class="v">ade_tunde · 18 sales</span></div>
+        <div class="line"><span class="k">Agreed rate</span><span class="v">₵1,742 / $1</span></div>
+        <div class="line"><span class="k">Time left</span><span class="v">14:22</span></div>
+      </div>
+      <div class="acts"><span class="b b-fill">Release ₵1,742,000</span></div>
+      <div class="acts"><span class="b b-ghost">Appeal</span><span class="b b-kill">Cancel trade</span></div>
+    </div>
+  </div>
+  <div class="scr">
+    <div class="hd"><span class="t">Destructive + failure</span><span class="c">red = stop only</span></div>
+    <div class="bd">
+      <div class="alert"><span class="d">▲</span><span><b>Rate moved ₵1,742 → ₵1,690.</b> Your agreed rate is locked. Re-quote if you want to change it.</span></div>
+      <div class="kv">
+        <div class="line"><span class="k">Counterparty</span><span class="v" style="color:#933331">declined the trade</span></div>
+        <div class="line"><span class="k">Your offer</span><span class="v">₵1,742,000</span></div>
+        <div class="line"><span class="k">Escrow</span><span class="v" style="color:#185B37">released to you</span></div>
+      </div>
+      <div class="acts"><span class="b b-fill">Find another seller</span></div>
+      <div class="acts"><span class="b b-kill">Withdraw ₵1,742,000</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="proof">
+  <h2>Nearest competitor — measured across 38 brands</h2>
+  <div class="prow">
+    <span class="bn">Bybit<span>#F7A600 · gold</span></span>
+    <span class="ds"><span class="b2" style="background:#1C1916"></span><span class="b2" style="background:#F7A600"></span></span>
+    <span class="v">6.67</span>
+  </div>
+  <div class="prow">
+    <span class="bn">Binance<span>#F0B90B · gold</span></span>
+    <span class="ds"><span class="b2" style="background:#1C1916"></span><span class="b2" style="background:#F0B90B"></span></span>
+    <span class="v">19.28</span>
+  </div>
+  <div class="prow">
+    <span class="bn">GCB Bank<span>#00694B · green</span></span>
+    <span class="ds"><span class="b2" style="background:#1C1916"></span><span class="b2" style="background:#00694B"></span></span>
+    <span class="v">48.71</span>
+  </div>
+  <div class="prow">
+    <span class="bn">OKX<span>#111827 · near-black</span></span>
+    <span class="ds"><span class="b2" style="background:#1C1916"></span><span class="b2" style="background:#111827"></span></span>
+    <span class="v">17.62</span>
+  </div>
+</div>
+
+<div class="note">
+  <b>What you get.</b> The strongest brand of the three and the least to defend. No hue can be challenged, imitated by a gradient, or confused with a bank. It reads as an instrument rather than an app — closer to a ledger than to a feed. The wordmark carries the entire identity, which means <b>1c's light/heavy bilingual split becomes the brand</b> rather than a detail.
+</div>
+
+<dl class="rules">
+  <div class="r"><dt>The cost</dt><dd>No warmth. Ink can read cold, austere, or fintech-luxury. If the product leans hard into community and conversation — seller photos, chat, trust — achromatic may undersell the human side.</dd></div>
+  <div class="r"><dt>The bank risk</dt><dd>None. Nearest green is 48.71 away. This is the only one of the three that cannot be mistaken for a Ghanaian bank.</dd></div>
+  <div class="r"><dt>The scaling risk</dt><dd>Ink has no headroom. There is nowhere darker to go, so hierarchy must be built from <b>weight and space</b> rather than shade. That is a discipline, and it is why the type does more work here than in B or C.</dd></div>
+  <div class="r"><dt>Red and green still hold</dt><dd><b>#C1514D</b> loss and destructive only, <b>#2F7D4F</b> settled and escrow only, never a button. Both sit 37+ and 83+ units from Ink, so neither competes with the brand.</dd></div>
+  <div class="r"><dt>My recommendation</dt><dd>If KudiMarket's real position is <b>trust through clarity</b>, Ink is the honest expression of it. This is the one I would defend in a board meeting without flinching.</dd></div>
+</dl>
+
+<nav class="nav">
+  <a href="options.html">← All three options</a>
+  <a href="opt-b-bronze.html">B · Bronze</a>
+  <a href="opt-c-aubergine.html">C · Aubergine</a>
+  <a href="type.html">Type test</a>
+  <a class="cur" href="opt-a-ink.html">A · Ink</a>
+</nav>
+
+<footer>
+  <span>Distances computed in OKLab against 38 sampled competitor brand colours. Contrast in WCAG relative luminance.</span>
+  <span>0.25 is the "reads as the same colour" line. Every pairing shown passes WCAG AAA.</span>
+</footer>
+
+</body>
+</html>

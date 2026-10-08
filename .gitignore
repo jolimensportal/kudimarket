@@ -1,0 +1,41 @@
+# Dependencies. Never committed, never linted: kudilint reads app/vendor and app/public, which
+# produced 1552 phantom errors until they were exempted.
+app/vendor/
+app/node_modules/
+node_modules/
+vendor/
+
+# Build output
+app/public/build/
+app/public/hot
+app/public/storage
+build/
+dist/
+coverage/
+
+# Secrets. .env holds real database credentials for the local Postgres cluster; .env.example is the
+# template and is committed.
+.env
+app/.env
+app/.env.*
+!app/.env.example
+
+# Laravel and framework noise
+app/storage/*.key
+app/storage/framework/cache/data/*
+app/storage/framework/sessions/*
+app/storage/framework/views/*
+app/storage/logs/*.log
+app/bootstrap/cache/*.php
+.phpunit.result.cache
+.phpunit.cache/
+app/.phpunit.result.cache
+app/.phpunit.cache/
+npm-debug.log*
+yarn-error.log*
+
+# The local Postgres cluster lives inside the repo and is gigabytes of binary.
+kudi-core/pgdata/
+
+# macOS
+.DS_Store

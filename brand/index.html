@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KudiMarket — brand directions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --clay:      oklch(0.60 0.13 45);
+    --clay-deep: oklch(0.42 0.09 42);
+    --ink:       oklch(0.20 0.012 50);
+    --ink-soft:  oklch(0.44 0.015 50);
+    --paper:     oklch(0.97 0.010 85);
+    --paper-dim: oklch(0.93 0.012 85);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:var(--paper);color:var(--ink);
+    font-family:"Familjen Grotesk",system-ui,sans-serif;
+    padding:64px 40px 96px;max-width:960px;margin:0 auto;
+    display:flex;flex-direction:column;gap:44px;text-wrap:pretty;
+  }
+  .eyebrow{font-size:14px;letter-spacing:0.14em;text-transform:uppercase;color:var(--clay-deep)}
+  h1{font-size:clamp(34px,6vw,56px);font-weight:500;letter-spacing:-0.03em;line-height:1.04}
+  h1 b{font-weight:700;color:var(--clay-deep)}
+  .tagline{font-size:clamp(21px,3vw,29px);font-weight:400;color:var(--ink-soft)}
+  .tagline i{font-style:normal;color:var(--clay-deep);font-weight:700}
+  .note{font-size:15px;line-height:1.6;color:var(--ink-soft);max-width:62ch}
+  .note strong{color:var(--ink);font-weight:500}
+
+  .list{display:flex;flex-direction:column;border-top:1px solid var(--paper-dim)}
+  .item{
+    display:grid;grid-template-columns:78px 1fr 116px;gap:26px;align-items:center;
+    padding:30px 0;border-bottom:1px solid var(--paper-dim);text-decoration:none;color:inherit;
+  }
+  .item:hover .name{color:var(--clay-deep)}
+  .item .id{font-size:34px;font-weight:700;letter-spacing:-0.03em;color:var(--clay-deep)}
+  .item .meta{display:flex;flex-direction:column;gap:5px}
+  .item .name{font-size:23px;font-weight:500;letter-spacing:-0.02em;transition:color .12s}
+  .item .desc{font-size:14px;color:var(--ink-soft);line-height:1.45}
+  .item .go{font-size:14px;color:var(--clay-deep);text-align:right;font-weight:500;letter-spacing:0.02em}
+  footer{font-size:14px;color:var(--ink-soft);border-top:1px solid var(--paper-dim);padding-top:18px;
+    display:flex;flex-direction:column;gap:6px}
+</style>
+</head>
+<body>
+
+<div class="eyebrow">kudimarket.com · logo direction · 6 Oct 2026</div>
+
+<h1>KudiMarket<br><b>three directions</b></h1>
+
+<p class="tagline">Your market. Your rate.</p>
+
+<p class="note"><strong>Read all three before judging one.</strong> Each file is a complete direction with its own rationale and its own risk stated plainly. The tagline, palette and palette names are identical across all three on purpose — only the typographic idea changes, so you are comparing the idea and not the decoration.</p>
+
+<div class="list">
+  <a class="item" href="1c.html">
+    <span class="id">1c</span>
+    <span class="meta">
+      <span class="name">Two Languages, One Word</span>
+      <span class="desc">Kudi in light, market in heavy — the bilingual wordmark. Recommended.</span>
+    </span>
+    <span class="go">Open →</span>
+  </a>
+  <a class="item" href="1b.html">
+    <span class="id">1b</span>
+    <span class="meta">
+      <span class="name">The Weighed Word</span>
+      <span class="desc">Condensed market board with a balance beam. Most authoritative.</span>
+    </span>
+    <span class="go">Open →</span>
+  </a>
+  <a class="item" href="1a.html">
+    <span class="id">1a</span>
+    <span class="meta">
+      <span class="name">The Tray</span>
+      <span class="desc">Woven market tray, warm humanist type. Most human.</span>
+    </span>
+    <span class="go">Open →</span>
+  </a>
+</div>
+
+<h2 style="font-size:20px;font-weight:500;letter-spacing:-0.01em;margin-top:12px">Product decisions</h2>
+
+<div class="list">
+  <a class="item" href="oss-landscape.html">
+    <span class="id">01</span>
+    <span class="meta">
+      <span class="name">Build or adopt: the open-source landscape</span>
+      <span class="desc">Five prior-art projects, why none can be forked, and the ledger decision.</span>
+    </span>
+    <span class="go">Open →</span>
+  </a>
+  <a class="item" href="fiat-leg.html">
+    <span class="id">02</span>
+    <span class="meta">
+      <span class="name">The fiat leg</span>
+      <span class="desc">Per-rail behaviour, who gets hurt, what green honestly means, the loss rule.</span>
+    </span>
+    <span class="go">Open →</span>
+  </a>
+  <a class="item" href="legal.html">
+    <span class="id">03</span>
+    <span class="meta">
+      <span class="name">Regulatory brief</span>
+      <span class="desc">Act 1154 and the sandbox, sourced clause by clause, with counsel questions.</span>
+    </span>
+    <span class="go">Open →</span>
+  </a>
+  <a class="item" href="stack.html">
+    <span class="id">04</span>
+    <span class="meta">
+      <span class="name">The system we build on</span>
+      <span class="desc">Sixteen candidates checked on licence, shape and activity. One recommendation.</span>
+    </span>
+    <span class="go">Open →</span>
+  </a>
+  <a class="item" href="product.html">
+    <span class="id">05</span>
+    <span class="meta">
+      <span class="name">The business, as decided</span>
+      <span class="desc">Twelve decisions taken in one sitting, and what each one changed.</span>
+    </span>
+    <span class="go">Open →</span>
+  </a>
+</div>
+
+<footer>
+  <span>Wordmarks are real type, not hand-drawn SVG. Mark zones are placeholders — commission a designer for the final asset.</span>
+  <span>All three verified against live domain data. Palette is oklch-based and tonally harmonised.</span>
+</footer>
+
+</body>
+</html>

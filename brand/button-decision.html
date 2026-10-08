@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KudiMarket — CTA colour decision</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300;12..96,600;12..96,800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ox-deepest:#411110; --ox-deep:#621D1C; --ox-base:#822B2A; --ox-market:#A23D3A;
+    --ox-bright:#C1514D; --ink:#271C1B; --ink-soft:#655756;
+    --paper:#FCF6EE; --surface:#F6EFE8; --sand:#E8E2DB; --line:#DBD5CE;
+    --settled:#2F7D4F; --settled-soft:#D7E8DC;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--paper);color:var(--ink);font-family:"Bricolage Grotesque",system-ui,sans-serif;
+    padding:56px 40px 96px;max-width:1120px;margin:0 auto;display:flex;flex-direction:column;gap:52px;text-wrap:pretty}
+  .idline{display:flex;align-items:baseline;gap:14px;font-size:13px;letter-spacing:0.14em;text-transform:uppercase;
+    color:var(--ink-soft);border-bottom:1px solid var(--sand);padding-bottom:14px}
+  .idline strong{color:var(--ox-base);font-weight:600}
+  h1{font-size:clamp(30px,5vw,46px);font-weight:300;letter-spacing:-0.02em;line-height:1.05}
+  h1 em{font-style:normal;font-weight:800;color:var(--ox-base)}
+  .lede{font-size:17px;line-height:1.55;color:var(--ink-soft);max-width:66ch;font-weight:300}
+  .lede strong{font-weight:600;color:var(--ink)}
+
+  .no{border:1px solid var(--line);background:#fff;padding:0}
+  .no .bar{background:var(--ox-deep);padding:26px 28px;display:flex;align-items:center;
+    justify-content:space-between;gap:20px;flex-wrap:wrap}
+  .no .bar p{font-size:20px;color:#F7EAE7;letter-spacing:-0.01em}
+  .no .bar .btn{padding:13px 22px;font-size:15px;font-weight:600}
+  .no .foot{padding:16px 28px;display:flex;gap:30px;flex-wrap:wrap;font-size:12.5px;
+    color:var(--ink-soft);border-top:1px solid var(--line)}
+  .no .foot b{color:var(--ox-base);font-weight:600}
+
+  .cb{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .cb .cell{border:1px solid var(--line);padding:14px 16px;display:flex;flex-direction:column;gap:8px}
+  .cb .cell .pair{display:flex;gap:8px}
+  .cb .cell .sq{flex:1;height:44px}
+  .cb .cell .lab{font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:var(--ink-soft)}
+  .cb .cell .val{font-size:12px;color:var(--ink-soft);font-variant-numeric:tabular-nums}
+  .cb .cell .val.bad{color:#A11B15;font-weight:600}
+  .cb .cell .val.good{color:var(--settled);font-weight:600}
+
+  .yes{border:1px solid var(--settled);background:#fff;padding:0}
+  .yes .bar{background:var(--ox-deep);padding:26px 28px;display:flex;align-items:center;
+    justify-content:space-between;gap:20px;flex-wrap:wrap}
+  .yes .bar p{font-size:20px;color:#F7EAE7;letter-spacing:-0.01em}
+  .yes .bar .btn{padding:13px 26px;font-size:15px;font-weight:800;color:#fff;letter-spacing:-0.01em}
+  .yes .foot{padding:16px 28px;display:flex;gap:30px;flex-wrap:wrap;font-size:12.5px;
+    color:var(--ink-soft);border-top:1px solid var(--line)}
+  .yes .foot b{color:var(--ox-base);font-weight:600}
+  .escrow{background:var(--settled-soft);color:#1B3D28;padding:12px 28px;font-size:13px;
+    display:flex;align-items:center;gap:9px;border-top:1px solid var(--line)}
+
+  .layers{display:flex;flex-direction:column;gap:0;border-top:1px solid var(--line)}
+  .layer{display:grid;grid-template-columns:168px 1fr;gap:26px;padding:19px 0;
+    border-bottom:1px solid var(--line);align-items:start}
+  .layer dt{font-size:12px;letter-spacing:0.12em;text-transform:uppercase;color:var(--ox-base);font-weight:600}
+  .layer dd{font-size:15px;line-height:1.55;color:var(--ink-soft);font-weight:300}
+  .layer dd strong{font-weight:600;color:var(--ink)}
+  footer{font-size:13px;color:var(--ink-soft);border-top:1px solid var(--line);padding-top:18px;
+    display:flex;flex-direction:column;gap:6px}
+</style>
+</head>
+<body>
+
+<div class="idline"><strong>Decision</strong> <span>Colour-blindness tested · measured</span> <span>· What the button should be</span></div>
+
+<h1>A green button here<br>would be <em>KuCoin's hex inside your product.</em></h1>
+
+<p class="lede">Your instinct was reasonable — green on deep oxblood looks like it works. It measures at <strong>5.01:1</strong>, so it passes contrast. It still fails twice: the accessibility simulation below, and the fact that it imports a competitor's exact brand colour into your own CTA. Worse, in every trading UI on earth <strong>green means buy</strong> — so a green "Sell" button argues with its own label.</p>
+
+<div class="no">
+  <div class="bar">
+    <p>Your market. Your rate.</p>
+    <span class="btn" style="background:#01BC8D;color:#00281D">Sell ₵500,000</span>
+  </div>
+  <div class="foot">
+    <span><b>#01BC8D</b> — KuCoin's exact brand hex</span>
+    <span><b>5.01:1</b> passes contrast</span>
+    <span><b>Semantic clash</b> — green = buy</span>
+  </div>
+</div>
+
+<div>
+  <h2 style="font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:var(--ink-soft);font-weight:600;margin-bottom:14px">Machado colour-blindness simulation — green on oxblood</h2>
+  <div class="cb">
+    <div class="cell">
+      <div class="pair"><span class="sq" style="background:#01BC8D"></span><span class="sq" style="background:#621D1C"></span></div>
+      <span class="lab">Normal vision</span><span class="val good">5.01:1 — passes</span>
+    </div>
+    <div class="cell">
+      <div class="pair"><span class="sq" style="background:#A4A090"></span><span class="sq" style="background:#413B1A"></span></div>
+      <span class="lab">Deuteranopia</span><span class="val bad">4.29:1 — olive on olive</span>
+    </div>
+    <div class="cell">
+      <div class="pair"><span class="sq" style="background:#B7AE8A"></span><span class="sq" style="background:#302C1B"></span></div>
+      <span class="lab">Protanopia</span><span class="val bad">6.28:1 — khaki on brown</span>
+    </div>
+  </div>
+</div>
+
+<div class="yes">
+  <div class="bar">
+    <p>Your market. Your rate.</p>
+    <span class="btn" style="background:#F7EAE7;color:#411110">Sell ₵500,000</span>
+  </div>
+  <div class="foot">
+    <span><b>#F7EAE7 on #621D1C</b> — 11.9:1</span>
+    <span><b>Bone</b> — no hue collision, no vendor collision</span>
+    <span><b>Colour-blind safe</b> — lightness carries it, not hue</span>
+  </div>
+  <div class="escrow">
+    <span>●</span><span><b>Escrow holding ₵500,000.</b> Released when you confirm. Money accounted for.</span>
+  </div>
+</div>
+
+<dl class="layers">
+  <div class="layer"><dt>The rule</dt><dd><strong>Oxblood owns every action. Bone is the button. Green never touches an action.</strong> One primary action colour, no second voice.</dd></div>
+  <div class="layer"><dt>Green's only job</dt><dd>Green means exactly one thing: <strong>your money is accounted for</strong> — escrow held, trade settled, funds released. It is a status signal, never a button. That single meaning is why it stays legible; green-as-button dies the day it means two things.</dd></div>
+  <div class="layer"><dt>Why bone wins</dt><dd>Contrast goes <em>up</em>, not down: 11.9:1 against 5.01:1. It is colour-blind safe because a light button on a dark ground is separated by lightness, not hue — hue is exactly what these simulations destroy. And it makes every action look like one action.</dd></div>
+  <div class="layer"><dt>Where green can appear</dt><dd>Status rows, the escrow banner, a settled check, a settled rate. Anywhere it means "safe." Nowhere near a price, a button, or a buy/sell label.</dd></div>
+  <div class="layer"><dt>If you want a filled button</dt><dd>Use <strong>oxblood #822B2A on bone #FCF6EE</strong> — 8.40:1, largest contrast of any combination measured, and still one hue. Reserve <strong>#C1514D</strong> for hover only; at 2.66:1 it fails as text.</dd></div>
+  <div class="layer"><dt>Sell vs Buy</dt><dd>Never split them by colour. That is the Binance/Bloomberg convention that makes people afraid of trading apps. Both buttons are bone. The <em>price</em> and the <em>confirmation screen</em> carry the distinction, in words and cedi figures.</dd></div>
+</dl>
+
+<footer>
+  <span>Contrast ratios computed in WCAG relative luminance. Simulations use Machado et al. 2009 severity-1.0 matrices.</span>
+  <span>Bone-on-oxblood and bone-on-#822B2A were re-measured after simulation; both remain above 7:1 for all three deficiency types.</span>
+</footer>
+
+</body>
+</html>

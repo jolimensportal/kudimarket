@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KudiMarket — pine brand + oxblood destructive</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300;12..96,400;12..96,600;12..96,800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --pine:#1E4E2E; --pine-d:#163620; --pine-dd:#0E2A1A; --pine-b:#2B663E; --pine-l:#3F8254;
+    --ox:#822B2A; --ox-d:#621D1C; --ox-b:#C1514D; --ox-dd:#411110;
+    --bone:#FCF6EE; --surf:#F6EFE8; --sand:#E8E2DB; --line:#DBD5CE;
+    --good:#2F7D4F; --good-bg:#D7E8DC; --good-ink:#1B3D28;
+    --ink:#163620; --ink-2:#4A5D51;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bone);color:var(--ink);font-family:"Bricolage Grotesque",system-ui,sans-serif;
+    padding:56px 40px 96px;max-width:1160px;margin:0 auto;display:flex;flex-direction:column;gap:46px;text-wrap:pretty}
+  .eyebrow{font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:var(--ink-2)}
+  h1{font-size:clamp(29px,4.8vw,46px);font-weight:300;letter-spacing:-0.025em;line-height:1.05}
+  h1 b{font-weight:800}
+  .lede{font-size:17px;line-height:1.55;color:var(--ink-2);max-width:68ch;font-weight:300}
+  .lede b{color:var(--ink);font-weight:600}
+
+  /* ---- the wordmark, final ---- */
+  .lockup{background:#fff;border:1px solid var(--line);padding:44px 48px;display:flex;
+    align-items:center;justify-content:space-between;gap:28px;flex-wrap:wrap}
+  .wm{display:flex;flex-direction:column;line-height:.86}
+  .wm .k{font-size:clamp(44px,9vw,96px);font-weight:300;color:var(--pine-d);letter-spacing:.02em}
+  .wm .m{font-size:clamp(44px,9vw,96px);font-weight:800;color:var(--pine);letter-spacing:-.035em;margin-left:-.04em}
+  .lockup .side{display:flex;flex-direction:column;gap:9px;align-items:flex-end}
+  .lockup .side .tg{font-size:19px;color:var(--pine);letter-spacing:-.01em}
+  .lockup .side .hx{font-size:11.5px;color:var(--ink-2);font-variant-numeric:tabular-nums}
+
+  /* ---- meaning table ---- */
+  .mean{background:#fff;border:1px solid var(--line);padding:0}
+  .mean .r{display:grid;grid-template-columns:44px 190px 1fr;gap:20px;align-items:center;
+    padding:17px 24px;border-bottom:1px solid var(--line)}
+  .mean .r:last-child{border-bottom:none}
+  .mean .sw{width:36px;height:36px}
+  .mean .nm{font-size:14.5px;font-weight:600;letter-spacing:-.01em}
+  .mean .nm span{display:block;font-size:11px;color:var(--ink-2);font-weight:400;
+    font-variant-numeric:tabular-nums;letter-spacing:.02em;margin-top:2px}
+  .mean .jd{font-size:14px;line-height:1.5;color:var(--ink-2)}
+  .mean .jd b{color:var(--ink);font-weight:600}
+
+  /* ---- screens ---- */
+  .screens{display:grid;grid-template-columns:1fr 1fr;gap:26px}
+  .scr{border:1px solid var(--line);background:#fff}
+  .scr .hd{padding:13px 20px;display:flex;align-items:center;justify-content:space-between;
+    border-bottom:1px solid var(--line)}
+  .scr .hd .t{font-size:13px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-2);font-weight:600}
+  .scr .hd .c{font-size:11px;color:var(--ink-2);font-variant-numeric:tabular-nums}
+  .scr .bd{padding:18px 20px;display:flex;flex-direction:column;gap:14px}
+
+  .trade{background:var(--pine-d);color:#E4EFE7;padding:16px 20px;display:flex;
+    align-items:center;justify-content:space-between;gap:12px}
+  .trade .l{font-size:14.5px;font-weight:600}
+  .trade .r{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums}
+
+  .flash{background:var(--good-bg);color:var(--good-ink);padding:13px 16px;display:flex;
+    gap:10px;align-items:flex-start;font-size:13.5px;line-height:1.45}
+  .flash .d{font-size:9px;line-height:1.75}
+  .alert{background:#F7E4E2;color:#5C1A19;padding:13px 16px;display:flex;gap:10px;
+    align-items:flex-start;font-size:13.5px;line-height:1.45}
+
+  .acts{display:flex;gap:9px}
+  .acts .b{flex:1;padding:13px 16px;font-size:14px;font-weight:700;text-align:center;letter-spacing:-.01em}
+  .b-fill{background:var(--pine);color:#fff}
+  .b-ghost{background:var(--surf);color:var(--pine);border:1px solid var(--sand)}
+  .b-kill{background:var(--ox);color:#fff}
+  .b-kill-line{background:#fff;color:var(--ox);border:1px solid var(--ox-b)}
+
+  .kv{display:flex;flex-direction:column;gap:0;border:1px solid var(--line)}
+  .kv .line{display:flex;justify-content:space-between;gap:14px;padding:11px 15px;
+    border-bottom:1px solid var(--line);font-size:13.5px}
+  .kv .line:last-child{border-bottom:none}
+  .kv .line .k{color:var(--ink-2)}
+  .kv .line .v{font-weight:600;font-variant-numeric:tabular-nums}
+
+  .note{border-left:3px solid var(--pine);background:#fff;padding:19px 24px;font-size:14.5px;
+    line-height:1.55;color:var(--ink-2)}
+  .note b{color:var(--ink);font-weight:600}
+
+  dl.rules{display:flex;flex-direction:column;border-top:1px solid var(--line)}
+  .rules .r{display:grid;grid-template-columns:180px 1fr;gap:26px;padding:19px 0;
+    border-bottom:1px solid var(--line);align-items:start}
+  .rules dt{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--pine);font-weight:600}
+  .rules dd{font-size:15px;line-height:1.55;color:var(--ink-2);font-weight:300}
+  .rules dd b{color:var(--ink);font-weight:600}
+
+  .risk{border:1px solid var(--line);background:#fff;padding:26px 30px;display:flex;flex-direction:column;gap:14px}
+  .risk h2{font-size:12px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-2);font-weight:600}
+  .risk ul{list-decoration:none;display:flex;flex-direction:column;gap:11px}
+  .risk li{display:grid;grid-template-columns:18px 1fr;gap:11px;font-size:14.5px;line-height:1.5;color:var(--ink-2)}
+  .risk li i{grid-column:1}
+  .risk li span{grid-column:2}
+  .risk li i{font-style:normal;font-weight:700}
+  .risk li b{color:var(--ink);font-weight:600}
+
+  footer{font-size:12.5px;color:var(--ink-2);border-top:1px solid var(--line);padding-top:16px;
+    display:flex;flex-direction:column;gap:5px}
+</style>
+</head>
+<body>
+
+<span class="eyebrow">Decision locked · pine brand · oxblood destructive</span>
+
+<h1>You didn't pick two colours.<br>You picked <b>a brand and a warning.</b></h1>
+
+<p class="lede">Oxblood as destructive-only is stronger than oxblood as brand, because it fixes the one real flaw I found. Red in this product now means exactly one thing — <b>stop, or something went wrong</b> — which is the single most universal colour meaning in software. Pine gets to be the market. Both jobs are cleaner than before.</p>
+
+<div class="lockup">
+  <div class="wm"><span class="k">kudi</span><span class="m">market</span></div>
+  <div class="side">
+    <span class="tg">Your market. Your rate.</span>
+    <span class="hx">#163620 / #1E4E2E</span>
+  </div>
+</div>
+
+<div class="mean">
+  <div class="r">
+    <span class="sw" style="background:#1E4E2E"></span>
+    <span class="nm">Pine<span>brand · #1E4E2E</span></span>
+    <span class="jd">The market itself. Wordmark, primary buttons, navigation, focus rings. <b>The frame, never the data.</b></span>
+  </div>
+  <div class="r">
+    <span class="sw" style="background:#822B2A"></span>
+    <span class="nm">Oxblood<span>destructive · #822B2A</span></span>
+    <span class="jd">Cancel, decline, close position, delete, reject, failed. <b>Anything that costs the user money or ends something.</b></span>
+  </div>
+  <div class="r">
+    <span class="sw" style="background:#C1514D"></span>
+    <span class="nm">Oxblood bright<span>data · #C1514D</span></span>
+    <span class="jd">Rate falling, trade closed, margin call. <b>Never without an arrow or a word.</b> Never alone.</span>
+  </div>
+  <div class="r">
+    <span class="sw" style="background:#2F7D4F"></span>
+    <span class="nm">Green<span>settled · #2F7D4F</span></span>
+    <span class="jd">Escrow holding, funds released, trade complete. <b>Harmonious with pine — both mean safe.</b> Never a button.</span>
+  </div>
+</div>
+
+<div class="screens">
+
+  <div class="scr">
+    <div class="hd"><span class="t">Active trade</span><span class="c">2 min ago</span></div>
+    <div class="bd">
+      <div class="trade">
+        <span class="l">Selling USDT</span>
+        <span class="r">₵1,742,000</span>
+      </div>
+      <div class="flash"><span class="d">●</span><span><b>Escrow holding ₵1,742,000.</b> Released when you confirm. Nothing moves until you tap.</span></div>
+      <div class="kv">
+        <div class="line"><span class="k">Counterparty</span><span class="v">ade_tunde · 18 sales</span></div>
+        <div class="line"><span class="k">Agreed rate</span><span class="v">₵1,742 / $1</span></div>
+        <div class="line"><span class="k">Time left</span><span class="v">14:22</span></div>
+      </div>
+      <div class="acts">
+        <span class="b b-fill">Release ₵1,742,000</span>
+      </div>
+      <div class="acts">
+        <span class="b b-ghost">Appeal</span>
+        <span class="b b-kill">Cancel trade</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="scr">
+    <div class="hd"><span class="t">Destructive + failure states</span><span class="c">all red means stop</span></div>
+    <div class="bd">
+      <div class="alert"><span class="d">▲</span><span><b>Rate moved ₵1,742 → ₵1,690.</b> Your agreed rate is locked. Re-quote if you want to change it.</span></div>
+      <div class="kv">
+        <div class="line"><span class="k">Counterparty</span><span class="v" style="color:#822B2A">declined the trade</span></div>
+        <div class="line"><span class="k">Your offer</span><span class="v">₵1,742,000</span></div>
+        <div class="line"><span class="k">Escrow</span><span class="v" style="color:#2F7D4F">released to you</span></div>
+      </div>
+      <div class="acts">
+        <span class="b b-fill">Find another seller</span>
+      </div>
+      <div class="acts">
+        <span class="b b-kill-line">Dispute this trade</span>
+        <span class="b b-kill">Withdraw ₵1,742,000</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="note">
+  <b>Read the two screens together.</b> On the left, pine and green agree — money moving, funds held. On the right, oxblood takes over completely and pine disappears from every action. The user never has to work out which colour is the brand and which is the alarm: <b>alarm colours are never the brand colour.</b>
+</div>
+
+<dl class="rules">
+  <div class="r"><dt>The destructive rule</dt><dd>Oxblood appears <b>only</b> where the user loses something or ends something. Cancel, decline, close, delete, dispute, withdraw, failed login. If it is on the screen, it is a warning.</dd></div>
+  <div class="r"><dt>Never both</dt><dd>Oxblood and pine in the same button group means two warnings at once. Destructive actions are always <b>visually separated</b> — their own row, a divider above, or a confirm step. Never side by side with a primary action.</dd></div>
+  <div class="r"><dt>Confirm step</dt><dd>Destructive actions get a confirmation that <b>names the amount and the consequence in words</b>. "Cancel this trade and return ₵1,742,000 to your balance?" — not a bare Are you sure?</dd></div>
+  <div class="r"><dt>The data rule holds</dt><dd>Pine is never on a number. Prices, balances and rates are always ink on bone. That rule was doing the heavy lifting under oxblood; it still does it here.</dd></div>
+  <div class="r"><dt>Why this beats oxblood-as-brand</dt><dd>Under oxblood-as-brand, red meant both <em>brand</em> and <em>loss</em> — two jobs, one hue. Now red means only <em>stop</em> and green means only <em>safe</em>. <b>Every colour has exactly one job.</b></dd></div>
+</dl>
+
+<div class="risk">
+  <h2>The one real cost — and the check you still owe</h2>
+  <ul>
+    <li><i>−</i><span><b>Pine is close to KuCoin's hue.</b> 4.5 OKLab units — but that gap is almost entirely lightness: KuCoin at L=0.706 bright teal, pine at L=0.381 dark and institutional. Same family, opposite reading. Acceptable, not invisible.</span></li>
+    <li><i>−</i><span><b>Dark green is also the Ghanaian banking default.</b> That is why it feels trustworthy, and also why it is not rare. You are not buying novelty with this colour — you are buying instant comprehension.</span></li>
+    <li><i>!</i><span><b>Collision check still owed.</b> Before launch, verify no NG bank already occupies this exact green. `#1E4E2E` is close to several. Nobody owns a hue outright; you need to know you do not look like a bank.</span></li>
+    <li><i>✓</i><span><b>Accessibility verified.</b> White on pine 9.61:1, bone on pine 8.95:1, white on oxblood 9.02:1, white on pine-dark 13.27:1. Every pairing passes AA.</span></li>
+  </ul>
+</div>
+
+<footer>
+  <span>All contrast ratios computed in WCAG relative luminance against the stated backgrounds. Colour distances measured in OKLab.</span>
+  <span>Wordmark and screens rendered live — no placeholder artwork, no mock-up imagery.</span>
+</footer>
+
+</body>
+</html>

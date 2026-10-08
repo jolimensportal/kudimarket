@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KudiMarket — type test</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@300;400;500;600;700;800&family=Archivo+Expanded:wght@400;600;700&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Public+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Geist:wght@300;400;500;600;700&family=Syne:wght@400;600;700;800&family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --aub-deep:#4B2E45; --aub:#65404F; --aub-mkt:#7C5666; --aub-brt:#8F5E73; --aub-lt:#A87D90;
+    --ink:#33192E; --ink2:#6B5568;
+    --loss:#933331; --loss-bg:#C1514D;
+    --settled:#185B37; --settled-bg:#D7E8DC;
+    --bone:#FCF6EE; --surf:#F6EFE8; --sand:#E8E2DB; --line:#DBD5CE;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bone);color:var(--ink);padding:56px 40px 90px;max-width:1180px;margin:0 auto;
+    display:flex;flex-direction:column;gap:40px;text-wrap:pretty}
+  .eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink2);
+    font-family:system-ui,-apple-system,sans-serif}
+  h1{font-size:clamp(28px,4.4vw,42px);font-weight:600;letter-spacing:-.02em;line-height:1.08;
+    font-family:system-ui,-apple-system,sans-serif}
+  .lede{font-size:16.5px;line-height:1.55;color:var(--ink2);max-width:70ch;
+    font-family:system-ui,-apple-system,sans-serif}
+  .lede b{color:var(--ink);font-weight:600}
+
+  .spec{border:1px solid var(--line);background:#fff;padding:22px 26px;display:grid;
+    grid-template-columns:repeat(5,1fr);gap:0}
+  .spec .c{padding:12px 16px;border-right:1px solid var(--line)}
+  .spec .c:last-child{border-right:none}
+  .spec .sw{height:44px;margin-bottom:9px}
+  .spec .n{font-size:12.5px;font-weight:600;font-family:system-ui,sans-serif}
+  .spec .n span{display:block;font-size:10.5px;color:var(--ink2);font-weight:400;
+    font-variant-numeric:tabular-nums;margin-top:2px}
+
+  .cand{border:1px solid var(--line);background:#fff;margin-bottom:18px}
+  .cand .hd{padding:16px 24px;border-bottom:1px solid var(--line);display:flex;
+    align-items:baseline;gap:14px;flex-wrap:wrap}
+  .cand .hd .nm{font-size:16px;font-weight:700;letter-spacing:-.01em;
+    font-family:system-ui,sans-serif}
+  .cand .hd .tag{font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:600;
+    padding:3px 8px;background:var(--surf);color:var(--ink2);font-family:system-ui,sans-serif}
+  .cand .hd .tag.yes{background:var(--aub-mkt);color:#fff}
+  .cand .hd .no{background:var(--line);color:#655}
+  .cand .hd .note{margin-left:auto;font-size:12.5px;color:var(--ink2);
+    font-family:system-ui,sans-serif;max-width:60ch;line-height:1.45}
+  .wm{padding:30px 24px;display:flex;flex-direction:column;line-height:.85}
+  .wm .k{font-size:clamp(38px,7.5vw,80px);font-weight:300;letter-spacing:.01em;color:var(--aub-deep)}
+  .wm .m{font-size:clamp(38px,7.5vw,80px);font-weight:800;letter-spacing:-.035em;
+    color:var(--aub-mkt);margin-left:-.04em}
+  .sample{border-top:1px solid var(--line);padding:16px 24px;display:grid;
+    grid-template-columns:1fr 1fr 1fr;gap:22px}
+  .sample .s{min-width:0}
+  .sample .s .lb{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink2);
+    margin-bottom:7px;font-family:system-ui,sans-serif}
+  .sample .s .v{font-size:15px;line-height:1.4;color:var(--ink)}
+  .sample .s .v.num{font-variant-numeric:tabular-nums;font-weight:600}
+  .sample .s .v.neg{color:var(--loss);font-weight:600}
+  .sample .s .v.pos{color:var(--settled);font-weight:600}
+
+  .note{border-left:3px solid var(--aub-mkt);background:#fff;padding:19px 24px;font-size:14.5px;
+    line-height:1.55;color:var(--ink2);font-family:system-ui,sans-serif}
+  .note b{color:var(--ink);font-weight:600}
+  .note.warn{border-left-color:var(--loss-bg)}
+  .nav{display:flex;gap:12px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:18px}
+  .nav a{font-size:13.5px;color:var(--ink2);text-decoration:none;border:1px solid var(--line);
+    padding:9px 15px;background:#fff;display:inline-block;font-family:system-ui,sans-serif}
+  .nav a.cur{background:var(--aub-mkt);color:#fff;border-color:var(--aub-mkt)}
+</style>
+</head>
+<body>
+
+<span class="eyebrow">Type test · lighter aubergine · real data strings</span>
+
+<h1>Bricolage out. Everything below tested<br>against actual cedi figures.</h1>
+
+<p class="lede">You were right about the font. Bricolage Grotesque is a 2021 editorial face with wonky terminals — it reads startup landing page, not trading desk. I flagged it as AI-default in my own audit and shipped it anyway. These are real candidates, each rendered with <b>the same three strings a money app must handle</b>: a rate, a falling rate, and a settled status.</p>
+
+<div class="spec">
+  <div class="c"><div class="sw" style="background:#4B2E45"></div><div class="n">Aub Deep<span>#4B2E45 · 11.0:1</span></div></div>
+  <div class="c"><div class="sw" style="background:#65404F"></div><div class="n">Aub<span>#65404F · 8.2:1</span></div></div>
+  <div class="c"><div class="sw" style="background:#7C5666"></div><div class="n">Aub Mkt<span>#7C5666 · 6.2:1</span></div></div>
+  <div class="c"><div class="sw" style="background:#8F5E73"></div><div class="n">Aub Bright<span>#8F5E73 · 4.9:1</span></div></div>
+  <div class="c"><div class="sw" style="background:#A87D90"></div><div class="n">Aub Light<span>#A87D90 · 3.3:1 ✗ text</span></div></div>
+</div>
+
+<div class="cand" id="c-plex">
+  <div class="hd"><span class="nm">IBM Plex Sans</span><span class="tag">engineered</span>
+    <span class="note">IBM designed it for a corporation that had to be taken seriously for 100 years. Tabular figures built in, not bolted on.</span></div>
+  <div class="wm" style="font-family:'IBM Plex Sans',sans-serif"><span class="k">kudi</span><span class="m">market</span></div>
+  <div class="sample" style="font-family:'IBM Plex Sans',sans-serif">
+    <div class="s"><div class="lb">Rate</div><div class="v num">₵1,742,000</div></div>
+    <div class="s"><div class="lb">Falling</div><div class="v num neg">₵1,690 ▼ 3.1%</div></div>
+    <div class="s"><div class="lb">Settled</div><div class="v num pos">Escrow released</div></div>
+  </div>
+</div>
+
+<div class="cand" id="c-inst">
+  <div class="hd"><span class="nm">Instrument Sans</span><span class="tag yes">recommended</span>
+    <span class="note">Warm, slightly narrow, excellent numerals. Reads contemporary without being trendy. Made by a foundry, not a template.</span></div>
+  <div class="wm" style="font-family:'Instrument Sans',sans-serif"><span class="k">kudi</span><span class="m">market</span></div>
+  <div class="sample" style="font-family:'Instrument Sans',sans-serif">
+    <div class="s"><div class="lb">Rate</div><div class="v num">₵1,742,000</div></div>
+    <div class="s"><div class="lb">Falling</div><div class="v num neg">₵1,690 ▼ 3.1%</div></div>
+    <div class="s"><div class="lb">Settled</div><div class="v num pos">Escrow released</div></div>
+  </div>
+</div>
+
+<div class="cand" id="c-arch">
+  <div class="hd"><span class="nm">Archivo</span><span class="tag">sturdy</span>
+    <span class="note">Grotesque with real bone. Strong at heavy weights, so the wordmark holds at small sizes and on a merchant shirt.</span></div>
+  <div class="wm" style="font-family:'Archivo',sans-serif"><span class="k">kudi</span><span class="m">market</span></div>
+  <div class="sample" style="font-family:'Archivo',sans-serif">
+    <div class="s"><div class="lb">Rate</div><div class="v num">₵1,742,000</div></div>
+    <div class="s"><div class="lb">Falling</div><div class="v num neg">₵1,690 ▼ 3.1%</div></div>
+    <div class="s"><div class="lb">Settled</div><div class="v num pos">Escrow released</div></div>
+  </div>
+</div>
+
+<div class="cand" id="c-pub">
+  <div class="hd"><span class="nm">Public Sans</span><span class="tag">neutral</span>
+    <span class="note">US government design system. Unfashionable, unfakeable, and completely legible. Zero personality — which can be the point.</span></div>
+  <div class="wm" style="font-family:'Public Sans',sans-serif"><span class="k">kudi</span><span class="m">market</span></div>
+  <div class="sample" style="font-family:'Public Sans',sans-serif">
+    <div class="s"><div class="lb">Rate</div><div class="v num">₵1,742,000</div></div>
+    <div class="s"><div class="lb">Falling</div><div class="v num neg">₵1,690 ▼ 3.1%</div></div>
+    <div class="s"><div class="lb">Settled</div><div class="v num pos">Escrow released</div></div>
+  </div>
+</div>
+
+<div class="cand" id="c-geist">
+  <div class="hd"><span class="nm">Geist</span><span class="tag">contemporary</span>
+    <span class="note">Vercel's face. Excellent at small sizes, very neutral. Slight risk of reading as developer-tooling.</span></div>
+  <div class="wm" style="font-family:'Geist',sans-serif"><span class="k">kudi</span><span class="m">market</span></div>
+  <div class="sample" style="font-family:'Geist',sans-serif">
+    <div class="s"><div class="lb">Rate</div><div class="v num">₵1,742,000</div></div>
+    <div class="s"><div class="lb">Falling</div><div class="v num neg">₵1,690 ▼ 3.1%</div></div>
+    <div class="s"><div class="lb">Settled</div><div class="v num pos">Escrow released</div></div>
+  </div>
+</div>
+
+<div class="cand" id="c-syne">
+  <div class="hd"><span class="nm">Syne</span><span class="tag">expressive</span>
+    <span class="note">Geometric with a wide stance and odd joins. Distinctive as a wordmark, wrong for a money table — the numerals are the problem.</span></div>
+  <div class="wm" style="font-family:'Syne',sans-serif"><span class="k">kudi</span><span class="m">market</span></div>
+  <div class="sample" style="font-family:'Syne',sans-serif">
+    <div class="s"><div class="lb">Rate</div><div class="v num">₵1,742,000</div></div>
+    <div class="s"><div class="lb">Falling</div><div class="v num neg">₵1,690 ▼ 3.1%</div></div>
+    <div class="s"><div class="lb">Settled</div><div class="v num pos">Escrow released</div></div>
+  </div>
+</div>
+
+<div class="cand" id="c-fraunces">
+  <div class="hd"><span class="nm">Fraunces</span><span class="tag no">rejected</span>
+    <span class="note">Shown only so you can see why it is out. Serif, wonky, high-contrast. On a falling rate it looks like a warning in a horoscope.</span></div>
+  <div class="wm" style="font-family:'Fraunces',serif"><span class="k">kudi</span><span class="m">market</span></div>
+  <div class="sample" style="font-family:'Fraunces',serif">
+    <div class="s"><div class="lb">Rate</div><div class="v num">₵1,742,000</div></div>
+    <div class="s"><div class="lb">Falling</div><div class="v num neg">₵1,690 ▼ 3.1%</div></div>
+    <div class="s"><div class="lb">Settled</div><div class="v num pos">Escrow released</div></div>
+  </div>
+</div>
+
+<div class="note warn">
+  <b>Bug I found while lightening the palette.</b> `#C1514D` measures <b>4.30:1</b> on bone — that is <b>below the 4.5:1 minimum for text</b>. I had been shipping it as the loss text colour in every screen. Corrected: <b>#933331</b> at <b>7.09:1</b> for loss text, and <b>#185B37</b> at <b>7.55:1</b> for settled text. `#C1514D` is now fills and indicators only.
+</div>
+
+<div class="note" style="margin-top:-22px">
+  <b>Lighter aubergine.</b> Moved from L=0.345 to <b>0.42–0.50</b> across the scale. Nearest competitor actually got <b>further away</b> — 70.89 units versus 52.63 — because lightening pushed it off CoinGate's lavender territory entirely. Colour distance and "too dark" were fighting each other; they resolved in the same direction.
+</div>
+
+<nav class="nav">
+  <a href="options.html">← All three colours</a>
+  <a href="opt-c-aubergine.html">Old C (dark)</a>
+  <a href="1c.html">Wordmark 1c</a>
+  <a class="cur" href="type.html">Type test</a>
+</nav>
+
+</body>
+</html>

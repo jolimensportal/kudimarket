@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KudiMarket · the fiat leg</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --plum-deep:#331931; --plum:#462444; --plum-mkt:#5E2D5A; --plum-brt:#743F6F;
+    --loss:#933331; --loss-bg:#F8E7E5; --loss-ink:#5A1A18; --loss-fill:#C1514D;
+    --good:#185B37; --good-bg:#D7E8DC; --good-ink:#1B3D28;
+    --bone:#FCF6EE; --surf:#F6EFE8; --sand:#E8E2DB; --line:#DBD5CE;
+    --txt:#1C1916; --txt2:#6B635C;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bone);color:var(--txt);font-family:"Instrument Sans",system-ui,sans-serif;
+    padding:56px 40px 90px;max-width:1140px;margin:0 auto;display:flex;flex-direction:column;gap:44px;text-wrap:pretty}
+  h1{font-size:clamp(28px,4.4vw,42px);font-weight:600;letter-spacing:-.022em;line-height:1.08;text-wrap:balance}
+  h2{font-size:clamp(22px,3vw,30px);font-weight:600;letter-spacing:-.02em;line-height:1.14;text-wrap:balance}
+  h1 b,h2 b{color:var(--plum-mkt);font-weight:700}
+  .lede{font-size:16.5px;line-height:1.6;color:var(--txt2);max-width:74ch}
+  .lede b{color:var(--txt);font-weight:600}
+  p{max-width:78ch}
+
+  .card{border:1px solid var(--line);background:#fff;display:flex;flex-direction:column}
+  .card .hd{padding:16px 26px;border-bottom:1px solid var(--line);background:var(--surf);
+    font-size:14px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--txt2)}
+  .card .bd{padding:24px 26px;display:flex;flex-direction:column;gap:16px;font-size:16px;line-height:1.6;color:var(--txt2)}
+  .card .bd b{color:var(--txt);font-weight:600}
+  .card .bd ul{list-style:none;display:flex;flex-direction:column;gap:12px}
+  .card .bd li{display:grid;grid-template-columns:26px 1fr;gap:10px;font-size:15.5px;line-height:1.55}
+  .card .bd li i{font-style:normal;font-weight:700;grid-column:1;color:var(--txt2)}
+  .card .bd li span{grid-column:2}
+  .card.decide{border-color:var(--plum-mkt);border-width:1.5px}
+  .card.decide .hd{background:#fff;color:var(--plum-mkt)}
+
+  .verdict .q{font-size:clamp(20px,2.6vw,27px);font-weight:600;letter-spacing:-.02em;
+    padding:22px 26px 0;line-height:1.25;text-wrap:balance}
+  .verdict .rows{display:flex;flex-direction:column}
+  .verdict .row{display:grid;grid-template-columns:200px 1fr;gap:20px;padding:18px 26px;
+    border-top:1px solid var(--line);font-size:15.5px;line-height:1.55;color:var(--txt2)}
+  .verdict .row:first-child{margin-top:18px}
+  .verdict .row b{color:var(--txt);font-weight:600}
+  .verdict .row .k{font-size:14px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--plum-mkt)}
+
+  table{width:100%;border-collapse:collapse;font-size:15px}
+  .tbl{border:1px solid var(--line);background:#fff;overflow-x:auto}
+  .tbl th{text-align:left;font-size:14px;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--txt2);font-weight:700;padding:14px 16px;border-bottom:1px solid var(--line);white-space:nowrap}
+  .tbl td{padding:15px 16px;border-bottom:1px solid var(--line);vertical-align:top;line-height:1.5}
+  .tbl tr:last-child td{border-bottom:none}
+  .tbl .rail{font-weight:700;white-space:nowrap}
+  .tbl .st{font-variant-numeric:tabular-nums;white-space:nowrap}
+  .tbl .st.launch{color:var(--good)}
+  .tbl .st.later{color:var(--plum-mkt)}
+  .tbl .st.no{color:var(--loss)}
+  .tbl .cell{color:var(--txt2)}
+  .tbl .cell b{color:var(--txt);font-weight:600}
+  .cap{font-size:14.5px;line-height:1.55;color:var(--txt2);margin-top:-30px}
+  .cap b{color:var(--txt);font-weight:600}
+
+  ol.steps{list-style:none;counter-reset:s;display:flex;flex-direction:column;gap:14px}
+  ol.steps li{counter-increment:s;display:grid;grid-template-columns:30px 1fr;gap:14px;
+    font-size:16px;line-height:1.55;color:var(--txt2);align-items:start}
+  ol.steps li::before{content:counter(s) ".";font-size:17px;font-weight:700;color:var(--plum-mkt);
+    line-height:1.45;font-variant-numeric:tabular-nums}
+  ol.steps li b{color:var(--txt);font-weight:600}
+
+  nav{display:flex;gap:14px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:20px}
+  nav a{font-size:15px;color:var(--txt2);text-decoration:none;border:1px solid var(--line);
+    padding:11px 17px;background:#fff;display:inline-block;transition:border-color .15s,color .15s}
+  nav a:hover{border-color:var(--plum-mkt);color:var(--plum-mkt)}
+  nav a:focus-visible{outline:2px solid var(--plum-mkt);outline-offset:2px}
+  footer{font-size:14.5px;color:var(--txt2);display:flex;flex-direction:column;gap:7px;line-height:1.55}
+  footer b{color:var(--txt);font-weight:600}
+  footer a{color:var(--plum-mkt)}
+  ::selection{background:var(--sand);color:var(--txt)}
+
+  @media (max-width:760px){
+    body{padding:32px 20px 64px;gap:36px}
+    .verdict .row{grid-template-columns:1fr;gap:8px}
+    .card .hd{padding:14px 18px}
+    .card .bd{padding:20px 18px}
+    .verdict .row,.verdict .q{padding-left:18px;padding-right:18px}
+  }
+</style>
+</head>
+<body>
+
+<h1>The fiat leg: what we can prove,<br><b>and who pays when we are wrong.</b></h1>
+
+<p class="lede">No ledger can check this half of a trade. Every guarantee KudiMarket makes ends the moment a person taps send on their phone, and the operators involved publish no status API to us. This document covers the four payment corridors in our brief, the harms that fall on people who are not party to a trade, the only honest definition of green, and the loss rule that has to exist before any release button does.</p>
+
+<div class="card verdict">
+  <span class="q">Four answers, none of them comfortable</span>
+  <div class="rows">
+    <div class="row"><span class="k">What we can see</span><span><b>Almost nothing that a liar cannot fake.</b> Mobile-money and wallet rails give no third party a way to confirm that a payment settled. A transaction reference and an SMS are both claims by the party we are checking.</span></div>
+    <div class="row"><span class="k">What green means</span><span><b>Attested, never verified.</b> The seller confirms receipt in-app, the paying name matches the registered trader where the rail exposes it, the dispute window has elapsed, no dispute is open. The interface must say exactly that, and no screen may call it verified.</span></div>
+    <div class="row"><span class="k">Who eats a reversal</span><span><b>Undecided, and it is the largest open decision in the product.</b> Three candidate loss rules below, none chosen. Mostro's "when in doubt, release" cannot be adopted without one.</span></div>
+    <div class="row"><span class="k">The harm that is worse</span><span><b>Not traders lying to each other.</b> A buyer paying with a scam victim's stolen funds freezes the seller's bank account and makes the platform an exhibit in a police case, with the seller asked to repay the victim. The clearest account of that chain comes from a single law-firm article on the RMB corridor, not from a court decision or a regulator, and it is labelled that way wherever it appears in this document.</span></div>
+  </div>
+</div>
+
+<h2>Four corridors, four behaviours</h2>
+
+<p class="lede">The brief covers cedi, naira, CFA and RMB, and each rail reverses, freezes and reports differently. The status column is a recommendation, not a plan of record.</p>
+
+<div class="tbl">
+  <table>
+    <tr><th>Corridor</th><th>Instruments</th><th>Reversal and freeze behaviour</th><th>What we can observe</th><th>Status</th></tr>
+    <tr><td class="rail">Cedi</td>
+      <td class="cell">MTN Mobile Money, Telecel, AirtelTigo, bank transfer</td>
+      <td class="cell">A completed mobile-money payment is <b>not reversible at the sender's request</b>; reversals arrive through the operator's fraud-claim process, and operators or banks freeze balances on suspicion or on a police or Financial Intelligence Centre request. Window length unknown: industry reports say 24 to 48 hours, unverified.</td>
+      <td class="cell">Transaction reference where the receiving app shows one, payer name, seller attestation. Nothing a third party can check.</td>
+      <td class="st launch">launch</td></tr>
+    <tr><td class="rail">Naira</td>
+      <td class="cell">Bank transfer, fintech wallets and agents</td>
+      <td class="cell">Banks freeze on suspicious-activity reports and police requests; recall after settlement is discretionary rather than a right. Documented pattern: an account frozen, then funds deducted after the holder's account of the money did not match the evidence.</td>
+      <td class="cell">Payer account name and transfer reference on the receiving statement. More than mobile money, still not a settlement guarantee.</td>
+      <td class="st launch">launch, subject to counsel on serving naira from Ghana</td></tr>
+    <tr><td class="rail">CFA</td>
+      <td class="cell">Orange Money, Wave, Moov Money</td>
+      <td class="cell">Wallets regulated in the WAEMU zone, not in Ghana. Reversal, freeze and reporting behaviour not yet researched in this project, and said to be thin in practice.</td>
+      <td class="cell">Reference and name only.</td>
+      <td class="st later">research first</td></tr>
+    <tr><td class="rail">RMB</td>
+      <td class="cell">Alipay, WeChat Pay, Chinese bank accounts</td>
+      <td class="cell"><b>Highest risk in our set, and it lands on the trader.</b> Alipay's stated policy prohibits virtual-currency transactions and stops the payment; accounts used for them can have collection restricted; receivers of upstream fraud proceeds are frozen, and linked accounts with them. One case described in a law-firm article of July 2026: a year-long freeze and RMB 700,000 deducted after statements that did not match the evidence.</td>
+      <td class="cell">Payer name, then a freeze.</td>
+      <td class="st no">exclude at launch</td></tr>
+  </table>
+</div>
+<p class="cap"><b>Why RMB is excluded rather than deferred.</b> On every other rail the freeze lands on a trading wallet. On the RMB corridor the freeze lands on a bank account holding someone's salary, and the account holder then owes restitution to a fraud victim. Promising a corridor whose dominant failure mode is harm to the counterparty is a promise we cannot keep. This is a recommendation for counsel, not a finding of law.</p>
+
+<h2>Who gets hurt, and how</h2>
+
+<div class="card">
+  <div class="hd">The harm catalogue</div>
+  <div class="bd">
+    <ul>
+      <li><i>a</i><span><b>The forged screenshot.</b> Either party can edit a chat in their browser, photograph it, and no mediator can tell which version is authentic. The server must write the chat once; even then an uploaded payment screenshot proves nothing, so the evidence rules have to say what counts.</span></li>
+      <li><i>b</i><span><b>The reversal.</b> Funds arrive, escrow releases, and days later the payment is clawed back through the operator's fraud process. Needs a settlement window and monitoring, not a faster release.</span></li>
+      <li><i>c</i><span><b>The third-party payer, and the victim behind them.</b> A buyer sends money that was stolen from a scam victim. The seller's account is frozen, the platform's records enter a police file, and the seller is asked to repay. Three consequences for design: the payer-name check becomes mandatory, KYC depth has to cover the buying side, and a freeze-handling procedure must exist that tells traders what happens and who to contact. If a counterparty asks to pay from a third party's account, the documented advice in the RMB corridor is to cancel.</span></li>
+      <li><i>d</i><span><b>The SIM swap.</b> The confirmation comes from a hijacked number, so the person attesting is not the person who traded.</span></li>
+      <li><i>e</i><span><b>What green can honestly mean.</b> The operator exposes nothing to third parties, SMS confirmations are a standing scam in Ghana, and an immutable chat does not make a screenshot true. So green is attested: the seller confirms receipt in-app, the paying name matches where the rail exposes it, the window elapsed, no dispute open. The interface says so. Anything stronger claims data we do not have.</span></li>
+      <li><i>f</i><span><b>The freeze we cause.</b> Our own compliance hold, taken while a suspicious payment is investigated, is the same instrument as an operator freeze. It collides with the loss rule and with the retention rules below, and it needs its own notice, its own clock and its own appeal path.</span></li>
+      <li><i>g</i><span><b>Telling the trader may be tipping off.</b> Transparency is good service until it breaches anti-money-laundering law: as a matter of general principle, tipping off is prohibited in most regimes, and Ghana's position must be confirmed with counsel. So "we will notify you and give you an appeal" may be a promise we cannot keep in the exact case where the trader most needs it. The procedure needs a counsel-approved line between informing and tipping off.</span></li>
+      <li><i>h</i><span><b>Stolen crypto, not just stolen cedi.</b> A seller can escrow USDT that is itself the proceeds of crime. The issuer can freeze the address, and one omnibus escrow wallet means one freeze stops every trade at once. The guidelines require "transaction monitoring, blockchain or distributed ledger analytics, and sanctions screening" (3(3)(e)(iii)), so per-trade segregated addresses are the safer architecture, with the cost and the operational weight that implies.</span></li>
+      <li><i>i</i><span><b>Mules and structuring.</b> The seller is not always an innocent party: splitting many transactions just under our caps is the standard laundering pattern, and it is invisible per trade. Transaction monitoring has to look across trades, which is another argument for the analytics requirement being an application item rather than a later feature.</span></li>
+      <li><i>j</i><span><b>Social engineering.</b> A fake "KudiMarket support" account telling a seller to release escrow early, and the buyer pushing the conversation to WhatsApp where we cannot see it, are reported to be common in this market. The claim's source strength is weak, so treat the frequency as unverified and the pattern as real enough to design against: state plainly that support never asks anyone to release escrow, keep every consequential message inside the app, and authenticate in-app messages so a support request can be verified rather than trusted.</span></li>
+      <li><i>k</i><span><b>Our own failure or termination.</b> The application requires a "winding up and failure management plan" (3(5)), and 12(1) bars ceasing operations, suspending testing or exiting without prior SEC approval, while 11(2) lets the SEC terminate on written notice at any time. So the in-flight trade is a designed state, not an edge case: what a trader's crypto does if we are switched off, and whether refunds can complete without our servers, has to be answered before launch, not after the first incident.</span></li>
+      <li><i>l</i><span><b>Identity we have not chosen yet.</b> No KYC source or liveness check is named anywhere in this document, and that is a gap rather than an omission: mobile-money registration names often differ from legal names, so the mandatory payer-name check will reject honest trades. That check is one of our few observables, so the matching rule has to be designed with the identity source, not bolted onto it.</span></li>
+      <li><i>m</i><span><b>Free options.</b> Lock a price, wait for the market to move, then let the timeout cancel the trade. The cost is a stale quote rather than stolen money, but it is the cheapest abuse available to anyone who watches the screen.</span></li>
+      <li><i>n</i><span><b>Where the crypto goes.</b> Release to a buyer-supplied address is an outgoing transfer we control, so destination screening and sanctions screening apply (3(3)(e)(iii)), as does travel-rule compliance (addendum, AML policies item vi). The screening happens on the way out, not only on the way in.</span></li>
+    </ul>
+  </div>
+</div>
+
+<div class="card decide">
+  <div class="hd">Open decision · the loss rule</div>
+  <div class="bd">
+    <p>Mostro's house rule, when in doubt release, plus a reversal means the seller can lose the crypto and the cedi. That slogan cannot be adopted until someone is assigned the loss, and the answer is not a choice between three parties. <b>In a reversal the buyer keeps the crypto and recovers the cedi, so recovery starts with the party that benefited.</b></p>
+    <p><b>The waterfall:</b> first, the buyer's held balance or bond, because that is where the loss landed; second, the platform reserve, sized from the capped exposure we propose to the SEC rather than from rates we cannot have before launch; third, insurance or an equivalent safeguard, which 9(2)(c) lists among the arrangements the SEC may require where customer funds are involved; and only last, the seller absorbing it as a priced cost. A design where the party who gained is the last to pay is a design that invites the harm.</p>
+    <p><b>Four holes in that waterfall, stated rather than papered over.</b> <b>Step one depends on an unknown:</b> the buyer's held balance only exists if withdrawal holds outlast the reversal window, and that window is unverified for every rail. <b>The tail is uncovered:</b> the worst harm, a freeze plus a victim's restitution claim, arrives after holds expire, so nothing in the ladder pays for it. <b>The reserve can be drained by collusion:</b> a seller paired with a friendly "buyer" who reverses would repeat until the reserve is gone, so recovery needs the operator's written reversal confirmation rather than the payer's word, and a per-account lifetime claim cap. <b>Step three may be empty:</b> if no insurer covers this, the seller pays. Say that in the terms rather than discovering it in a dispute.</p>
+    <p><b>Release tiers follow from that rule, and three of the first draft's were wrong.</b> <b>Only the party receiving crypto can be held.</b> A new buyer's crypto is held to protect the seller, which does nothing about a seller who falsely claims non-receipt: the buyer's fiat risk needs bonds, evidence rules and dispute outcomes instead of a hold. <b>"Established" needs a definition that cannot be farmed.</b> Count distinct independent counterparties and elapsed time, not trade count, or two accounts trading with each other will climb the tier on their own. Cap how much a single trade may jump between tiers for the same reason. <b>And the step-down trigger has to match the attack:</b> a SIM swap keeps the same number, so watching for a changed number will not fire. Bind to device, apply a delay to consequential actions from a new device, and use a telco swap signal if Ghana exposes one we can lawfully obtain.</p>
+    <p>What survives from the first draft: new and low-volume accounts hold for the full reversal window with a per-account cap, established accounts release earlier, and withdrawal holds run longer than release windows because the exposure outlives the trade. The window lengths are still unknown per rail and must come from the operators' published fraud-claim processes, in writing, before they become numbers here.</p>
+    <p><b>One constraint from outside:</b> the applicant sets "user limits, transaction caps and geographic scope" in its own testing plan and the SEC approves them (guidelines 3(3)(b), 9(1)(c) as a condition it may impose). These tiers are the numbers in that application. See <a href="legal.html" style="color:var(--plum-mkt)">legal.html</a>.</p>
+  </div>
+</div>
+
+<h2>Evidence that survives both a court and the Data Protection Act</h2>
+
+<div class="card">
+  <div class="hd">Write-once chat, erasable people</div>
+  <div class="bd">
+    <ul>
+      <li><i>§</i><span><b>Retention has a rule attached to decisions.</b> Data Protection Act, 2012 (Act 843), section 24(4): a record used to make a decision about a data subject must be kept for a period prescribed by law or a code of conduct, or absent one, long enough to afford the subject an opportunity to request access. Dispute chat and rulings are exactly such records.</span></li>
+      <li><i>§</i><span><b>And an ending, but not the ending we assumed.</b> Sections 24(5) and (6) require destruction or de-identification at the end of the period, preventing reconstruction in intelligible form, and section 44 lets the Commission order erasure. Section 24(1) is the part the earlier draft got wrong: retention longer than necessary is allowed where law requires it, or where it is reasonably necessary for a lawful purpose. AML record-keeping is such a purpose, so an append-only store is not automatically unlawful. The live question is which retention period governs a dispute record that is also an AML record.</span></li>
+      <li><i>→</i><span><b>So the shape is this:</b> personal data lives in an erasable store; the write-once log holds digests, with each entry committing to the previous one; the head digest is anchored outside the database. The record proves that nothing was altered while it existed, without making the person undeletable. Retention periods and the Data Protection Register question both go to counsel as question seven in <a href="legal.html" style="color:var(--plum-mkt)">legal.html</a>.</span></li>
+    </ul>
+  </div>
+</div>
+
+<h2>The dispute desk, without invented numbers</h2>
+
+<div class="card">
+  <div class="hd">The dispute desk, decided by rule rather than by invented numbers</div>
+  <div class="bd">
+    <ul>
+      <li><i>1</i><span><b>Coverage follows the rails, not the office.</b> English only at launch; French when the CFA corridor is admitted, Chinese when RMB is admitted. Escrow and timeouts run around the clock, so first response has to land inside the shortest release window we get approved, whatever that window turns out to be. No case-count figure is asserted here, because none has been measured.</span></li>
+      <li><i>2</i><span><b>The judge stays away from the money.</b> Haveno's rule, copied deliberately: arbitrators decide, they never move funds.</span></li>
+      <li><i>3</i><span><b>Collusion is a bribery problem, not a theft problem.</b> Random case assignment; no standing relationship with either party; the written rationale stored in the write-once log; sampled audits; a stake forfeited on misconduct. Keeping the judge away from the funds does not stop a bribe to rule the wrong way.</span></li>
+      <li><i>4</i><span><b>Freeze cases are not disputes.</b> A third-party police or court freeze is escalated to counsel and escalated fast; arbitrators do not adjudicate them, and traders are told what is happening in plain language to the extent we lawfully can. Note the reporting clock on the way: a scam-proceeds freeze or any material fraud event or significant customer impact must reach the SEC within twenty-four hours (13(3)), so the desk and the compliance function share one queue, not two.</span></li>
+    </ul>
+  </div>
+</div>
+
+<h2>What happens next</h2>
+
+<ol class="steps">
+  <li><span><b>Obtain the operators' fraud-claim windows in writing</b>, per rail, from MTN, Telecel, AirtelTigo and the banks. Every window in this document is marked unknown because of it.</span></li>
+  <li><span><b>Research the CFA rails</b> before promising the corridor: Orange Money, Wave and Moov, their freeze practice, and whether a Ghanaian platform can serve them at all.</span></li>
+  <li><span><b>Take the loss rule to a decision</b> with numbers, then to counsel alongside the sandbox testing plan, because the tiers are the caps we ask to have approved.</span></li>
+  <li><span><b>Read the prior art for the parts that transfer:</b> lnp2pBot end to end, Mostro's anti-abuse bond document, RoboSats issue 39 on forged screenshots.</span></li>
+  <li><span><b>Write the freeze-handling procedure</b> before launch, not after the first one: who is notified, within what time, with what documents, and who pays the lawyer.</span></li>
+</ol>
+
+<nav>
+  <a href="oss-landscape.html">Build or adopt</a>
+  <a href="legal.html">Regulatory brief</a>
+  <a href="index.html">Brand index</a>
+</nav>
+
+<footer>
+  <span><b>Sources, retrieved 6 Oct to 7 Oct 2026.</b> Sandbox clauses cited here (3(3)(b) applicant-set caps, 3(3)(e)(iii) transaction monitoring, blockchain analytics and sanctions screening, 9(1)(c) operating within approved limits, 13(3) twenty-four-hour incident notification, Annex B safeguards where customer money is handled): SEC Securities Industry (Regulatory Sandbox Licensing) Guidelines 2026, SEC/GUI/001/03/2026, read directly from the PDF. Retention, destruction and erasure duties, including the section 24(1) allowance this document previously overstated: Data Protection Act, 2012 (Act 843), sections 24 and 44. Ghana mobile-money reversal behaviour and fraud advisories: Cyber Security Authority Ghana and Ghanaian industry reporting; the 24 to 48 hour figure in circulation is <b>unverified</b> and is treated as unknown. Alipay's prohibition of virtual-currency transactions and account restriction practice, and the freeze and restitution case on the RMB corridor: legal-practice and industry reporting, not a published rule. Naira bank freeze and recall behaviour: Nigerian banking and enforcement reporting, still to be confirmed against primary sources.</span>
+  <span><b>Revision note.</b> Three corrections since the first draft: the reversal window was stated as fact when it is unknown; green was defined more strongly than the data supports; and the harm to third parties was missing entirely. Two more from the last review pass: the loss rule is a waterfall rather than a choice between parties, and the release tiers needed step-down triggers and a cap on how much a trade can jump between them. One source discipline change: claims resting on a single secondary article now say so in the sentence rather than in the footer.</span>
+</footer>
+
+</body>
+</html>

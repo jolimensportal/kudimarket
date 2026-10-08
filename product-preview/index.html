@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KudiMarket — both sides of one trade</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+/* ---------------------------------------------------------------------------
+   KudiMarket design tokens. These are the locked brand values, not a choice:
+   plum hue 330 for anything pending or actionable, green for confirmation only,
+   red for loss or a destructive act. Nothing here is decorative.
+--------------------------------------------------------------------------- */
+:root {
+  --plum-900: #331931;
+  --plum-800: #462444;
+  --plum-600: #5E2D5A;
+  --plum-400: #743F6F;
+  --plum-300: #8B6187;
+  --bone:     #FCF6EE;
+  --paper:    #FFFFFF;
+  --green:    #185B37;
+  --red:      #933331;
+
+  --ink:      var(--plum-900);
+  --ink-mid:  color-mix(in oklch, var(--plum-900) 74%, var(--bone));
+  --ink-soft: color-mix(in oklch, var(--plum-900) 52%, var(--bone));
+  --line:     color-mix(in oklch, var(--plum-900) 12%, var(--bone));
+  --line-mid: color-mix(in oklch, var(--plum-900) 20%, var(--bone));
+  --tint:     color-mix(in oklch, var(--plum-600) 6%, var(--paper));
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { -webkit-font-smoothing: antialiased; }
+
+body {
+  background: var(--bone);
+  color: var(--ink);
+  font-family: 'Instrument Sans', system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.45;
+  font-feature-settings: 'ss01';
+}
+
+/* Every money figure lines up in a column. Proportional digits make a rate
+   board look like a typo. */
+.num { font-variant-numeric: tabular-nums; font-feature-settings: 'tnum'; }
+
+.wrap { max-width: 1440px; margin: 0 auto; padding: 64px 40px 96px; }
+
+.masthead { max-width: 760px; margin-bottom: 56px; }
+.wordmark { font-weight: 300; letter-spacing: -0.02em; font-size: 30px; }
+.wordmark b { font-weight: 800; }
+.masthead h1 {
+  font-size: 40px; font-weight: 600; letter-spacing: -0.02em;
+  line-height: 1.15; margin: 20px 0 14px; text-wrap: pretty;
+}
+.masthead p { color: var(--ink-mid); font-size: 17px; max-width: 62ch; text-wrap: pretty; }
+.masthead .lede { color: var(--ink-soft); margin-top: 14px; font-size: 15px; }
+
+.label {
+  font-size: 14px; font-weight: 600; letter-spacing: 0.09em;
+  text-transform: uppercase; color: var(--ink-soft);
+}
+
+.band {
+  background: var(--plum-900);
+  color: var(--bone);
+  margin: 0 -40px;
+  padding: 56px 40px 64px;
+}
+.band .label { color: var(--plum-300); }
+.band h2 { font-size: 27px; font-weight: 600; letter-spacing: -0.015em; margin: 10px 0 8px; }
+.band .sub { color: color-mix(in oklch, var(--bone) 62%, var(--plum-900)); max-width: 66ch; }
+.band .sub strong { color: var(--bone); font-weight: 500; }
+
+.band-head { max-width: 900px; margin-bottom: 34px; }
+
+.phones {
+  display: flex; flex-wrap: wrap; gap: 26px;
+}
+
+/* ---------------------------------------------------------------- phone */
+.phone { flex: 0 0 305px; max-width: 305px; }
+.phone figcaption {
+  display: flex; gap: 9px; align-items: baseline;
+  margin-bottom: 11px; font-size: 14px; color: var(--ink-soft);
+}
+.band .phone figcaption { color: color-mix(in oklch, var(--bone) 58%, var(--plum-900)); }
+.phone .step {
+  font-weight: 600; color: var(--plum-600); font-variant-numeric: tabular-nums;
+}
+.band .phone .step { color: var(--plum-300); }
+.phone figcaption b { color: var(--ink); font-weight: 600; }
+.band .phone figcaption b { color: var(--bone); }
+
+.device {
+  background: var(--plum-900);
+  border-radius: 30px;
+  padding: 9px;
+  box-shadow: 0 18px 40px -26px color-mix(in oklch, var(--plum-900) 70%, transparent);
+}
+.band .device { background: color-mix(in oklch, var(--bone) 34%, var(--plum-900)); }
+
+.screen {
+  background: var(--paper);
+  /* Reset the colour. These screens sit inside a plum band in one section and on
+     bone in another, and without this the amounts inherit near-white text on a
+     white screen and vanish. */
+  color: var(--ink);
+  border-radius: 22px;
+  overflow: hidden;
+  /* One height for all eight, so the row reads as a row. A ragged bottom edge
+     makes a set of screens look like an accident rather than a decision. */
+  height: 896px;
+  display: flex;
+  flex-direction: column;
+}
+
+.statusbar {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 9px 18px 7px;
+  font-size: 14px; font-weight: 500;
+  color: var(--ink-mid);
+  background: var(--paper);
+}
+.battery { display: inline-flex; align-items: center; gap: 5px; }
+.battery i { display: block; width: 17px; height: 9px; border: 1px solid var(--ink-soft); border-radius: 2px; position: relative; }
+.battery i::after { content: ''; position: absolute; inset: 1.5px 3.5px 1.5px 1.5px; background: var(--ink-soft); border-radius: 1px; }
+
+.nav {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--line);
+}
+.nav .who { font-weight: 600; font-size: 15px; }
+.nav .where { font-size: 14px; color: var(--ink-soft); margin-top: 1px; }
+.navmark { font-size: 14px; color: var(--ink-soft); letter-spacing: -0.01em; }
+.navmark b { font-weight: 800; color: var(--ink); }
+
+.body { padding: 15px 17px 17px; display: flex; flex-direction: column; gap: 12px; flex: 1; }
+
+.card {
+  background: var(--tint);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px 13px;
+}
+.card.plain { background: var(--paper); }
+.card.hero { background: var(--plum-600); color: var(--bone); border-color: var(--plum-600); }
+.card.hero .label { color: color-mix(in oklch, var(--bone) 72%, var(--plum-600)); }
+
+.card h3 { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
+.card p { font-size: 15px; color: var(--ink-mid); margin-top: 4px; text-wrap: pretty; }
+.card.hero p { color: color-mix(in oklch, var(--bone) 82%, var(--plum-600)); }
+.card .big { font-size: 27px; font-weight: 600; letter-spacing: -0.02em; margin-top: 6px; }
+.card .sub { font-size: 14px; color: var(--ink-soft); margin-top: 3px; }
+.card.hero .sub { color: color-mix(in oklch, var(--bone) 68%, var(--plum-600)); }
+
+.rows { display: flex; flex-direction: column; }
+.row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 11px 0; border-bottom: 1px solid var(--line);
+  font-size: 15px; gap: 12px;
+}
+.row:last-child { border-bottom: 0; padding-bottom: 0; }
+.row:first-child { padding-top: 0; }
+.row .k { color: var(--ink-soft); }
+.row .v { font-weight: 500; text-align: right; }
+.row .v em { font-style: normal; color: var(--ink-soft); font-weight: 400; display: block; font-size: 14px; margin-top: 1px; }
+
+/* Assurance badge: the whole product promise, stated as a fact not a boast. */
+.badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 14px; font-weight: 600; letter-spacing: 0.01em;
+  padding: 3px 9px; border-radius: 999px;
+  border: 1px solid currentColor;
+}
+.badge.handled { color: var(--plum-600); background: color-mix(in oklch, var(--plum-600) 8%, var(--paper)); }
+.badge.checked { color: var(--ink-soft); background: transparent; }
+.badge.ok      { color: var(--green); background: color-mix(in oklch, var(--green) 7%, var(--paper)); }
+.badge.lost    { color: var(--red);   background: color-mix(in oklch, var(--red) 7%, var(--paper)); }
+.badge.waiting { color: var(--plum-600); background: color-mix(in oklch, var(--plum-600) 8%, var(--paper)); }
+
+.dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex: 0 0 auto; }
+
+.cta {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 48px; padding: 0 18px;
+  border-radius: 11px; font-size: 15px; font-weight: 600;
+  border: 1px solid transparent; text-align: center;
+}
+.cta.primary { background: var(--plum-600); color: var(--bone); }
+.cta.ghost   { background: transparent; color: var(--plum-600); border-color: var(--plum-400); }
+.cta.done    { background: color-mix(in oklch, var(--green) 10%, var(--paper)); color: var(--green); border-color: color-mix(in oklch, var(--green) 34%, var(--paper)); }
+.cta.locked  { background: var(--paper); color: var(--ink-soft); border-color: var(--line-mid); }
+.cta .why { display: block; font-size: 14px; font-weight: 400; opacity: .78; margin-top: 1px; }
+
+.actions { display: flex; flex-direction: column; gap: 9px; margin-top: auto; padding-top: 4px; }
+.actions.two { flex-direction: row; }
+.actions.two .cta { flex: 1; }
+
+.field { border: 1px solid var(--line-mid); border-radius: 11px; padding: 10px 13px; background: var(--paper); }
+.field .k { font-size: 14px; color: var(--ink-soft); }
+.field .v { font-size: 19px; font-weight: 600; letter-spacing: -0.015em; margin-top: 2px; }
+
+.picker {
+  display: flex; align-items: center; justify-content: space-between;
+  border: 1px solid var(--line-mid); border-radius: 11px; padding: 11px 13px;
+  background: var(--paper); font-size: 14.5px;
+}
+.pair { font-weight: 600; }
+.pair span { color: var(--plum-300); margin: 0 7px; }
+
+.note { font-size: 14px; color: var(--ink-soft); line-height: 1.45; text-wrap: pretty; }
+.note strong { color: var(--ink-mid); font-weight: 600; }
+
+.timer {
+  display: flex; align-items: baseline; gap: 8px;
+  padding: 11px 13px; border-radius: 11px;
+  background: color-mix(in oklch, var(--plum-600) 7%, var(--paper));
+  border: 1px solid color-mix(in oklch, var(--plum-600) 18%, var(--paper));
+}
+.timer .t { font-size: 21px; font-weight: 600; letter-spacing: -0.02em; color: var(--plum-600); }
+.timer .w { font-size: 14px; color: var(--ink-mid); }
+
+.choice {
+  display: flex; gap: 10px; align-items: flex-start;
+  border: 1px solid var(--line-mid); border-radius: 11px;
+  padding: 11px 13px; font-size: 15px;
+}
+.choice .mark {
+  width: 15px; height: 15px; border-radius: 50%;
+  border: 1.5px solid var(--line-mid); flex: 0 0 auto; margin-top: 1px;
+}
+.choice.on { border-color: var(--plum-600); background: color-mix(in oklch, var(--plum-600) 6%, var(--paper)); }
+.choice.on .mark { border-color: var(--plum-600); background: var(--plum-600); box-shadow: inset 0 0 0 2.5px var(--paper); }
+
+/* --------------------------------------------------------- the record panel */
+.record {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 26px 28px 28px;
+  margin-top: 34px;
+}
+.record-head { display: flex; flex-wrap: wrap; gap: 16px; justify-content: space-between; align-items: flex-start; }
+.record-head h3 { font-size: 20px; font-weight: 600; letter-spacing: -0.015em; }
+.record-head p { font-size: 14px; color: var(--ink-mid); max-width: 52ch; margin-top: 6px; text-wrap: pretty; }
+
+.chain { margin-top: 22px; border-top: 1px solid var(--line); }
+.chain-row {
+  display: grid;
+  grid-template-columns: 34px 158px 168px 1fr 92px;
+  gap: 14px; align-items: baseline;
+  padding: 13px 0; border-bottom: 1px solid var(--line);
+  font-size: 15px;
+}
+.chain-row:last-child { border-bottom: 0; }
+.chain-row .seq { color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.chain-row .move { font-weight: 600; letter-spacing: -0.01em; }
+.chain-row .move span { color: var(--ink-soft); font-weight: 400; }
+.chain-row .who { color: var(--ink-mid); }
+.chain-row .when { color: var(--ink-soft); font-variant-numeric: tabular-nums; text-align: right; }
+.chain-row.head {
+  border-bottom: 1px solid var(--line-mid); padding-bottom: 8px;
+  font-size: 14px; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--ink-soft); font-weight: 600;
+}
+.chain-row.head .who, .chain-row.head .when { color: var(--ink-soft); font-weight: 600; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 18px; margin-top: 18px; }
+.legend div { display: flex; align-items: center; gap: 7px; font-size: 14px; color: var(--ink-mid); }
+
+.foot { margin-top: 46px; padding-top: 22px; border-top: 1px solid var(--line); }
+.foot p { font-size: 15px; color: var(--ink-soft); max-width: 74ch; text-wrap: pretty; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="masthead">
+    <div class="wordmark">kudi<b>market</b></div>
+    <h1>One trade, seen from both sides.</h1>
+    <p>KudiMarket holds a board with a cedi buyer on one side and a naira seller on the other, and
+    sits in the middle of it as a counterparty in its own right. This is what that looks like on a
+    phone: the seller's side, the buyer's side, and the record both of them end up trusting.</p>
+    <p class="lede">Every figure here is a working figure out of the ledger, not filler. Amounts,
+    rates and the state changes come out of the same tables the operations console reads.</p>
+  </header>
+
+  <!-- ============================================================ SELLER -->
+  <section class="band">
+    <div class="band-head">
+      <div class="label">The seller</div>
+      <h2>Ama has naira. She needs cedi, not naira.</h2>
+      <p class="sub">She is not a company and does not want to be one. She lists what she holds, sets
+      the rate she will accept, and waits. <strong>KudiMarket sits in the middle of the board at a
+      rate we can honour ourselves</strong>, which is why she never has to find a counterparty before
+      she can trade.</p>
+    </div>
+
+    <div class="phones">
+
+      <figure class="phone">
+        <figcaption><span class="step">1.</span> <b>Your position</b></figcaption>
+        <div class="device"><div class="screen">
+          <div class="statusbar"><span class="num">12:04</span><span class="battery">84%<i></i></span></div>
+          <div class="nav"><div><div class="who">Adwoa</div><div class="where">Lagos &middot; Nigeria</div></div><div class="navmark">kudi<b>market</b></div></div>
+          <div class="body">
+            <div class="rows">
+              <div class="row"><div class="k">You hold</div><div class="v num">&#8358;4,500,000</div></div>
+              <div class="row"><div class="k">You are owed</div><div class="v num">&#8358;0</div></div>
+              <div class="row"><div class="k">KudiMarket holds for you</div><div class="v num">&#8358;0</div></div>
+            </div>
+            <div class="card">
+              <div class="label">Our rate today</div>
+              <div class="big num">1 &#8358; = 0.00675 &#8963;</div>
+              <div class="sub">KudiMarket buys naira from you at this rate and pays cedi to whoever you send it to, or straight into your cedi account.</div>
+            </div>
+            <div class="card plain">
+              <div class="rows">
+                <div class="row"><div class="k">Settled trades</div><div class="v num">31</div></div>
+                <div class="row"><div class="k">Disputes on your trades</div><div class="v num">0</div></div>
+                <div class="row"><div class="k">Average settle time</div><div class="v">4 min</div></div>
+              </div>
+            </div>
+            <div class="actions two">
+              <div class="cta primary">List naira</div>
+              <div class="cta ghost">History</div>
+            </div>
+          </div>
+        </div></div>
+      </figure>
+
+      <figure class="phone">
+        <figcaption><span class="step">2.</span> <b>Set an offer</b></figcaption>
+        <div class="device"><div class="screen">
+          <div class="statusbar"><span class="num">12:05</span><span class="battery">84%<i></i></span></div>
+          <div class="nav"><div><div class="who">List naira</div><div class="where">Offers other people can accept</div></div><div class="navmark">&#8594;</div></div>
+          <div class="body">
+            <div class="picker"><div class="pair">I have <span>&#8358;</span> I want <span>&#8963;</span></div><div>&#9662;</div></div>
+            <div class="field"><div class="k">Amount</div><div class="v num">&#8358;500,000</div></div>
+            <div class="field"><div class="k">Rate you will accept</div><div class="v num">1 &#8358; = 0.00670 &#8963;</div></div>
+            <div class="card">
+              <div class="label">Against the board</div>
+              <p>That is <strong>0.7% below</strong> KudiMarket's rate. You are very likely to wait longer.
+              Listings closer to our rate clear first.</p>
+            </div>
+            <div class="card plain">
+              <div class="rows">
+                <div class="row"><div class="k">Deposit if a trade is disputed</div><div class="v">&#8358;0</div></div>
+                <div class="row"><div class="k">Deposit if you take the other side</div><div class="v num">&#8358;50,000</div></div>
+              </div>
+              <p class="note" style="margin-top:8px">A deposit only applies when you are trading with another vendor and you are judged at fault. Trading against KudiMarket needs no deposit from you.</p>
+            </div>
+            <div class="actions">
+              <div class="cta primary">Publish for 15 minutes</div>
+            </div>
+          </div>
+        </div></div>
+      </figure>
+
+      <figure class="phone">
+        <figcaption><span class="step">3.</span> <b>A request to accept</b></figcaption>
+        <div class="device"><div class="screen">
+          <div class="statusbar"><span class="num">12:06</span><span class="battery">83%<i></i></span></div>
+          <div class="nav"><div><div class="who">Ama wants to buy</div><div class="where">Held for you for 2 minutes</div></div><div class="navmark">kudi<b>market</b></div></div>
+          <div class="body">
+            <div class="card hero">
+              <div class="label">Amount</div>
+              <div class="big num">&#8358;200,000</div>
+              <div class="sub num">at 148.20 &#8212; &#8963;1,349.53</div>
+            </div>
+            <div class="rows">
+              <div class="row"><div class="k">Counterparty</div><div class="v">Ama<span class="badge checked" style="margin-left:6px">Checked</span></div></div>
+              <div class="row"><div class="k">Paid by</div><div class="v">Mobile money</div></div>
+              <div class="row"><div class="k">Settles</div><div class="v">Into your cedi account</div></div>
+              <div class="row"><div class="k">Counterparty fee</div><div class="v num">&#8358;0</div></div>
+            </div>
+            <div class="timer">
+              <div><div class="t num">01:47</div></div>
+              <div class="w">Left to accept. After that the rate is re-checked, because these move.</div>
+            </div>
+            <div class="actions two">
+              <div class="cta primary">Accept</div>
+              <div class="cta ghost">Decline</div>
+            </div>
+          </div>
+        </div></div>
+      </figure>
+
+      <figure class="phone">
+        <figcaption><span class="step">4.</span> <b>Waiting, then release</b></figcaption>
+        <div class="device"><div class="screen">
+          <div class="statusbar"><span class="num">12:11</span><span class="battery">79%<i></i></span></div>
+          <div class="nav"><div><div class="who">Trade #4821</div><div class="where">&#8358;200,000 &rarr; &#8963;1,349.53</div></div><div class="badge waiting"><i class="dot"></i>Waiting</div></div>
+          <div class="body">
+            <div class="rows">
+              <div class="row"><div class="k">State</div><div class="v">Ama said she paid</div></div>
+              <div class="row"><div class="k">KudiMarket</div><div class="v">Checking the naira arrived</div></div>
+              <div class="row"><div class="k">You can release</div><div class="v num">12:19</div></div>
+            </div>
+            <div class="timer">
+              <div><div class="t num">07:12</div></div>
+              <div class="w">Naira must sit still for this long before you can release. Mobile money reverses fast, so the wait is the protection, not a formality.</div>
+            </div>
+            <div class="card">
+              <div class="label">Why you cannot release yet</div>
+              <p>The claim window has not closed. Releasing early is what makes a platform lose money to a reversal, so the system refuses it rather than trusting you to remember.</p>
+            </div>
+            <div class="actions">
+              <div class="cta locked">Release to Ama<span class="why">Opens at 12:19</span></div>
+              <div class="cta ghost">Message Ama</div>
+            </div>
+          </div>
+        </div></div>
+      </figure>
+
+    </div>
+  </section>
+
+  <!-- ============================================================ BUYER -->
+  <section style="margin-top:56px">
+    <div class="band-head" style="margin-bottom:34px">
+      <div class="label">The buyer</div>
+      <h2>Ama has cedi. She needs naira, sent to Lagos.</h2>
+      <p style="color:var(--ink-mid);max-width:66ch">She came for one number and left knowing who is
+      standing behind it. That is the whole product: not a better rate, but a rate with a name on it.</p>
+    </div>
+
+    <div class="phones">
+
+      <figure class="phone">
+        <figcaption><span class="step">5.</span> <b>The board</b></figcaption>
+        <div class="device"><div class="screen">
+          <div class="statusbar"><span class="num">11:58</span><span class="battery">88%<i></i></span></div>
+          <div class="nav"><div><div class="who">Rates</div><div class="where">Accra &middot; Ghana</div></div><div class="navmark">kudi<b>market</b></div></div>
+          <div class="body">
+            <div class="picker"><div class="pair">&#8963; <span>&#8594;</span> &#8358;</div><div>&#9662;</div></div>
+
+            <div class="card hero">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+                <div>
+                  <div class="label">KudiMarket</div>
+                  <div class="big num">148.20</div>
+                  <div class="sub num">1 &#8963; &#8594; &#8358;148.20 &middot; set by pricing@kudimarket.com</div>
+                </div>
+                <div class="badge handled" style="color:var(--bone);border-color:color-mix(in oklch, var(--bone) 55%, var(--plum-600))">Handled</div>
+              </div>
+              <p style="margin-top:9px">We are the other side. If the naira does not arrive, the money comes back to you and it is our loss, not a claim you have to win.</p>
+            </div>
+
+            <div class="card plain">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">
+                <div class="v">Adwoa</div><div class="badge checked"><i class="dot"></i>Checked</div>
+              </div>
+              <div class="row"><div class="k">Rate</div><div class="v num">147.60</div></div>
+              <div class="row"><div class="k">Available</div><div class="v num">&#8358;500,000</div></div>
+              <p class="note" style="margin-top:8px">Identity, receiving account and 31 settled trades verified. If Adwoa fails to deliver KudiMarket decides, but settlement is not guaranteed.</p>
+            </div>
+
+            <div class="card plain">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">
+                <div class="v">Kwesi</div><div class="badge checked"><i class="dot"></i>Checked</div>
+              </div>
+              <div class="row"><div class="k">Rate</div><div class="v num">146.95</div></div>
+              <div class="row"><div class="k">Available</div><div class="v num">&#8358;180,000</div></div>
+            </div>
+
+            <div class="actions"><div class="cta ghost">What Checked means</div></div>
+          </div>
+        </div></div>
+      </figure>
+
+      <figure class="phone">
+        <figcaption><span class="step">6.</span> <b>The trade, opened</b></figcaption>
+        <div class="device"><div class="screen">
+          <div class="statusbar"><span class="num">11:59</span><span class="battery">88%<i></i></span></div>
+          <div class="nav"><div><div class="who">Trade #4821</div><div class="where">Opened against KudiMarket</div></div><div class="badge handled">Handled</div></div>
+          <div class="body">
+            <div class="card plain">
+              <div class="rows">
+                <div class="row"><div class="k">You send</div><div class="v num">&#8963;1,349.53</div></div>
+                <div class="row"><div class="k">You receive</div><div class="v num">&#8358;200,000</div></div>
+                <div class="row"><div class="k">Rate, held</div><div class="v num">148.20</div></div>
+                <div class="row"><div class="k">KudiMarket fee</div><div class="v num">&#8963;0.00</div></div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="label">Send the cedi to</div>
+              <p class="num" style="color:var(--ink);font-weight:600;font-size:15px;margin-top:3px">MTN Mobile Money &middot; 024 000 1122</p>
+              <p>KudiMarket Sim, Adwoa Serwaa. Use your own name as the reference. A payment from a number that is not registered to you is a payment we cannot give you a receipt for.</p>
+            </div>
+            <div class="rows">
+              <div class="row"><div class="k">Naira goes to</div><div class="v">Adwoa, Lagos</div></div>
+              <div class="row"><div class="k">You can dispute until</div><div class="v num">12:19</div></div>
+            </div>
+            <div class="actions">
+              <div class="cta primary">I have paid &mdash; send proof</div>
+              <div class="cta ghost">I have not paid yet</div>
+            </div>
+          </div>
+        </div></div>
+      </figure>
+
+      <figure class="phone">
+        <figcaption><span class="step">7.</span> < <b>Held, and waiting on the window</b></figcaption>
+        <div class="device"><div class="screen">
+          <div class="statusbar"><span class="num">12:03</span><span class="battery">85%<i></i></span></div>
+          <div class="nav"><div><div class="who">Trade #4821</div><div class="where">Against KudiMarket</div></div><div class="badge waiting"><i class="dot"></i>Held</div></div>
+          <div class="body">
+            <div class="card plain">
+              <div class="rows">
+                <div class="row"><div class="k">Your cedi</div><div class="v"><span class="badge ok"><i class="dot"></i>Received</span></div></div>
+                <div class="row"><div class="k">Your naira</div><div class="v">Waiting on the window</div></div>
+                <div class="row"><div class="k">Confirmed to you</div><div class="v num">&#8963;1,349.53</div></div>
+              </div>
+            </div>
+            <div class="timer">
+              <div><div class="t num">15:52</div></div>
+              <div class="w">Left to dispute. Your naira is not released to Adwoa until this reaches zero.</div>
+            </div>
+            <div class="card">
+              <div class="label">Straight answer</div>
+              <p>We can tell you the cedi arrived and that a human confirmed it. We cannot tell you
+              the money in Adwoa's bank account is real, because we will not see it until it moves.
+              Nothing on this screen is a guarantee about naira we have not yet received.</p>
+            </div>
+            <div class="actions">
+              <div class="cta primary">Report a problem</div>
+              <div class="cta ghost">Message the desk</div>
+            </div>
+          </div>
+        </div></div>
+      </figure>
+
+      <figure class="phone">
+        <figcaption><span class="step">8.</span> <b>Raising a dispute</b></figcaption>
+        <div class="device"><div class="screen">
+          <div class="statusbar"><span class="num">12:07</span><span class="battery">83%<i></i></span></div>
+          <div class="nav"><div><div class="who">What happened?</div><div class="where">Trade #4821</div></div><div class="navmark">&#8592;</div></div>
+          <div class="body">
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div class="choice on"><div class="mark"></div><div>The naira has not arrived at all</div></div>
+              <div class="choice"><div class="mark"></div><div>Less naira arrived than the trade says</div></div>
+              <div class="choice"><div class="mark"></div><div>The naira arrived, from the wrong account</div></div>
+              <div class="choice"><div class="mark"></div><div>I was debited twice</div></div>
+            </div>
+            <div class="card">
+              <div class="label">What happens next</div>
+              <p>This trade is KudiMarket handled, so the desk decides and you do not argue with
+              Adwoa. Your cedi comes back in full, and if Adwoa is at fault 10% of the trade comes
+              out of their deposit and back to you.</p>
+            </div>
+            <div class="card plain">
+              <p class="note">Anything you write here is permanent and visible to both sides and to a
+              regulator. <strong>Do not put a MoMo PIN or a document number in it.</strong></p>
+            </div>
+            <div class="actions">
+              <div class="cta primary">Send the cedi back to me</div>
+              <div class="cta ghost">Keep waiting</div>
+            </div>
+          </div>
+        </div></div>
+      </figure>
+
+    </div>
+  </section>
+
+  <!-- ============================================================ RECORD -->
+  <section style="margin-top:64px">
+    <div class="band-head" style="margin-bottom:0">
+      <div class="label">What both sides end up with</div>
+      <h2 style="font-size:27px;font-weight:600;letter-spacing:-0.015em;margin:10px 0 8px">A record that cannot be edited afterwards.</h2>
+      <p style="color:var(--ink-mid);max-width:70ch">This is the same trade after a dispute, on both
+      phones. Neither side wrote it, and neither side can change it. Every line commits to the one
+      above it, so a row that was edited or quietly deleted is detectable by anyone who asks. The same
+      is true of our own prices, which is the other thing a trader is entitled to check: every rate we
+      publish is on file forever, chained, and never edited in place.</p>
+    </div>
+
+    <div class="record">
+      <div class="record-head">
+        <div>
+          <h3>Trade #4821</h3>
+          <p class="note" style="margin-top:4px">&#8963;1,349.53 &rarr; &#8358;200,000 &middot; Ama &rarr; Adwoa &middot; vendor_vendor</p>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <span class="badge lost">Resolved, refund</span>
+          <span class="badge ok"><i class="dot"></i>Both chains verified</span>
+        </div>
+      </div>
+
+      <div class="chain">
+        <div class="chain-row head">
+          <div>#</div><div>Change</div><div>By</div><div>Why</div><div class="when">When</div>
+        </div>
+        <div class="chain-row">
+          <div class="seq num">1</div>
+          <div class="move">no state yet <span>&#8594;</span> open</div>
+          <div class="who">KudiMarket</div>
+          <div>Trade opened. Written by the ledger itself, not by a screen.</div>
+          <div class="when num">11:58:02</div>
+        </div>
+        <div class="chain-row">
+          <div class="seq num">2</div>
+          <div class="move">open <span>&#8594;</span> paid claimed</div>
+          <div class="who">Ama</div>
+          <div>Seller said she sent the cedi.</div>
+          <div class="when num">12:00:41</div>
+        </div>
+        <div class="chain-row">
+          <div class="seq num">3</div>
+          <div class="move">paid claimed <span>&#8594;</span> paid attested</div>
+          <div class="who">KudiMarket</div>
+          <div>Cedi confirmed in KudiMarket's MoMo account.</div>
+          <div class="when num">12:01:09</div>
+        </div>
+        <div class="chain-row">
+          <div class="seq num">4</div>
+          <div class="move">paid attested <span>&#8594;</span> disputed</div>
+          <div class="who">Ama</div>
+          <div>"The naira has not arrived at all."</div>
+          <div class="when num">12:07:55</div>
+        </div>
+        <div class="chain-row">
+          <div class="seq num">5</div>
+          <div class="move">disputed <span>&#8594;</span> resolved refund</div>
+          <div class="who">ops@kudimarket.com</div>
+          <div>Seller made whole. Buyer at fault, so the buyer's &#8963;135 deposit was forfeited to the seller.</div>
+          <div class="when num">12:26:18</div>
+        </div>
+      </div>
+
+      <div class="legend">
+        <div><span class="dot" style="color:var(--plum-600)"></span>Pending or awaiting someone</div>
+        <div><span class="dot" style="color:var(--green)"></span>Confirmed against evidence we hold</div>
+        <div><span class="dot" style="color:var(--red)"></span>Money went back to one side</div>
+      </div>
+      <p class="note" style="margin-top:16px;max-width:74ch">The page a regulator looks at calls this
+      out loud: if any line above has been changed, both hash chains stop verifying and the console
+      says STOP instead of rendering a page that looks fine.</p>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <p>Two colours do the work. Anything waiting on a human is plum, which is also every action you
+    can take. Green only ever means confirmed, so it cannot be mistaken for a button. Red only ever
+    means money went back to one side, so it cannot be mistaken for ordinary emphasis. There is no
+    fourth colour.</p>
+  </footer>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KudiMarket — 1a · The Tray</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --green: oklch(0.44 0.08 152);
+    --deep-green: oklch(0.31 0.06 156);
+    --ink: oklch(0.19 0.012 156);
+    --ink-soft: oklch(0.43 0.018 156);
+    --paper: oklch(0.965 0.013 84);
+    --paper-dim: oklch(0.91 0.016 82);
+    --settled: oklch(0.62 0.13 150);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:var(--paper);color:var(--ink);
+    font-family:"Familjen Grotesk",system-ui,sans-serif;
+    padding:56px 40px 96px;max-width:1080px;margin:0 auto;
+    display:flex;flex-direction:column;gap:52px;text-wrap:pretty;
+  }
+  .idline{display:flex;align-items:baseline;gap:14px;font-size:13px;letter-spacing:0.14em;
+    text-transform:uppercase;color:var(--ink-soft);border-bottom:1px solid var(--paper-dim);padding-bottom:14px}
+  .idline strong{color:var(--deep-green);font-weight:500}
+  h1{font-size:clamp(28px,4.6vw,44px);font-weight:500;letter-spacing:-0.025em;line-height:1.08}
+  h1 em{font-style:normal;font-weight:700;color:var(--deep-green)}
+  .lede{font-size:17px;line-height:1.55;color:var(--ink-soft);max-width:62ch}
+  .lede strong{color:var(--ink);font-weight:500}
+
+  .stage{background:#fff;border:1px solid var(--paper-dim);padding:76px 56px;
+    display:flex;flex-direction:column;gap:34px;align-items:flex-start}
+
+  /* woven tray: the wordmark sitting inside a woven edge */
+  .tray{position:relative;padding:52px 46px 44px}
+  .tray::before{
+    content:"";position:absolute;inset:0;
+    background:
+      repeating-linear-gradient(90deg,transparent 0 11px,var(--paper-dim) 11px 12px),
+      repeating-linear-gradient(0deg,transparent 0 11px,var(--paper-dim) 11px 12px);
+    border:2px solid var(--green);
+  }
+  .tray .wordmark{position:relative;font-size:clamp(48px,11vw,124px);
+    font-weight:500;letter-spacing:-0.03em;line-height:0.92;color:var(--ink)}
+  .tray .wordmark b{font-weight:700;color:var(--deep-green)}
+  .tagline{font-size:clamp(19px,2.5vw,26px);font-weight:400;letter-spacing:-0.01em}
+  .tagline b{color:var(--deep-green);font-weight:700}
+
+  /* variant: wordmark without the tray */
+  .bare{font-size:clamp(34px,7vw,74px);font-weight:500;letter-spacing:-0.03em}
+  .bare b{font-weight:700;color:var(--deep-green)}
+
+  dl.rows{display:flex;flex-direction:column;border-top:1px solid var(--paper-dim)}
+  .row{display:grid;grid-template-columns:150px 1fr;gap:28px;padding:20px 0;
+    border-bottom:1px solid var(--paper-dim);align-items:start}
+  .row dt{font-size:12px;letter-spacing:0.12em;text-transform:uppercase;color:var(--deep-green);font-weight:500}
+  .row dd{font-size:15px;line-height:1.55;color:var(--ink-soft)}
+  .row dd strong{color:var(--ink);font-weight:500}
+  .markzone{border:1.5px dashed var(--green);background:var(--paper);padding:28px 32px;
+    font-size:13px;line-height:1.5;color:var(--deep-green)}
+  footer{font-size:13px;color:var(--ink-soft);border-top:1px solid var(--paper-dim);padding-top:18px}
+</style>
+</head>
+<body>
+
+<div class="idline"><strong>1a</strong> <span>Warmest · most human</span> <span>· The Tray</span></div>
+
+<h1>The woven tray every market<br>already has. Now it <em>fits in a pocket.</em></h1>
+
+<p class="lede">Woven trays carry goods and coins in West African markets. Weaving is many hands making one thing — which is the <strong>trust argument</strong> the brand actually needs after Patricia and Paxful. This direction leads with warmth and community rather than authority.</p>
+
+<div class="stage">
+  <div class="tray">
+    <div class="wordmark">kudi <b>market</b></div>
+  </div>
+  <p class="tagline">Your market. Your rate.</p>
+</div>
+
+<div class="stage">
+  <div class="bare">kudi <b>market</b></div>
+</div>
+
+<dl class="rows">
+  <div class="row"><dt>Wordmark</dt><dd>Familjen Grotesk, 500 + 700. Soft humanist forms with real character — closer to hand-painted market lettering than to a software product.</dd></div>
+  <div class="row"><dt>Why it lasts</dt><dd>The warm end of the shortlist. If KudiMarket's real position is "the exchange that feels human," this is the one that argues it visually without a word of copy.</dd></div>
+  <div class="row"><dt>Say test</dt><dd>Two chunks, easy. Softest to hear over a noisy market, which is where your users actually are.</dd></div>
+  <div class="row"><dt>Risk</dt><dd>Least authoritative of the three. The woven texture is decorative and can read dated if executed poorly — it must be restrained or dropped for the bare lockup above.</dd></div>
+</dl>
+
+<div class="markzone"><strong>Mark placeholder — not the logo.</strong><br>
+  Direction: a top-down woven tray, or a tray with coins and one <em>kudi</em> pot. Needs a designer-drawn asset; do not ship this box.</div>
+
+<footer>kudimarket.com · wordmark direction only — final mark needs a designer and a real asset</footer>
+
+</body>
+</html>

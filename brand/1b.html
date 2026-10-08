@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KudiMarket — 1b · The Weighed Word</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Archivo:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --green: oklch(0.44 0.08 152);
+    --deep-green: oklch(0.31 0.06 156);
+    --ink: oklch(0.19 0.012 156);
+    --ink-soft: oklch(0.43 0.018 156);
+    --paper: oklch(0.965 0.013 84);
+    --paper-dim: oklch(0.91 0.016 82);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:var(--paper);color:var(--ink);
+    font-family:Archivo,system-ui,sans-serif;
+    padding:56px 40px 96px;max-width:1080px;margin:0 auto;
+    display:flex;flex-direction:column;gap:52px;text-wrap:pretty;
+  }
+  .idline{display:flex;align-items:baseline;gap:14px;font-size:13px;letter-spacing:0.14em;
+    text-transform:uppercase;color:var(--ink-soft);border-bottom:1px solid var(--paper-dim);padding-bottom:14px}
+  .idline strong{color:var(--deep-green);font-weight:600}
+  h1{font-family:"Bricolage Grotesque",sans-serif;font-size:clamp(28px,4.6vw,44px);
+    font-weight:400;letter-spacing:-0.02em;line-height:1.06}
+  h1 em{font-style:normal;font-weight:800;color:var(--deep-green)}
+  .lede{font-size:17px;line-height:1.55;color:var(--ink-soft);max-width:62ch}
+  .lede strong{color:var(--ink);font-weight:600}
+
+  .stage{background:#fff;border:1px solid var(--paper-dim);padding:76px 56px;
+    display:flex;flex-direction:column;gap:36px;align-items:flex-start}
+
+  /* condensed uppercase lockup — the auction board */
+  .board{display:flex;flex-direction:column;gap:6px;line-height:0.9}
+  .board .top{font-family:"Bricolage Grotesque",sans-serif;font-size:clamp(50px,11vw,128px);
+    font-weight:800;letter-spacing:-0.045em;text-transform:uppercase;color:var(--ink)}
+  .board .bot{font-family:"Bricolage Grotesque",sans-serif;font-size:clamp(50px,11vw,128px);
+    font-weight:800;letter-spacing:-0.045em;text-transform:uppercase;color:var(--deep-green)}
+  .beam{width:100%;max-width:520px;height:2px;background:var(--green);position:relative;margin-top:14px}
+  .beam::before,.beam::after{content:"";position:absolute;top:-5px;width:12px;height:12px;
+    border-radius:50%;background:var(--green)}
+  .beam::before{left:0}
+  .beam::after{right:0}
+  .tagline{font-size:clamp(19px,2.5vw,26px);font-weight:500;letter-spacing:-0.01em}
+  .tagline b{color:var(--deep-green);font-weight:600}
+
+  dl.rows{display:flex;flex-direction:column;border-top:1px solid var(--paper-dim)}
+  .row{display:grid;grid-template-columns:150px 1fr;gap:28px;padding:20px 0;
+    border-bottom:1px solid var(--paper-dim);align-items:start}
+  .row dt{font-size:12px;letter-spacing:0.12em;text-transform:uppercase;color:var(--deep-green);font-weight:600}
+  .row dd{font-size:15px;line-height:1.55;color:var(--ink-soft)}
+  .row dd strong{color:var(--ink);font-weight:600}
+  .markzone{border:1.5px dashed var(--green);background:var(--paper);padding:28px 32px;
+    font-size:13px;line-height:1.5;color:var(--deep-green)}
+  footer{font-size:13px;color:var(--ink-soft);border-top:1px solid var(--paper-dim);padding-top:18px}
+</style>
+</head>
+<body>
+
+<div class="idline"><strong>1b</strong> <span>Market board</span> <span>· The Weighed Word</span></div>
+
+<h1>Every market has a board.<br>The board is where the <em>price is real.</em></h1>
+
+<p class="lede">Auction boards, exchange boards, market boards — the word has carried <strong>fair, posted, settled</strong> for centuries. This direction puts KudiMarket on a board: heavy, condensed, shouty in the way a market price is unmissable. The beam underneath is a balance, not a flourish.</p>
+
+<div class="stage">
+  <div class="board">
+    <span class="top">Kudi</span>
+    <span class="bot">Market</span>
+  </div>
+  <div class="beam"></div>
+  <p class="tagline">Your market. Your rate.</p>
+</div>
+
+<dl class="rows">
+  <div class="row"><dt>Wordmark</dt><dd>Bricolage Grotesque at 800, condensed tracking. Reads as municipal signage — the visual language of a real market, not of an app.</dd></div>
+  <div class="row"><dt>Why it lasts</dt><dd>Institutional, not crypto. Zero tech vocabulary to date out. Holds up when printed on a market board in Accra and on a trading screen in London.</dd></div>
+  <div class="row"><dt>Say test</dt><dd>Same two chunks. The condensed setting makes it <em>look</em> shorter than 10 letters actually is.</dd></div>
+  <div class="row"><dt>Risk</dt><dd>All-caps reads as louder and more institutional than "simple." If you want warm rather than authoritative, go to <a href="1a.html" style="color:var(--deep-green)">1a</a>. If you want trust at scale, stay here.</dd></div>
+</dl>
+
+<div class="markzone"><strong>Mark placeholder — not the logo.</strong><br>
+  Direction: a two-pan balance beam with a single coin on the left pan. Needs a designer-drawn asset; do not ship this box.</div>
+
+<footer>kudimarket.com · wordmark direction only — final mark needs a designer and a real asset</footer>
+
+</body>
+</html>

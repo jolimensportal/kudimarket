@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KudiMarket · the system we build on</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --plum-deep:#331931; --plum:#462444; --plum-mkt:#5E2D5A; --plum-brt:#743F6F;
+    --loss:#933331; --loss-bg:#F8E7E5; --loss-ink:#5A1A18; --loss-fill:#C1514D;
+    --good:#185B37; --good-bg:#D7E8DC; --good-ink:#1B3D28;
+    --bone:#FCF6EE; --surf:#F6EFE8; --sand:#E8E2DB; --line:#DBD5CE;
+    --txt:#1C1916; --txt2:#6B635C;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bone);color:var(--txt);font-family:"Instrument Sans",system-ui,sans-serif;
+    padding:56px 40px 90px;max-width:1140px;margin:0 auto;display:flex;flex-direction:column;gap:44px;text-wrap:pretty}
+  h1{font-size:clamp(28px,4.4vw,42px);font-weight:600;letter-spacing:-.022em;line-height:1.08;text-wrap:balance}
+  h2{font-size:clamp(22px,3vw,30px);font-weight:600;letter-spacing:-.02em;line-height:1.14;text-wrap:balance}
+  h1 b,h2 b{color:var(--plum-mkt);font-weight:700}
+  .lede{font-size:16.5px;line-height:1.6;color:var(--txt2);max-width:74ch}
+  .lede b{color:var(--txt);font-weight:600}
+  p{max-width:78ch}
+
+  .card{border:1px solid var(--line);background:#fff;display:flex;flex-direction:column}
+  .card .hd{padding:16px 26px;border-bottom:1px solid var(--line);background:var(--surf);
+    font-size:14px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--txt2)}
+  .card .bd{padding:24px 26px;display:flex;flex-direction:column;gap:16px;font-size:16px;line-height:1.6;color:var(--txt2)}
+  .card .bd b{color:var(--txt);font-weight:600}
+  .card .bd ul{list-style:none;display:flex;flex-direction:column;gap:12px}
+  .card .bd li{display:grid;grid-template-columns:26px 1fr;gap:10px;font-size:15.5px;line-height:1.55}
+  .card .bd li i{font-style:normal;font-weight:700;grid-column:1;color:var(--txt2)}
+  .card .bd li span{grid-column:2}
+  .card.decide{border-color:var(--plum-mkt);border-width:1.5px}
+  .card.decide .hd{background:#fff;color:var(--plum-mkt)}
+  .card.defect{border-color:var(--loss-fill)}
+  .card.defect .hd{background:var(--loss-bg);color:var(--loss-ink);border-bottom-color:var(--loss-fill)}
+  .card.defect li i{color:var(--loss)}
+
+  .verdict .q{font-size:clamp(20px,2.6vw,27px);font-weight:600;letter-spacing:-.02em;
+    padding:22px 26px 0;line-height:1.25;text-wrap:balance}
+  .verdict .rows{display:flex;flex-direction:column}
+  .verdict .row{display:grid;grid-template-columns:200px 1fr;gap:20px;padding:18px 26px;
+    border-top:1px solid var(--line);font-size:15.5px;line-height:1.55;color:var(--txt2)}
+  .verdict .row:first-child{margin-top:18px}
+  .verdict .row b{color:var(--txt);font-weight:600}
+  .verdict .row .k{font-size:14px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--plum-mkt)}
+
+  table{width:100%;border-collapse:collapse;font-size:15px}
+  .tbl{border:1px solid var(--line);background:#fff;overflow-x:auto}
+  .tbl th{text-align:left;font-size:14px;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--txt2);font-weight:700;padding:14px 16px;border-bottom:1px solid var(--line);white-space:nowrap}
+  .tbl td{padding:14px 16px;border-bottom:1px solid var(--line);vertical-align:top;line-height:1.5}
+  .tbl tr:last-child td{border-bottom:none}
+  .tbl .sys{font-weight:700;white-space:nowrap}
+  .tbl .num{font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--txt2)}
+  .tbl .lic{white-space:nowrap}
+  .tbl .lic.no{color:var(--loss);font-weight:600}
+  .tbl .lic.yes{color:var(--good);font-weight:600}
+  .tbl .lic.part{color:var(--plum-mkt);font-weight:600}
+  .tbl .note{color:var(--txt2)}
+  .tbl .note b{color:var(--txt);font-weight:600}
+  .cap{font-size:14.5px;line-height:1.55;color:var(--txt2);margin-top:-30px}
+  .cap b{color:var(--txt);font-weight:600}
+
+  ol.steps{list-style:none;counter-reset:s;display:flex;flex-direction:column;gap:14px}
+  ol.steps li{counter-increment:s;display:grid;grid-template-columns:30px 1fr;gap:14px;
+    font-size:16px;line-height:1.55;color:var(--txt2);align-items:start}
+  ol.steps li::before{content:counter(s) ".";font-size:17px;font-weight:700;color:var(--plum-mkt);
+    line-height:1.45;font-variant-numeric:tabular-nums}
+  ol.steps li b{color:var(--txt);font-weight:600}
+
+  nav{display:flex;gap:14px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:20px}
+  nav a{font-size:15px;color:var(--txt2);text-decoration:none;border:1px solid var(--line);
+    padding:11px 17px;background:#fff;display:inline-block;transition:border-color .15s,color .15s}
+  nav a:hover{border-color:var(--plum-mkt);color:var(--plum-mkt)}
+  nav a:focus-visible{outline:2px solid var(--plum-mkt);outline-offset:2px}
+  footer{font-size:14.5px;color:var(--txt2);display:flex;flex-direction:column;gap:7px;line-height:1.55}
+  footer b{color:var(--txt);font-weight:600}
+  footer a{color:var(--plum-mkt)}
+  ::selection{background:var(--sand);color:var(--txt)}
+
+  @media (max-width:760px){
+    body{padding:32px 20px 64px;gap:36px}
+    .verdict .row{grid-template-columns:1fr;gap:8px}
+    .card .hd{padding:14px 18px}
+    .card .bd{padding:20px 18px}
+    .verdict .row,.verdict .q{padding-left:18px;padding-right:18px}
+  }
+</style>
+</head>
+<body>
+
+<h1>Everything above decides what to build.<br><b>None of it decides what to build it with.</b></h1>
+
+<p class="lede">Sixteen candidate systems checked against the project's own constraints, licences read from each repository's licence file and star counts and last-push dates read from the GitHub API on 7 Oct 2026. The marketplace-shaped platforms all fail on licence or staleness, which removes the obvious candidates. What survives is a choice between two application frameworks, and the deciding question is not the trader-facing app: it is <b>which one builds a dispute, freeze and suspicious-report console fastest, on a licence that does not reach into our code</b>.</p>
+
+<div class="card verdict">
+  <span class="q">The recommendation in five lines</span>
+  <div class="rows">
+    <div class="row"><span class="k">The pick</span><span><b>Laravel with Filament, on one PostgreSQL database.</b> Filament is the strongest permissively-licensed operations console in open source, and this product's bottleneck is operations: disputes, freezes, suspicious-report queues, reconciliation, and a regulator's inspection.</span></div>
+    <div class="row"><span class="k">The runner-up</span><span><b>Payload 3,</b> if staying in TypeScript matters more than console velocity. MIT, self-hostable, generated admin panel, PostgreSQL through Drizzle. Its admin is shaped like content management, so every dispute and AML queue is custom, and the framework is younger with a v2-to-v3 breaking-change history.</span></div>
+    <div class="row"><span class="k">The market builders</span><span><b>All three fail.</b> Vendure core is GPLv3, Medusa's role-based access control sits behind a commercial licence, and Sharetribe is under a bespoke community licence that is not OSI open source and has not been pushed since May.</span></div>
+    <div class="row"><span class="k">The cost of the pick</span><span><b>The TypeScript scaffold is replaced, and PHP joins the stack.</b> The scaffold is small (one ledger package and twenty-one tests) and its arithmetic was already flagged as belonging outside application code, so little is lost. Crypto signing stays in a small separate service either way.</span></div>
+    <div class="row"><span class="k">What it does not decide</span><span><b>The ledger, the chain, and the custody model.</b> This page assumes PostgreSQL stays the system of record, which keeps the co-located-ledger option open. Choosing Formance later would split the database, and choosing a contract escrow would put on-chain state in front of both.</span></div>
+  </div>
+</div>
+
+<h2>Criteria, in the order they bite</h2>
+
+<div class="card">
+  <div class="hd">Derived from the product, not from taste</div>
+  <div class="bd">
+    <ul>
+      <li><i>1</i><span><b>A licence that does not reach into our code.</b> We intend to keep the product proprietary. Copyleft is not disqualifying in principle, but it converts every future hire and investor conversation into a licence question, so it costs real money in this market.</span></li>
+      <li><i>2</i><span><b>Self-hostable, with no mandatory managed tier.</b> A regulated operator showing an inspector its trade ledger cannot depend on a vendor's hosted database for the record of truth.</span></li>
+      <li><i>3</i><span><b>An operations console, not just an API.</b> Disputes, freezes, suspicious-transaction reporting, reconciliation and customer complaints are all queue-and-form work behind a login. That is the majority of internal tooling in this product.</span></li>
+      <li><i>4</i><span><b>PostgreSQL, because the ledger decision assumes it.</b> Co-locating balances and trade state in one transaction is the cheapest way to remove the dual-write problem, and that option disappears if the framework only speaks to something else.</span></li>
+      <li><i>5</i><span><b>An append-only event log we control.</b> Dispute evidence has to be hash-chainable and erasable on a schedule, which is a data-model choice, and the framework must not fight it.</span></li>
+      <li><i>6</i><span><b>Mobile-first on poor connections.</b> Budget Android handsets, intermittent data, small bundles. An HTML-first or progressively enhanced front end beats a heavy client-rendered app.</span></li>
+      <li><i>7</i><span><b>Localisation, scoped to what we actually serve.</b> English at launch, one locale. French only if the CFA corridor is admitted, Chinese only if RMB is admitted. Building three empty locale files is not localisation.</span></li>
+      <li><i>8</i><span><b>Queue and job infrastructure.</b> Reconciliation, notifications, freeze timers and the twenty-four-hour reporting clock are all scheduled work, and they are table stakes rather than differentiators.</span></li>
+    </ul>
+  </div>
+</div>
+
+<h2>The evidence</h2>
+
+<div class="tbl">
+  <table>
+    <tr><th>System</th><th>Licence</th><th>Stars</th><th>Last push</th><th>Verdict</th></tr>
+    <tr><td class="sys">Laravel + Filament</td><td class="lic yes">MIT (framework and Filament)</td><td class="num">85,053 / 32,205</td><td class="num">7 Oct 2026</td>
+      <td class="note"><b>Recommended.</b> Filament is the best-licensed operations console available; queues, policies, notifications and localisation are first-class.</td></tr>
+    <tr><td class="sys">Payload 3</td><td class="lic yes">MIT</td><td class="num">45,116</td><td class="num">7 Oct 2026</td>
+      <td class="note"><b>Runner-up.</b> TypeScript, PostgreSQL through Drizzle, self-host anywhere, admin translated into thirty-plus locales. Admin shaped like a CMS.</td></tr>
+    <tr><td class="sys">Django</td><td class="lic yes">BSD-3-Clause</td><td class="num">91,338</td><td class="num">7 Oct 2026</td>
+      <td class="note">Viable. The admin panel is free and batteries-included, and PostgreSQL is first-class. Weaker for bespoke queue workflows than Filament, and Python is a second stack language for this team.</td></tr>
+    <tr><td class="sys">Vendure</td><td class="lic no">GPLv3 core</td><td class="num">8,505</td><td class="num">6 Oct 2026</td>
+      <td class="note"><b>Excluded.</b> Changed from MIT to GPLv3 at v3 in June 2024; the last MIT release reached end of life on 31 December 2024. Modifications must be released under GPLv3.</td></tr>
+    <tr><td class="sys">Medusa</td><td class="lic part">MIT core, enterprise RBAC</td><td class="num">36,629</td><td class="num">6 Oct 2026</td>
+      <td class="note"><b>Excluded.</b> Open-core: the role-based access control we would want for a dispute and compliance console is enterprise-licensed material. Commerce-shaped anyway.</td></tr>
+    <tr><td class="sys">Sharetribe</td><td class="lic no">Community Public Licence 1.0</td><td class="num">2,448</td><td class="num">11 May 2026</td>
+      <td class="note"><b>Excluded.</b> A bespoke source-available licence, not OSI open source, with trademarks reserved, and no push since May.</td></tr>
+    <tr><td class="sys">Saleor</td><td class="lic yes">BSD-3-Clause</td><td class="num">23,418</td><td class="num">6 Oct 2026</td>
+      <td class="note">Licence is clean, but it is a storefront and catalogue system with GraphQL at the centre. Trade escrow, disputes and chat are all custom, and so is the console.</td></tr>
+    <tr><td class="sys">ERPNext / Frappe</td><td class="lic no">GPL-3.0</td><td class="num">39,856</td><td class="num">6 Oct 2026</td>
+      <td class="note">Excluded for the product. Worth revisiting for the company's own books after launch, where copyleft does not reach into anything we sell.</td></tr>
+    <tr><td class="sys">Next.js</td><td class="lic yes">MIT</td><td class="num">143,218</td><td class="num">7 Oct 2026</td>
+      <td class="note">A rendering layer, not an application framework with an operations console. Relevant only as Payload's host.</td></tr>
+    <tr><td class="sys">NestJS</td><td class="lic yes">MIT</td><td class="num">76,797</td><td class="num">7 Oct 2026</td>
+      <td class="note">Clean licence and excellent structure, but no admin console, so every internal tool is hand-built.</td></tr>
+    <tr><td class="sys">AdonisJS</td><td class="lic yes">MIT</td><td class="num">19,143</td><td class="num">5 Oct 2026</td>
+      <td class="note">Viable TypeScript alternative, smaller ecosystem, no operations console.</td></tr>
+    <tr><td class="sys">Keystone</td><td class="lic yes">MIT</td><td class="num">9,977</td><td class="num">28 Sep 2026</td>
+      <td class="note">Content-management shaped with a quieter maintenance cadence. Wrong shape for a trade console.</td></tr>
+    <tr><td class="sys">Hyperledger Cactus</td><td class="lic yes">Apache-2.0</td><td class="num">416</td><td class="num">6 Oct 2026</td>
+      <td class="note">Not a competitor: an interconnector framework for regulated blockchain gateways. Possible fit later if the custody architecture needs connectors.</td></tr>
+  </table>
+</div>
+<p class="cap"><b>How this table was produced.</b> Licence, star count and last-push date read from the GitHub REST API for each repository on 7 Oct 2026, and the licence text itself read from each repository's licence file. Stars measure attention, not health, and drift daily. Three verdicts above rest on licence text rather than the API's field: Medusa's licence file carves out "Enterprise Edition materials identified in ENTERPRISE-LICENSE.md", Vendure's own licence FAQ states GPLv3 applies absent a separate written agreement, and Sharetribe's file is the Sharetribe Community Public License 1.0.</p>
+
+<h2>Why the operations console decides it</h2>
+
+<div class="card">
+  <div class="bd">
+    <p>Read the harm catalogue in the fiat-leg document and count how much of it lands on a human behind a login: disputes, freeze handling and its appeal path, the tipping-off boundary, suspicious-transaction review, the twenty-four-hour reporting clock, reconciliation, complaints, and regulator inspection. That is the product's real internal surface, and it is a CRUD-plus-queue application, not a marketplace front end.</p>
+    <p><b>That is why the commerce platforms lose on their own terms.</b> Their advantage is catalogue, cart and checkout, none of which we need: there is no basket, and the settlement is escrow. Their cost is an admin console that is either copyleft, enterprise-licensed, or content-shaped. Meanwhile the trade itself is the part every one of them leaves to us, because escrow, disputes and evidence rules do not exist as products to buy.</p>
+  </div>
+</div>
+
+<h2>What the pick actually commits us to</h2>
+
+<div class="card decide">
+  <div class="hd">If we take Laravel with Filament</div>
+  <div class="bd">
+    <ul>
+      <li><i>→</i><span><b>One database.</b> PostgreSQL holds trades, escrow state, balances and the hash-chained event log, so the co-located ledger option stays open and the dual-write problem does not exist yet.</span></li>
+      <li><i>→</i><span><b>Two deployment targets, not one.</b> A Laravel application and console, plus a small crypto-signing service (TypeScript or Go) that holds keys behind a cloud KMS and answers release requests over an internal API. It is separated on purpose: it is the part that must survive a compromise of everything else.</span></li>
+      <li><i>→</i><span><b>The trader front end is server-rendered and progressively enhanced.</b> Listings, trade view, chat and dispute filing work as HTML over poor mobile data, with JavaScript as an enhancement rather than a requirement.</span></li>
+      <li><i>→</i><span><b>One locale at launch: English,</b> wired into the interface framework, so adding French or Chinese later is a translation file rather than an audit of the whole product.</span></li>
+      <li><i>→</i><span><b>Queues do the waiting.</b> Reconciliation, freeze timers, notifications and the reporting clock are jobs, not cron hacks.</span></li>
+      <li><i>→</i><span><b>What we lose:</b> the TypeScript scaffold and its tests, and a second language in the stack. Both are cheap now and expensive later, which is the argument for paying them now.</span></li>
+    </ul>
+  </div>
+</div>
+
+<h2>What happens next</h2>
+
+<ol class="steps">
+  <li><span><b>One week, one vertical slice, in the recommended stack:</b> a trade that goes pending, a dispute that gets filed, an arbiter view that lists it, and a resolution that posts a hash-chained entry. The test is whether the console is faster to build than the same thing in Payload, not which one is nicer.</span></li>
+  <li><span><b>Decide the chain and custody model first</b> if the week is to be spent well: the signing service's interface depends on it, and the application asks for it in the same form.</span></li>
+  <li><span><b>Keep the ledger question separate and later.</b> PostgreSQL first, because co-location is the cheapest correct answer at our volume, with the spike tests named in the build-versus-adopt document.</span></li>
+  <li><span><b>Do not buy a marketplace engine.</b> Write down, before the slice starts, which parts of the vertical slice came from a library and which we wrote, so this page can be judged in six months rather than argued about now.</span></li>
+</ol>
+
+<nav>
+  <a href="oss-landscape.html">Build or adopt</a>
+  <a href="legal.html">Regulatory brief</a>
+  <a href="fiat-leg.html">Fiat leg</a>
+  <a href="index.html">Brand index</a>
+</nav>
+
+<footer>
+  <span><b>Sources, retrieved 7 Oct 2026.</b> GitHub REST API for licence field, star count and last-push date across the repositories listed; licence text read from each repository's licence file where the API's field was ambiguous or absent. Payload's PostgreSQL adapter and self-hosting claims from the Payload documentation for version 3. Vendure's licence position from the licence FAQ in the Vendure repository and the vendor's own announcement of the MIT-to-GPLv3 change. Medusa's open-core split from the repository licence file and README. Sharetribe's licence from its licence file.</span>
+  <span><b>Limits of this page.</b> No system here has been run by us; this is a licence, shape and activity assessment, not a benchmark. Performance on budget Android, queue behaviour under load, and the real ergonomics of building a dispute console are exactly what the one-week slice is for. Laravel's framework and Filament were assessed from their repositories and from our own production experience with that stack elsewhere, which is a genuine advantage and also a bias worth naming. The ledger, custody and chain decisions are assumed, not settled, and each one can invalidate parts of this.</span>
+</footer>
+
+</body>
+</html>

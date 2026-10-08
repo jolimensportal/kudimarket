@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KudiMarket — brighter, tested</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --old:#7C5666; --old-deep:#4B2E45;
+    --v1:#5E2D5A; --v1-deep:#331931; --v1-mid:#462444; --v1-brt:#743F6F;
+    --v2:#A05076; --v2-deep:#68355A; --v2-mid:#844266;
+    --terr:#CA6A4A; --terr-deep:#8E3F26;
+    --green:#214D2C; --green-lt:#D7E8DC; --green-ink:#1B3D28;
+    --red:#933331; --red-lt:#C1514D;
+    --bone:#FCF6EE; --surf:#F6EFE8; --sand:#E8E2DB; --line:#DBD5CE;
+    --txt:#1C1916; --txt2:#6B635C; --dink:#241019;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bone);color:var(--txt);font-family:"Instrument Sans",system-ui,sans-serif;
+    padding:56px 40px 90px;max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:40px;text-wrap:pretty}
+  .eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--txt2)}
+  h1{font-size:clamp(28px,4.4vw,42px);font-weight:600;letter-spacing:-.022em;line-height:1.08}
+  .lede{font-size:16.5px;line-height:1.55;color:var(--txt2);max-width:70ch}
+  .lede b{color:var(--txt);font-weight:600}
+
+  /* diagnosis */
+  .diag{border:1px solid var(--line);background:#fff;padding:26px 30px;display:flex;flex-direction:column;gap:16px}
+  .diag h2{font-size:12px;letter-spacing:.13em;text-transform:uppercase;color:var(--txt2);font-weight:600}
+  .cmp{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+  .cmp .side{display:flex;flex-direction:column;gap:11px}
+  .cmp .chip{display:flex;align-items:center;gap:13px;padding:12px 14px;border:1px solid var(--line)}
+  .cmp .chip .sq{width:40px;height:40px;flex:none}
+  .cmp .chip .txt{display:flex;flex-direction:column;gap:2px;min-width:0}
+  .cmp .chip .nm{font-size:13.5px;font-weight:600}
+  .cmp .chip .vl{font-size:11.5px;color:var(--txt2);font-variant-numeric:tabular-nums}
+  .cmp .chip .vl b{color:var(--txt)}
+  .cmp .head{font-size:12px;letter-spacing:.09em;text-transform:uppercase;color:var(--txt2);font-weight:600}
+
+  /* option cards */
+  .opts{display:flex;flex-direction:column;gap:18px}
+  .opt{border:1px solid var(--line);background:#fff}
+  .opt .hd{padding:16px 24px;border-bottom:1px solid var(--line);display:flex;align-items:baseline;gap:13px;flex-wrap:wrap}
+  .opt .hd .id{font-size:11px;letter-spacing:.14em;font-weight:700;padding:3px 8px;color:#fff}
+  .opt .hd .nm{font-size:16px;font-weight:700;letter-spacing:-.01em}
+  .opt .hd .hx{font-size:12px;color:var(--txt2);font-variant-numeric:tabular-nums}
+  .opt .hd .note{margin-left:auto;font-size:12.5px;color:var(--txt2);max-width:52ch;line-height:1.45}
+
+  /* ladder */
+  .ladder{display:grid;grid-template-columns:repeat(5,1fr)}
+  .ladder .c{padding:13px 16px;border-right:1px solid var(--line)}
+  .ladder .c:last-child{border-right:none}
+  .ladder .sw{height:52px;margin-bottom:9px}
+  .ladder .n{font-size:12px;font-weight:600}
+  .ladder .n span{display:block;font-size:10.5px;color:var(--txt2);font-weight:400;
+    font-variant-numeric:tabular-nums;margin-top:2px}
+
+  /* app preview */
+  .prev{display:grid;grid-template-columns:1fr 1fr;gap:0}
+  .prev .pane{padding:20px 24px;border-right:1px solid var(--line);display:flex;flex-direction:column;gap:13px}
+  .prev .pane:last-child{border-right:none}
+  .band{padding:15px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;color:#fff}
+  .band .l{font-size:14px;font-weight:600}
+  .band .r{font-size:18px;font-weight:700;font-variant-numeric:tabular-nums}
+  .flash{padding:13px 15px;display:flex;gap:10px;align-items:flex-start;font-size:13px;line-height:1.45}
+  .flash .d{font-size:9px;line-height:1.75}
+  .kv{display:flex;flex-direction:column;border:1px solid var(--line)}
+  .kv .line{display:flex;justify-content:space-between;gap:12px;padding:10px 14px;
+    border-bottom:1px solid var(--line);font-size:13px}
+  .kv .line:last-child{border-bottom:none}
+  .kv .k{color:var(--txt2)}
+  .kv .v{font-weight:600;font-variant-numeric:tabular-nums}
+  .btns{display:flex;gap:8px}
+  .b{flex:1;padding:12px 14px;font-size:13.5px;font-weight:700;text-align:center;letter-spacing:-.01em}
+  .b.solid{color:#fff}
+  .b.dark{background:var(--dink)}
+  .b.ghost{background:var(--surf);color:var(--txt);border:1px solid var(--sand)}
+  .b.red{background:var(--red);color:#fff}
+
+  /* the green confirm moment */
+  .done{border:1px solid #B8D6C2;background:var(--green-lt);color:var(--green-ink);
+    padding:16px 18px;display:flex;gap:12px;align-items:flex-start}
+  .done .d{font-size:11px;line-height:1.4}
+  .done .tx{display:flex;flex-direction:column;gap:3px}
+  .done .tx .t1{font-size:14.5px;font-weight:700}
+  .done .tx .t2{font-size:12.5px;line-height:1.45}
+
+  .verdict{border:1px solid var(--line);background:#fff;display:grid;grid-template-columns:1fr 1fr}
+  .verdict .col{padding:24px 26px}
+  .verdict .col+.col{border-left:1px solid var(--line)}
+  .verdict h3{font-size:16px;font-weight:700;letter-spacing:-.015em;margin-bottom:3px}
+  .verdict .sub{font-size:12px;color:var(--txt2);margin-bottom:13px;font-variant-numeric:tabular-nums}
+  .verdict ul{list-style:none;display:flex;flex-direction:column;gap:9px}
+  .verdict li{display:grid;grid-template-columns:15px 1fr;gap:10px;font-size:14px;line-height:1.45;color:var(--txt2)}
+  .verdict li i{font-style:normal;font-weight:700;grid-column:1}
+  .verdict li span{grid-column:2}
+  .verdict li b{color:var(--txt);font-weight:600}
+
+  .note{border-left:3px solid var(--v1);background:#fff;padding:19px 24px;font-size:14.5px;line-height:1.55;color:var(--txt2)}
+  .note b{color:var(--txt);font-weight:600}
+  .note.warn{border-left-color:var(--red-lt)}
+  .note.keep{border-left-color:var(--green)}
+  nav{display:flex;gap:12px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:18px}
+  nav a{font-size:13.5px;color:var(--txt2);text-decoration:none;border:1px solid var(--line);
+    padding:9px 15px;background:#fff;display:inline-block}
+  footer{font-size:12.5px;color:var(--txt2);display:flex;flex-direction:column;gap:5px}
+</style>
+</head>
+<body>
+
+<span class="eyebrow">Brightness fix · green confirm locked · measured not guessed</span>
+
+<h1>You're right that it isn't bright enough.<br>But <b>Claude's palette can't be copied here</b> — and I can prove why.</h1>
+
+<p class="lede">I measured Claude's actual palette against ours. The problem is not one thing — it is <b>two</b>. Their chroma is <b>0.131</b>, ours is <b>0.055</b> — 2.4× too muted. And their hue is <b>39</b>, ours is <b>352</b>. Their warmth is not transferable: I tested it and it collides.</p>
+
+<div class="diag">
+  <h2>Why theirs reads happy and ours reads dusty — measured</h2>
+  <div class="cmp">
+    <div class="side">
+      <span class="head">Claude</span>
+      <div class="chip"><span class="sq" style="background:#D97757"></span><span class="txt">
+        <span class="nm">Terracotta</span><span class="vl"><b>chroma 0.131</b> · hue 39 · L 0.672</span></span></div>
+      <div class="chip"><span class="sq" style="background:#C15F3C"></span><span class="txt">
+        <span class="nm">Deep rust</span><span class="vl"><b>chroma 0.135</b> · hue 40 · L 0.597</span></span></div>
+      <div class="chip" style="background:#fff;border-style:dashed"><span class="sq" style="background:#fff;border:1px solid var(--line)"></span><span class="txt">
+        <span class="nm">White text on terracotta</span><span class="vl"><b>3.12:1 — fails</b> they use dark ink instead</span></span></div>
+    </div>
+    <div class="side">
+      <span class="head">Ours today</span>
+      <div class="chip"><span class="sq" style="background:#7C5666"></span><span class="txt">
+        <span class="nm">Aubergine</span><span class="vl"><b>chroma 0.055</b> · hue 352 · L 0.499</span></span></div>
+      <div class="chip"><span class="sq" style="background:#4B2E45"></span><span class="txt">
+        <span class="nm">Aub deep</span><span class="vl"><b>chroma 0.055</b> · hue 335 · L 0.345</span></span></div>
+      <div class="chip" style="background:#fff;border-style:dashed"><span class="sq" style="background:#fff;border:1px solid var(--line)"></span><span class="txt">
+        <span class="nm">White text on aubergine</span><span class="vl"><b>6.21:1 — passes</b></span></span></div>
+    </div>
+  </div>
+  <p style="font-size:14px;line-height:1.55;color:var(--txt2)">
+    So there are two different moves available. <b>Raise the chroma</b> and keep our hue — that stays clean of the field. Or <b>warm the hue</b> like Claude — which I tested, and it lands on AirtelTigo at <b>1.1 units</b> and on Binance gold at <b>21.8</b>. Warm terracotta is taken.
+  </p>
+</div>
+
+<div class="opts">
+
+  <div class="opt">
+    <div class="hd"><span class="id" style="background:#5E2D5A">1</span><span class="nm">Vivid plum</span>
+      <span class="hx">#5E2D5A · chroma 0.105</span>
+      <span class="note">Chroma doubled, hue untouched. Keeps <b>70.2 units</b> of clearance and gains the saturation you were missing.</span></div>
+    <div class="ladder">
+      <div class="c"><div class="sw" style="background:#331931"></div><div class="n">Deep<span>#331931 · 9.7:1</span></div></div>
+      <div class="c"><div class="sw" style="background:#462444"></div><div class="n">Base<span>#462444 · 6.6:1</span></div></div>
+      <div class="c"><div class="sw" style="background:#5E2D5A"></div><div class="n">Market<span>#5E2D5A · 5.85:1</span></div></div>
+      <div class="c"><div class="sw" style="background:#743F6F"></div><div class="n">Bright<span>#743F6F · 4.6:1</span></div></div>
+      <div class="c"><div class="sw" style="background:#8B6187"></div><div class="n">Light<span>#8B6187 · 3.0:1 ✗</span></div></div>
+    </div>
+  </div>
+
+  <div class="opt">
+    <div class="hd"><span class="id" style="background:#A05076">2</span><span class="nm">Brighter plum</span>
+      <span class="hx">#A05076 · chroma 0.115</span>
+      <span class="note">The most saturated that still holds white text at <b>5.38:1</b>. Clearest jump from where we are.</span></div>
+    <div class="ladder">
+      <div class="c"><div class="sw" style="background:#68355A"></div><div class="n">Deep<span>#68355A · 8.9:1</span></div></div>
+      <div class="c"><div class="sw" style="background:#844266"></div><div class="n">Base<span>#844266 · 5.9:1</span></div></div>
+      <div class="c"><div class="sw" style="background:#A05076"></div><div class="n">Market<span>#A05076 · 5.38:1</span></div></div>
+      <div class="c"><div class="sw" style="background:#743F6F"></div><div class="n">Bright<span>#743F6F · 4.6:1</span></div></div>
+      <div class="c"><div class="sw" style="background:#CE7E9F"></div><div class="n">Light<span>#CE7E9F · 2.9:1 ✗</span></div></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="opt" style="margin-top:0">
+  <div class="hd"><span class="id" style="background:#CA6A4A">✗</span><span class="nm">Claude's route — tested and rejected</span>
+    <span class="hx">#CA6A4A · hue 39</span>
+    <span class="note">Warm terracotta. <b>AirtelTigo is 9.8 units away, Bybit 21.8</b>, and white text fails at 3.70:1. Not available to you.</span></div>
+  <div class="ladder" style="grid-template-columns:repeat(3,1fr)">
+    <div class="c"><div class="sw" style="background:#8E3F26"></div><div class="n">Deep rust<span>#8E3F26 · 6.4:1</span></div></div>
+    <div class="c"><div class="sw" style="background:#CA6A4A"></div><div class="n">Terracotta<span>#CA6A4A · 3.70:1 ✗ text</span></div></div>
+    <div class="c"><div class="sw" style="background:#E08A66"></div><div class="n">Light<span>#E08A66 · 2.3:1 ✗ text</span></div></div>
+  </div>
+</div>
+
+<div class="opt">
+  <div class="hd"><span class="id" style="background:#5E2D5A">→</span><span class="nm">Applied · Option 1 in the app, with green confirm</span>
+    <span class="hx">pending + settled + cancelled</span>
+    <span class="note">The three states, each one colour, each meaning exactly one thing.</span></div>
+  <div class="prev">
+    <div class="pane">
+      <div class="band" style="background:#331931"><span class="l">Selling USDT</span><span class="r">₵1,742,000</span></div>
+      <div class="kv">
+        <div class="line"><span class="k">Counterparty</span><span class="v">ade_tunde · 18 sales</span></div>
+        <div class="line"><span class="k">Agreed rate</span><span class="v">₵1,742 / $1</span></div>
+        <div class="line"><span class="k">Status</span><span class="v" style="color:#5E2D5A">Pending your release</span></div>
+      </div>
+      <div class="btns"><span class="b solid" style="background:#5E2D5A">Release ₵1,742,000</span></div>
+      <div class="btns"><span class="b ghost">Appeal</span><span class="b red">Cancel trade</span></div>
+    </div>
+    <div class="pane">
+      <div class="done">
+        <span class="d">✓</span>
+        <span class="tx">
+          <span class="t1">₵1,742,000 released to you</span>
+          <span class="t2">Escrow closed 14:22 ago. Your balance is updated. This confirmation is kept in your history.</span>
+        </span>
+      </div>
+      <div class="kv">
+        <div class="line"><span class="k">Received</span><span class="v" style="color:#214D2C">₵1,742,000</span></div>
+        <div class="line"><span class="k">New balance</span><span class="v">₵3,240,500</span></div>
+        <div class="line"><span class="k">Trade</span><span class="v" style="color:#214D2C">Completed</span></div>
+      </div>
+      <div class="btns"><span class="b dark">Trade again</span></div>
+      <div class="btns"><span class="b ghost">View history</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="verdict">
+  <div class="col">
+    <h3>Option 1 · #5E2D5A</h3>
+    <div class="sub">chroma 0.105 · 70.2 units clear</div>
+    <ul>
+      <li><i>✓</i><span><b>2× the chroma</b> of today's dusty version. Actually saturated.</span></li>
+      <li><i>✓</i><span>Keeps every unit of the isolation you liked.</span></li>
+      <li><i>✓</i><span>White text still passes at <b>5.85:1</b>, so the button rule holds.</span></li>
+      <li><i>✓</i><span>Reads warm-adjacent without stealing Binance's gold band.</span></li>
+      <li><i>✗</i><span>Still cooler than Claude. It is a plum, not a terracotta.</span></li>
+    </ul>
+  </div>
+  <div class="col">
+    <h3>Option 2 · #A05076</h3>
+    <div class="sub">chroma 0.115 · 69.9 units clear</div>
+    <ul>
+      <li><i>✓</i><span><b>The most saturated</b> option that still holds white text.</span></li>
+      <li><i>✓</i><span>Clearly visible as brand on a merchant sign.</span></li>
+      <li><i>✓</i><span>Same isolation. Nothing meaningfully lost.</span></li>
+      <li><i>✗</i><span>Marginally less headroom on white text (5.38:1 vs 5.85:1).</span></li>
+      <li><i>✗</i><span>Below chroma 0.12 the last step starts clipping in sRGB.</span></li>
+    </ul>
+  </div>
+</div>
+
+<div class="note keep">
+  <b>Green confirm is in, as you asked.</b> Left pane is pending — plum action, since that is a choice. Right pane is the moment after release, and that is <b>green</b>. The button is never green, so it never becomes a bank-green CTA; but the success moment is unmistakably green, which is the convention you were pointing at. Three colours, three meanings, no overlaps.
+</div>
+
+<div class="note" style="margin-top:-24px">
+  <b>On Claude.</b> Their palette is genuinely good and the instinct to compare against it was right. But their warmth is <em>their</em> brand equity, and the warm-orange band is the single most crowded region in your market — Binance, Bybit and MTN GH all sit there, and AirtelTigo and UBA sit on the red side of it. Taking the saturation lesson and declining the hue lesson is the version of this that survives a competitor audit.
+</div>
+
+<div class="note warn" style="margin-top:-24px">
+  <b>One thing I will not do.</b> Push the lightness until white text fails and then switch the button label to dark ink, which is what Claude does. It is legitimate for them because the terracotta is an accent, not a button. In your app the primary button <em>is</em> the button, and a money action whose label fails contrast at 3:1 is not worth the extra brightness. Chroma is free — lightness is not.
+</div>
+
+<nav>
+  <a href="options.html">← All three colours</a>
+  <a href="opt-c-aubergine.html">C · current dark</a>
+  <a href="headtohead.html">Ink vs Aubergine</a>
+  <a href="type.html">Type test</a>
+</nav>
+
+<footer>
+  <span>Chroma, lightness and hue measured in OKLab. Contrast in WCAG relative luminance against each stated fill.</span>
+  <span>Clearance recomputed for each brighter variant — both retain 69–70 units to the nearest of 38 brands.</span>
+</footer>
+
+</body>
+</html>

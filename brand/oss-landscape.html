@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KudiMarket · build or adopt: the open-source landscape</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --plum-deep:#331931; --plum:#462444; --plum-mkt:#5E2D5A; --plum-brt:#743F6F;
+    --loss:#933331; --loss-bg:#F8E7E5; --loss-ink:#5A1A18; --loss-fill:#C1514D;
+    --good:#185B37; --good-bg:#D7E8DC; --good-ink:#1B3D28;
+    --bone:#FCF6EE; --surf:#F6EFE8; --sand:#E8E2DB; --line:#DBD5CE;
+    --txt:#1C1916; --txt2:#6B635C;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bone);color:var(--txt);font-family:"Instrument Sans",system-ui,sans-serif;
+    padding:56px 40px 90px;max-width:1140px;margin:0 auto;display:flex;flex-direction:column;gap:44px;text-wrap:pretty}
+  h1{font-size:clamp(28px,4.4vw,42px);font-weight:600;letter-spacing:-.022em;line-height:1.08;text-wrap:balance}
+  h2{font-size:clamp(22px,3vw,30px);font-weight:600;letter-spacing:-.02em;line-height:1.14;text-wrap:balance}
+  h1 b,h2 b{color:var(--plum-mkt);font-weight:700}
+  .lede{font-size:16.5px;line-height:1.6;color:var(--txt2);max-width:74ch}
+  .lede b{color:var(--txt);font-weight:600}
+  p{max-width:78ch}
+
+  .card{border:1px solid var(--line);background:#fff;display:flex;flex-direction:column}
+  .card .hd{padding:16px 26px;border-bottom:1px solid var(--line);background:var(--surf);
+    font-size:14px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--txt2)}
+  .card .bd{padding:24px 26px;display:flex;flex-direction:column;gap:16px;font-size:16px;line-height:1.6;color:var(--txt2)}
+  .card .bd b{color:var(--txt);font-weight:600}
+  .card .bd ul{list-style:none;display:flex;flex-direction:column;gap:12px}
+  .card .bd li{display:grid;grid-template-columns:26px 1fr;gap:10px;font-size:15.5px;line-height:1.55}
+  .card .bd li i{font-style:normal;font-weight:700;grid-column:1;color:var(--txt2)}
+  .card .bd li span{grid-column:2}
+  .card.decide{border-color:var(--plum-mkt);border-width:1.5px}
+  .card.decide .hd{background:#fff;color:var(--plum-mkt)}
+
+  .verdict .q{font-size:clamp(20px,2.6vw,27px);font-weight:600;letter-spacing:-.02em;
+    padding:22px 26px 0;line-height:1.25;text-wrap:balance}
+  .verdict .rows{display:flex;flex-direction:column}
+  .verdict .row{display:grid;grid-template-columns:200px 1fr;gap:20px;padding:18px 26px;
+    border-top:1px solid var(--line);font-size:15.5px;line-height:1.55;color:var(--txt2)}
+  .verdict .row:first-child{margin-top:18px}
+  .verdict .row b{color:var(--txt);font-weight:600}
+  .verdict .row .k{font-size:14px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--plum-mkt)}
+
+  table{width:100%;border-collapse:collapse;font-size:15px}
+  .tbl{border:1px solid var(--line);background:#fff;overflow-x:auto}
+  .tbl th{text-align:left;font-size:14px;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--txt2);font-weight:700;padding:14px 16px;border-bottom:1px solid var(--line);white-space:nowrap}
+  .tbl td{padding:15px 16px;border-bottom:1px solid var(--line);vertical-align:top;line-height:1.5}
+  .tbl tr:last-child td{border-bottom:none}
+  .tbl .prj{font-weight:700;white-space:nowrap}
+  .tbl .st{font-variant-numeric:tabular-nums;white-space:nowrap}
+  .tbl .lic{font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--txt2)}
+  .tbl .chn{white-space:nowrap;color:var(--txt2)}
+  .tbl .steal{color:var(--txt2)}
+  .tbl .steal b{color:var(--txt);font-weight:600}
+  .cap{font-size:14.5px;line-height:1.55;color:var(--txt2);margin-top:-30px}
+  .cap b{color:var(--txt);font-weight:600}
+
+  .math{font-variant-numeric:tabular-nums;color:var(--txt);font-weight:600}
+
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  .cand{border:1px solid var(--line);background:#fff;display:flex;flex-direction:column}
+  .cand.pick{border-color:var(--plum-mkt);border-width:1.5px}
+  .cand .hd{padding:16px 20px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .cand .hd .nm{font-size:17px;font-weight:700;letter-spacing:-.015em}
+  .cand .hd .lic{font-size:14px;color:var(--txt2);font-variant-numeric:tabular-nums}
+  .cand .hd .mk{margin-left:auto;font-size:14px;font-weight:700;letter-spacing:.04em;
+    text-transform:uppercase;padding:4px 9px;white-space:nowrap}
+  .cand .bd{padding:18px 20px;display:flex;flex-direction:column;gap:12px;flex:1}
+  .cand ul{list-style:none;display:flex;flex-direction:column;gap:10px}
+  .cand li{display:grid;grid-template-columns:18px 1fr;gap:10px;font-size:15px;line-height:1.5;color:var(--txt2)}
+  .cand li i{font-style:normal;font-weight:700;grid-column:1}
+  .cand li span{grid-column:2}
+  .cand li b{color:var(--txt);font-weight:600}
+  .fit{border-top:1px solid var(--line);padding:15px 20px;background:var(--surf);
+    font-size:15px;line-height:1.55;color:var(--txt2)}
+  .fit b{color:var(--txt);font-weight:600}
+
+  ol.steps{list-style:none;counter-reset:s;display:flex;flex-direction:column;gap:14px}
+  ol.steps li{counter-increment:s;display:grid;grid-template-columns:30px 1fr;gap:14px;
+    font-size:16px;line-height:1.55;color:var(--txt2);align-items:start}
+  ol.steps li::before{content:counter(s) ".";font-size:17px;font-weight:700;color:var(--plum-mkt);
+    line-height:1.45;font-variant-numeric:tabular-nums}
+  ol.steps li b{color:var(--txt);font-weight:600}
+
+  nav{display:flex;gap:14px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:20px}
+  nav a{font-size:15px;color:var(--txt2);text-decoration:none;border:1px solid var(--line);
+    padding:11px 17px;background:#fff;display:inline-block;transition:border-color .15s,color .15s}
+  nav a:hover{border-color:var(--plum-mkt);color:var(--plum-mkt)}
+  nav a:focus-visible{outline:2px solid var(--plum-mkt);outline-offset:2px}
+  footer{font-size:14.5px;color:var(--txt2);display:flex;flex-direction:column;gap:7px;line-height:1.55}
+  footer b{color:var(--txt);font-weight:600}
+  footer a{color:var(--plum-mkt)}
+  ::selection{background:var(--sand);color:var(--txt)}
+
+  @media (max-width:760px){
+    body{padding:32px 20px 64px;gap:36px}
+    .verdict .row{grid-template-columns:1fr;gap:8px}
+    .two{grid-template-columns:1fr}
+    .card .hd{padding:14px 18px}
+    .card .bd{padding:20px 18px}
+    .verdict .row,.verdict .q{padding-left:18px;padding-right:18px}
+  }
+</style>
+</head>
+<body>
+
+<h1>Nothing to build on.<br><b>Five things to learn from.</b></h1>
+
+<p class="lede">Five live open-source projects run this product's shape: two people trade, fiat moves between them off-platform, crypto sits in escrow, a human settles the disagreement. <b>None of them can be forked into KudiMarket</b>: four are copyleft, every escrow mechanism is native to Bitcoin or Monero, and the token this market actually trades is USDT. This page is only the build-versus-adopt decision and the ledger question behind it. The threat model lives in <a href="fiat-leg.html" style="color:var(--plum-mkt)">the fiat-leg document</a>; the law lives in <a href="legal.html" style="color:var(--plum-mkt)">the regulatory brief</a>.</p>
+
+<div class="card verdict">
+  <span class="q">The three decisions on this page</span>
+  <div class="rows">
+    <div class="row"><span class="k">The pattern</span><span><b>A textbook, not a codebase.</b> Bisq, Haveno, RoboSats, Mostro and lnp2pBot prove the flow works end to end: escrow, bonds, timeouts, dispute desks. Take the flow and the dispute design. What they cannot give us is a fiat leg our users will accept, an escrow mechanism for tokens on Tron or Ethereum, or a licence we can build on.</span></div>
+    <div class="row"><span class="k">The ledger</span><span><b>Undecided, and it decides other things.</b> Four candidates. The pick determines how many sources of truth a trade has, whether the dual-write problem exists at all, and where the concurrency bugs live. Two-week spike, with the tests named below.</span></div>
+    <div class="row"><span class="k">The real risk</span><span><b>Not here.</b> The ledger is a solved-in-the-open problem with four candidates. The fiat leg, where assertions come from people who can lie and no rail gives us a status API, is the product, and it has its own document.</span></div>
+  </div>
+</div>
+
+<h2>The prior art is real. <b>Read it; do not build on it.</b></h2>
+
+<p class="lede">Every row was read from that project's own repository page on 6 Oct 2026. Star counts drift and are here to show scale of attention, not health.</p>
+
+<div class="tbl">
+  <table>
+    <tr><th>Project</th><th>Stars</th><th>Licence</th><th>Chain</th><th>Pattern worth stealing</th></tr>
+    <tr><td class="prj">Bisq</td><td class="st">5,100</td><td class="lic">AGPL-3.0</td><td class="chn">Bitcoin</td>
+      <td class="steal">Multisig escrow with human arbitration. <b>Account-age witness</b>: reputation is tied to a hash of the trader's bank account, so a serial scammer keeps losing the account, not just the profile.</td></tr>
+    <tr><td class="prj">Haveno</td><td class="st">1,400</td><td class="lic">AGPL-3.0</td><td class="chn">Monero</td>
+      <td class="steal">Arbitration where the <b>arbitrator never has access to funds</b>. The judge reads the case; the money was never theirs to move.</td></tr>
+    <tr><td class="prj">RoboSats</td><td class="st">1,021</td><td class="lic">AGPL-3.0</td><td class="chn">Bitcoin · Lightning</td>
+      <td class="steal"><b>Fidelity bonds instead of reputation.</b> Both sides lock value; the loser's pays the counterparty. Bonds raise the price of cheating but do not forbid it, and the 50/50 split for unresolvable disputes has a failure mode of its own. Both below.</td></tr>
+    <tr><td class="prj">Mostro</td><td class="st">334</td><td class="lic">GPL-3.0-or-later</td><td class="chn">Bitcoin · Lightning</td>
+      <td class="steal"><b>Bond is a separate row and lifecycle from escrow</b>, never conflated. Encrypted chat written once and never edited, so it works as dispute evidence. House rule: <b>when in doubt, release</b>, a slogan we cannot adopt until the loss rule exists.</td></tr>
+    <tr><td class="prj">lnp2pBot</td><td class="st">292</td><td class="lic">MIT</td><td class="chn">Bitcoin · Lightning</td>
+      <td class="steal">The whole flow, smallest and readable: <b>both parties must confirm</b>, a timeout runs, then a human solver sees everything. Cancel is only legal when both sides agree.</td></tr>
+  </table>
+</div>
+<p class="cap"><b>Licences:</b> four of five are copyleft; only lnp2pBot is MIT, and Mostro moved from MIT to GPL-3.0-or-later, so only its old releases keep MIT terms. <b>Chains:</b> four are Bitcoin or Lightning, Haveno is Monero-only, so both reasons not to fork hold independently: the licences block it, and the mechanisms would not port even if they did.</p>
+
+<div class="card">
+  <div class="hd">Why a bond does not forbid cheating</div>
+  <div class="bd">
+    <p>Expected value of cheating: <span class="math">EV = p·V − (1−p)·B</span>, where <b>p</b> is the chance of getting away with it, <b>V</b> the value stolen, <b>B</b> the bond forfeited.</p>
+    <p>A bond sized at 3% of the trade only loses the cheater money when their chance of getting away sits under about 3%, which needs near-certain detection. At any realistic success rate a bond is a cost of doing business, not a wall. And an unresolvable dispute settled 50/50 pays whichever party is better at manufacturing unresolvable disputes.</p>
+    <p><b>An earlier version of this page called bonds "net-negative by arithmetic". Retracted.</b> Bonds tax cheating; they do not forbid it. Size the bond against trade value, publish the forfeiture rule, price a residual loss rate into the fee, and never treat the bond as a substitute for the loss rule.</p>
+  </div>
+</div>
+
+<h2>The mechanisms do not transfer. <b>Custody is still a choice.</b></h2>
+
+<p class="lede">This market trades USDT, not bitcoin. Stablecoins are roughly 43% of sub-Saharan crypto transaction volume, and Nigerian P2P, the liquidity Ghana's market will pull from, runs about 40% stablecoin.</p>
+
+<div class="card">
+  <div class="hd">What that means for the escrow</div>
+  <div class="bd">
+    <ul>
+      <li><i>a</i><span><b>Bitcoin multisig is a feature of Bitcoin script.</b> Two-of-three escrow with an arbitrator key, and Lightning hold invoices, exist because that chain has them. USDT on Tron has no hold invoice. On Ethereum the equivalents are contracts: a Safe-style multisig, an escrow contract, a hash-time lock.</span></li>
+      <li><i>b</i><span><b>Keys in our wallet or a contract is not a free design choice.</b> It changes the key-theft surface, and it is filed. The sandbox application requires "a clearly defined custody or asset control model" (3(3)(e)(i)), and if the answer is a contract, the addendum requires "independent third-party audit reports for all smart contracts, protocols, or automated execution systems". So this decision has cost and lead time, and it belongs before the ledger work rather than after it. It does not change the fiat-leg fraud model: forged proofs, reversals and third-party payers exist either way.</span></li>
+    </ul>
+  </div>
+</div>
+
+<h2>Custody decisions, <b>restored after they went missing in the document split.</b></h2>
+
+<p class="lede">Escrow means our keys hold a trader's crypto between match and release. These five were written for the first version of this page and then dropped when the page was split, which is exactly how a decision disappears. They are back, with the application requirements attached.</p>
+
+<div class="card">
+  <div class="hd">Custody checklist, first cut</div>
+  <div class="bd">
+    <ul>
+      <li><i>a</i><span><b>Hot/cold split</b> and a daily hot-wallet ceiling sized against real trade sizes, not averages.</span></li>
+      <li><i>b</i><span><b>Two-person approval</b> on withdrawals above a threshold; no single human can empty the escrow. 3(3)(e)(ii) asks for governance arrangements on private-key management and transaction authorisation, so this is filed, not internal.</span></li>
+      <li><i>c</i><span><b>Withdrawal holds longer than release windows</b>, because a reversal can arrive after the trade is green.</span></li>
+      <li><i>d</i><span><b>Reconciliation twice a day</b>, on-chain against ledger, with an alert when the two disagree. 3(3)(e)(iii) adds transaction monitoring, blockchain analytics and sanctions screening, and those vendors are named in the application.</span></li>
+      <li><i>e</i><span><b>Segregation versus one pooled wallet.</b> The addendum asks for evidence that client assets are segregated from proprietary funds, and a single omnibus escrow wallet is the opposite of that. Per-trade addresses, or a written case for pooling that the SEC rules on.</span></li>
+      <li><i>f</i><span><b>Failure and termination.</b> 3(5) requires a winding-up and failure management plan, 12(1) stops us ceasing operations without SEC approval, and 11(2) lets the SEC terminate on written notice at any time. What happens to in-flight trades when we are switched off belongs in this checklist.</span></li>
+    </ul>
+  </div>
+</div>
+
+<h2>And the system we build on, <b>which nobody has picked yet.</b></h2>
+
+<p class="lede">Everything above decides what to build. None of it decides what to build it with, and that decision is open: the current scaffold is a hand-rolled TypeScript monorepo with a ledger package and tests, and no application framework behind it. This is a build-versus-adopt question of the same kind as the one this page answers for escrow, and it is not yet researched.</p>
+
+<div class="card decide">
+  <div class="hd">Open decision · the system under the product</div>
+  <div class="bd">
+    <p>Criteria that follow from the rest of the project rather than from taste: a licence we can build on without a copyleft obligation reaching into our own code; self-hostable, because a regulated operator cannot depend on a vendor's managed tier for its trade ledger; PostgreSQL-compatible, since the ledger decision above assumes one database is plausible; a write-once event log we can hash-chain for dispute evidence; server-rendered or progressively enhanced so the product works on budget Android handsets over poor mobile data; and an audit trail we can show a regulator, which is a vendor feature as much as ours.</p>
+    <p><b>What is not yet done:</b> no shortlist has been researched, and nothing should be chosen before the custody and ledger decisions land, because both constrain what the application framework has to support. This is the next research task, not a conclusion.</p>
+  </div>
+</div>
+
+<h2>The ledger pick decides where the hard problems live</h2>
+
+<div class="card">
+  <div class="hd">Sources of truth, and the concurrency that has to be right</div>
+  <div class="bd">
+    <ul>
+      <li><i>1</i><span><b>Three copies, not two.</b> The app database holds trade state, a ledger service holds balances, and a contract escrow holds on-chain state. Co-locating Postgres and the app removes the dual-write, but the chain is still a third copy that can diverge from both.</span></li>
+      <li><i>2</i><span><b>Postgres is not "a few hundred lines".</b> The deferred constraint trigger is the easy part. The hard parts are non-negative balances under concurrent releases, idempotent retries, and pending or held funds, which is two-phase escrow. Formance and TigerBeetle ship those primitives; we would be writing them.</span></li>
+      <li><i>3</i><span><b>Immutability by privilege does not survive a DBA.</b> Revoking UPDATE and DELETE stops application code, and an invariant enforced in JavaScript stops nobody with a database console. Hash-chain the entries and anchor the head outside the database, with personal data kept erasable: that is the <a href="fiat-leg.html" style="color:var(--plum-mkt)">Data Protection Act problem</a> as much as a security one.</span></li>
+    </ul>
+  </div>
+</div>
+
+<h2>Four candidates. <b>Two of them are serious.</b></h2>
+
+<div class="two">
+
+  <div class="cand pick">
+    <div class="hd">
+      <span class="nm">Plain Postgres</span>
+      <span class="lic">no new service</span>
+      <span class="mk" style="background:var(--plum-mkt);color:#fff">lowest ops cost</span>
+    </div>
+    <div class="bd">
+      <ul>
+        <li><i style="color:var(--plum-mkt)">→</i><span><b>A deferred constraint trigger</b> refuses any posting that unbalances an account, in the database, below application code.</span></li>
+        <li><i style="color:var(--plum-mkt)">→</i><span>One database means balance posting and the trade-state transition commit together, so there is no dual-write to lose sync.</span></li>
+        <li><i style="color:var(--loss)">!</i><span>Concurrent releases, retries and two-phase holds are ours to write and to test. That is the cost of the boring option, and it is not small.</span></li>
+        <li><i style="color:var(--txt2)">!</i><span>You own the semantics: no Numscript, no built-in bi-temporality, no ecosystem.</span></li>
+      </ul>
+    </div>
+    <div class="fit"><b>Why it might win anyway.</b> Our volume is thousands of trades a day. The other options buy guarantees we may not need at a price we pay from day one.</div>
+  </div>
+
+  <div class="cand">
+    <div class="hd">
+      <span class="nm">Formance Ledger</span>
+      <span class="lic">MIT · Postgres</span>
+      <span class="mk" style="background:var(--surf);color:var(--txt2)">richest semantics</span>
+    </div>
+    <div class="bd">
+      <ul>
+        <li><i style="color:var(--good)">✓</i><span><b>Licence: MIT</b>, read from the repository's licence file and v2 release note on 6 Oct 2026. The licence-change worry does not apply.</span></li>
+        <li><i style="color:var(--good)">✓</i><span>Double-entry at the storage layer, Numscript for declarative escrow postings, bi-temporality for backfills.</span></li>
+        <li><i style="color:var(--loss)">!</i><span><b>Production usage is supported through the official Kubernetes operator</b>, per the repository's own documentation. That is a specialised cluster from day one, the exact cost used to dismiss TigerBeetle.</span></li>
+        <li><i style="color:var(--loss)">!</i><span>It is a separate service, so every trade becomes a dual-write and the ownership rule becomes mandatory rather than avoidable.</span></li>
+      </ul>
+    </div>
+    <div class="fit"><b>Verdict:</b> the strongest semantics, with an operational price that must be counted honestly. Worth a spike before it is worth an adoption.</div>
+  </div>
+
+  <div class="cand">
+    <div class="hd">
+      <span class="nm">Blnk</span>
+      <span class="lic">Apache-2.0 · Go</span>
+      <span class="mk" style="background:var(--surf);color:var(--txt2)">closest shape, unproven</span>
+    </div>
+    <div class="bd">
+      <ul>
+        <li><i style="color:var(--good)">✓</i><span>Double-entry ledger built for wallets and payment systems: inflight balances, snapshots, reconciliation, overdraft control.</span></li>
+        <li><i style="color:var(--good)">✓</i><span>Postgres 16 underneath, Apache-2.0, self-hostable, at v0.15.4 when read on 6 Oct 2026.</span></li>
+        <li><i style="color:var(--loss)">!</i><span><b>Requires Redis</b> for distributed balance locks: an extra service whose failure stalls the ledger.</span></li>
+        <li><i style="color:var(--loss)">!</i><span>Young project with a commercial cloud behind it. Scale track record not established; read its issues before trusting it with balances.</span></li>
+      </ul>
+    </div>
+    <div class="fit"><b>Verdict:</b> the closest match to our domain of the four, and the one nobody has read yet. Vetting it costs a day.</div>
+  </div>
+
+  <div class="cand">
+    <div class="hd">
+      <span class="nm">TigerBeetle</span>
+      <span class="lic">Apache 2.0 · Zig</span>
+      <span class="mk" style="background:var(--surf);color:var(--txt2)">overkill at our volume</span>
+    </div>
+    <div class="bd">
+      <ul>
+        <li><i style="color:var(--good)">✓</i><span>Append-only immutability in the database itself, correctness fuzzed in CI by deterministic simulation testing.</span></li>
+        <li><i style="color:var(--good)">✓</i><span>Two-phase transfers and linked atomic groups are primitives, which is what escrow is. This is the concurrency answer.</span></li>
+        <li><i style="color:var(--loss)">!</i><span>No SQL, no HTTP, custom binary protocol, <b>no authentication at all</b>. Reach the port and you can write.</span></li>
+        <li><i style="color:var(--loss)">!</i><span>Separate ledger per asset; managed hosting is invitation-only. Built for a million transfers a second.</span></li>
+      </ul>
+    </div>
+    <div class="fit"><b>Verdict:</b> extraordinary engineering aimed at a problem we do not have yet. Revisit if volume ever demands it.</div>
+  </div>
+
+</div>
+
+<h2>What happens next, in order.</h2>
+
+<ol class="steps">
+  <li><span><b>Ten questions to counsel and to the SEC's pre-submission channel</b>, three of which gate everything: which activity category P2P escrow falls under, what custody model and chain we file, and whether admission is viable against six admitted trading platforms. Written up in <a href="legal.html" style="color:var(--plum-mkt)">legal.html</a>.</span></li>
+  <li><span><b>Finish the fiat-leg rules:</b> per-rail reversal and freeze behaviour, the loss rule with numbers, release tiers that fit inside caps the SEC will approve. <a href="fiat-leg.html" style="color:var(--plum-mkt)">fiat-leg.html</a> holds the open parts.</span></li>
+  <li><span><b>Settle the stablecoin custody model, chain, and vendor set, because the application needs all three.</b> Keys in our wallet or a contract that can only pay buyer-or-seller; Tron or Ethereum, which changes the audit scope and the freeze exposure; and the analytics, sanctions and custody vendors we are required to name (3(3)(e)). This sits ahead of the ledger spike, and ahead of the framework decision below, because both depend on it.</span></li>
+  <li><span><b>Two-week ledger spike:</b> plain Postgres against Formance on one suite that must pass concurrent double-release without a negative balance, retried requests that do not double-post, and a crash mid-trade that leaves no half-released escrow. Pick on what fails first, then write the ownership rule the winner implies into the constitution.</span></li>
+  <li><span><b>Read the prior art for what transfers:</b> lnp2pBot end to end, Mostro's anti-abuse bond document, RoboSats issue 39 on forged screenshots.</span></li>
+</ol>
+
+<nav>
+  <a href="legal.html">Regulatory brief</a>
+  <a href="fiat-leg.html">Fiat leg</a>
+  <a href="index.html">Brand index</a>
+</nav>
+
+<footer>
+  <span><b>Sources, retrieved 6 Oct 2026.</b> Star counts, licences and chains read from each project's repository page on that date. Stablecoin share of regional volume: Chainalysis sub-Saharan Africa reports (2024, 2025) and IMF Article IV analysis for Nigeria (Jun 2026). Regulatory facts, licences, AML obligations, sandbox caps and the Act 843 retention duties are cited clause by clause in <a href="legal.html" style="color:var(--plum-mkt)">legal.html</a> rather than repeated here.</span>
+  <span><b>Revision note:</b> this page replaced an original that claimed no open-source P2P escrow existed, recommended a payment orchestrator this product cannot use, and never mentioned Act 1154. An outside review caught all three. Two later reviews caught more: a headline that implied the five projects were buildable, a false "every one is Bitcoin-only", bond economics described as arithmetic rather than as a calculation with terms in it, a reversal window stated as fact when it is unknown, a green definition stronger than the data supports, a ledger-before-state ordering that was backwards, and this page doing five documents' work at once. The threat model, the dispute desk and the legal brief now live in their own pages.</span>
+</footer>
+
+</body>
+</html>

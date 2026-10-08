@@ -1,0 +1,416 @@
+{
+  "$comment": "KudiMarket design constitution \u2014 machine-enforced. Edit here, not in code. See CONSTITUTION.md for the reasoning behind each rule.",
+  "brand": {
+    "name": "KudiMarket",
+    "paletteName": "Vivid plum",
+    "approvedTypeface": "Instrument Sans",
+    "market": "Ghana",
+    "currency": "GHS"
+  },
+  "approvedTokens": {
+    "colors": {
+      "plum-deep": "#331931",
+      "plum": "#462444",
+      "plum-market": "#5E2D5A",
+      "plum-bright": "#743F6F",
+      "plum-light": "#8B6187",
+      "loss-text": "#933331",
+      "loss-fill": "#C1514D",
+      "loss-bg": "#F8E7E5",
+      "loss-ink": "#5A1A18",
+      "settled-text": "#185B37",
+      "settled-btn": "#214D2C",
+      "settled-bg": "#D7E8DC",
+      "settled-ink": "#1B3D28",
+      "bone": "#FCF6EE",
+      "surface": "#F6EFE8",
+      "sand": "#E8E2DB",
+      "line": "#DBD5CE",
+      "ink": "#1C1916",
+      "ink-soft": "#6B635C",
+      "white": "#FFFFFF"
+    },
+    "roles": {
+      "brand": [
+        "plum-deep",
+        "plum",
+        "plum-market"
+      ],
+      "loss": [
+        "loss-text",
+        "loss-fill",
+        "loss-bg",
+        "loss-ink"
+      ],
+      "settled": [
+        "settled-text",
+        "settled-btn",
+        "settled-bg",
+        "settled-ink"
+      ],
+      "neutral": [
+        "bone",
+        "surface",
+        "sand",
+        "line",
+        "ink",
+        "ink-soft",
+        "white"
+      ]
+    },
+    "semantics": [
+      "plum = PENDING / ACTION. A choice, not a verdict.",
+      "green = CONFIRMATION ONLY, NEVER A BUTTON.",
+      "red = LOSS and DESTRUCTIVE only.",
+      "A colour must have exactly ONE job. Two jobs kills it."
+    ]
+  },
+  "banned": {
+    "fonts": {
+      "reason": "Inter/Roboto/Arial are the LLM defaults. Bricolage/Poppins/Montserrat are 2020-23 trend faces. Neither survives a design review.",
+      "families": [
+        "Inter",
+        "Roboto",
+        "Arial",
+        "Helvetica",
+        "Poppins",
+        "Montserrat",
+        "Bricolage Grotesque",
+        "Fraunces",
+        "Open Sans",
+        "Lato",
+        "Nunito",
+        "Work Sans",
+        "Manrope",
+        "Plus Jakarta Sans",
+        "DM Sans",
+        "Outfit",
+        "Space Grotesk",
+        "Sora",
+        "Figtree"
+      ],
+      "allowedAsFallback": [
+        "system-ui",
+        "-apple-system",
+        "Segoe UI",
+        "sans-serif",
+        "serif"
+      ]
+    },
+    "colors": {
+      "reason": "Each of these is either a live competitor's brand colour or the Nigerian banking default. Using one makes KudiMarket look like someone else \u2014 the exact failure that killed pine at 0.09 distance from Union Bank.",
+      "hexes": {
+        "#F0B90B": "Binance gold",
+        "#F7A600": "Bybit gold",
+        "#FFCC00": "MTN gold",
+        "#01BC8D": "KuCoin teal",
+        "#00BC8D": "KuCoin teal (alt)",
+        "#00B47D": "KuCoin green",
+        "#827EF7": "CoinGate purple",
+        "#5B4BE7": "CoinGate purple (deep)",
+        "#00A5EF": "Paxful cyan",
+        "#0052FF": "Coinbase blue",
+        "#0A7D38": "Bitstamp green",
+        "#D97757": "Claude terracotta",
+        "#C15F3C": "Claude deep rust",
+        "#964D6F": "retired plum (too light, hue 352 reads pink)",
+        "#5E2C47": "retired plum-deep",
+        "#7A3A5B": "retired plum",
+        "#B15882": "retired plum-bright",
+        "#C8799F": "retired plum-light",
+        "#00573F": "GCB Bank green \u2014 the Ghanaian banking default",
+        "#00A19A": "Consolidated Bank Ghana teal",
+        "#00806B": "Fidelity Bank Ghana teal",
+        "#006F44": "Fidelity Bank Ghana",
+        "#0B4EA2": "Zenith Bank Ghana blue",
+        "#0066B3": "AirtelTigo blue",
+        "#E30613": "Telecel red",
+        "#00C3F7": "Paystack teal",
+        "#5B21B6": "Zeepay purple",
+        "#E53935": "Chipper Cash red"
+      }
+    },
+    "hues": {
+      "reason": "Hue bands saturated by competitors. A brand hue inside these cannot be defended.",
+      "forbiddenHueRanges": [
+        {
+          "name": "crypto gold",
+          "min": 78,
+          "max": 100
+        },
+        {
+          "name": "crypto teal",
+          "min": 158,
+          "max": 178
+        },
+        {
+          "name": "crypto cyan",
+          "min": 195,
+          "max": 225
+        },
+        {
+          "name": "crypto blue",
+          "min": 240,
+          "max": 275
+        },
+        {
+          "name": "crypto violet",
+          "min": 276,
+          "max": 300
+        },
+        {
+          "name": "telco red",
+          "min": 20,
+          "max": 32
+        }
+      ]
+    }
+  },
+  "fillerCopy": {
+    "reason": "Words that carry no information and signal machine authorship. Banned in all user-facing strings \u2014 product copy, marketing, commit bodies, docs headings.",
+    "words": [
+      "seamless",
+      "seamlessly",
+      "effortless",
+      "effortlessly",
+      "empower",
+      "empowering",
+      "unlock",
+      "unleash",
+      "leverage",
+      "revolutionize",
+      "revolutionary",
+      "game-changer",
+      "game changing",
+      "cutting-edge",
+      "next-generation",
+      "next generation",
+      "robust",
+      "holistic",
+      "curated",
+      "elevate",
+      "transformative",
+      "delightful",
+      "intuitive",
+      "frictionless",
+      "best-in-class",
+      "world-class",
+      "state-of-the-art",
+      "synergy",
+      "utilize",
+      "innovative",
+      "innovation",
+      "seamless integration",
+      "supercharge",
+      "unparalleled",
+      "premium experience",
+      "stunning",
+      "beautiful",
+      "gorgeous",
+      "delightfully",
+      "magic",
+      "magical"
+    ],
+    "exemptions": []
+  },
+  "placeholderData": {
+    "reason": "Fake data shipped to production is worse than no data. A demo number becomes a real number someone relies on.",
+    "patterns": [
+      {
+        "pattern": "lorem\\s+ipsum",
+        "label": "Lorem ipsum"
+      },
+      {
+        "pattern": "\\bJohn\\s+Doe\\b",
+        "label": "John Doe"
+      },
+      {
+        "pattern": "\\bJane\\s+Smith\\b",
+        "label": "Jane Smith"
+      },
+      {
+        "pattern": "\\bFoo\\s?Bar\\b",
+        "label": "Foo Bar"
+      },
+      {
+        "pattern": "\\btest\\s+user\\b",
+        "label": "test user"
+      },
+      {
+        "pattern": "\\basdf\\b",
+        "label": "asdf"
+      },
+      {
+        "pattern": "\\bTODO\\b",
+        "label": "TODO"
+      },
+      {
+        "pattern": "\\bFIXME\\b",
+        "label": "FIXME"
+      },
+      {
+        "pattern": "\\bplaceholder\\b",
+        "label": "placeholder"
+      },
+      {
+        "pattern": "\\bdummy\\b",
+        "label": "dummy"
+      },
+      {
+        "pattern": "\\bfake\\s+(data|user|name|number)",
+        "label": "fake data"
+      },
+      {
+        "pattern": "\\bexample\\s*\\.com\\b",
+        "label": "example.com"
+      },
+      {
+        "pattern": "\\b10,000\\+?\\s+(users|customers|traders)",
+        "label": "invented user count"
+      },
+      {
+        "pattern": "\\bTrusted\\s+by\\s+\\d",
+        "label": "invented trust metric"
+      }
+    ]
+  },
+  "layout": {
+    "reason": "Structural habits that make any output read as machine-made regardless of colour or type.",
+    "rules": [
+      {
+        "id": "no-three-equal-columns",
+        "description": "A grid of exactly three equal-width columns. The single most recognisable AI layout signature.",
+        "severity": "error"
+      },
+      {
+        "id": "no-uniform-center",
+        "description": "Every block centre-aligned. Asymmetric left-alignment is the default for readable English UI.",
+        "severity": "error"
+      },
+      {
+        "id": "no-single-spacing-value",
+        "description": "One padding/gap value used everywhere. Real rhythm needs at least three steps.",
+        "severity": "warn"
+      },
+      {
+        "id": "no-accent-quote-block",
+        "description": "border-left:3px + background as an 'insight card'. Appears in nearly every LLM response.",
+        "severity": "error"
+      },
+      {
+        "id": "no-gradient-as-brand",
+        "description": "linear-gradient on a primary surface. Gradients are decoration, not identity.",
+        "severity": "error"
+      },
+      {
+        "id": "no-rounded-pill-everything",
+        "description": "border-radius >= 999px on more than one component class. Pills are for tags and chips only.",
+        "severity": "warn"
+      },
+      {
+        "id": "emoji-as-icon",
+        "description": "Emoji used in place of an icon or as decoration.",
+        "severity": "error"
+      }
+    ]
+  },
+  "type": {
+    "reason": "Numerals are the product. This is a money app; the type must survive real figures at real sizes.",
+    "rules": [
+      {
+        "id": "tabular-figures-required",
+        "description": "Any element showing currency, rates, balances or counts must set font-variant-numeric: tabular-nums.",
+        "severity": "error"
+      },
+      {
+        "id": "min-body-size",
+        "description": "Body copy below 14px fails legibility on the budget Android devices most of this market uses.",
+        "minPx": 14,
+        "severity": "error"
+      }
+    ]
+  },
+  "color": {
+    "reason": "Every colour must be measured, not eyeballed. This is a trust product; unverified contrast is a defect.",
+    "rules": [
+      {
+        "id": "contrast-required",
+        "description": "Any new foreground/background pair needs a measured WCAG ratio recorded in the PR.",
+        "minNormalText": 4.5,
+        "minLargeText": 3.0,
+        "minUiComponent": 3.0,
+        "severity": "error"
+      },
+      {
+        "id": "one-job-per-colour",
+        "description": "A colour may not serve as both a brand surface and a data/semantic signal.",
+        "severity": "error"
+      }
+    ]
+  },
+  "process": {
+    "reason": "The failure modes that produced a generic brand are process failures, not style failures.",
+    "rules": [
+      {
+        "id": "no-availability-as-merit",
+        "description": "A name, colour or direction is not justified by being available or unclaimed. It needs a positive reason.",
+        "severity": "error"
+      },
+      {
+        "id": "measure-dont-assert",
+        "description": "Colour claims require a computed value in OKLab/OKLCH. Memory is not a measurement.",
+        "severity": "error"
+      },
+      {
+        "id": "sample-dont-assume",
+        "description": "Competitor colours must be sampled from live DOM, never recalled from a brand guide.",
+        "severity": "error"
+      }
+    ]
+  },
+  "exempt": {
+    "$commentArchived": "Rejected logo and palette explorations kept for the record. They predate the palette lock and still carry the retired clay/terracotta/ink explorations. They are history, not deliverables, and must not be edited to pass: if one is ever revived it gets rebuilt to the constitution.",
+    "$commentReview": "review/ holds plain-text packets generated from the brand documents for outside reviewers. They are inputs to a conversation, not rendered surfaces, so the rendering rules (tabular figures, min font size) do not apply to them.",
+    "$commentScripts": "scripts/ holds the generators that build those packets. Rendering rules do not apply to code, and the tabular-figures rule in particular reads a regex backreference like \"$2\" as a dollar amount.",
+    "$commentPlans": "docs/superpowers/plans/ holds implementation plans. These are engineering documents, not rendered surfaces, and they quote code, example.com addresses and the word placeholder by design. Applying the rendering rules to them produces six errors a week, and a linter that reports six permanent errors is one people stop reading.",
+    "paths": [
+      "**/*.min.*",
+      "**/kudilint/**",
+      ".next/**",
+      "CONSTITUTION.md",
+      "review/**",
+      "scripts/**",
+      "docs/superpowers/**",
+      "brand/darker.html",
+      "brand/tagline.html",
+      "brand/1a.html",
+      "brand/1b.html",
+      "brand/1c.html",
+      "brand/brighter.html",
+      "brand/button-decision.html",
+      "brand/color-field.html",
+      "brand/compare.html",
+      "brand/final.html",
+      "brand/headtohead.html",
+      "brand/opt-a-ink.html",
+      "brand/opt-b-bronze.html",
+      "brand/opt-c-aubergine.html",
+      "brand/options.html",
+      "brand/type.html",
+      "build/**",
+      "coverage/**",
+      "dist/**",
+      "node_modules/**",
+      "**/vendor/**",
+      "app/public/**",
+      "app/storage/**",
+      "app/bootstrap/cache/**",
+      ".superpowers/**",
+      ".idea/**",
+      ".vscode/**",
+      "app/.claude/**",
+      "app/.agents/**",
+      "app/README.md"
+    ]
+  }
+}

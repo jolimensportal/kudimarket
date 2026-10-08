@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KudiMarket — colour options</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  :root{--bone:#FCF6EE;--surf:#F6EFE8;--sand:#E8E2DB;--line:#DBD5CE;--grey:#6B635C;--grey2:#8A8079}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bone);font-family:"Instrument Sans",system-ui,sans-serif;
+    padding:56px 40px 90px;max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:40px;text-wrap:pretty}
+  .eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--grey)}
+  h1{font-size:clamp(29px,4.8vw,45px);font-weight:300;letter-spacing:-.025em;line-height:1.05;color:#141110}
+  h1 b{font-weight:800}
+  .lede{font-size:17px;line-height:1.55;color:var(--grey);max-width:70ch;font-weight:300}
+  .lede b{color:#141110;font-weight:600}
+
+  .cards{display:flex;flex-direction:column;gap:16px}
+  .card{border:1px solid var(--line);background:#fff;text-decoration:none;color:inherit;display:grid;
+    grid-template-columns:200px 1fr 132px;gap:0;align-items:stretch;transition:border-color .12s}
+  .card:hover{border-color:var(--c)}
+  .card .panel{padding:26px 22px;display:flex;flex-direction:column;justify-content:space-between;gap:14px;
+    background:var(--c);min-height:190px}
+  .card .panel .id{font-size:11px;letter-spacing:.16em;color:rgba(255,255,255,.7);text-transform:uppercase}
+  .card .panel .nm{font-size:19px;font-weight:800;color:#fff;letter-spacing:-.02em;line-height:1.1}
+  .card .panel .hx{font-size:11.5px;color:rgba(255,255,255,.62);font-variant-numeric:tabular-nums}
+  .card .mid{padding:22px 26px;display:flex;flex-direction:column;gap:9px;justify-content:center}
+  .card .mid .t{font-size:19px;font-weight:600;letter-spacing:-.02em;color:#141110}
+  .card .mid .d{font-size:14px;line-height:1.5;color:var(--grey)}
+  .card .mid .d b{color:#141110;font-weight:600}
+  .card .go{padding:22px;display:flex;flex-direction:column;justify-content:center;gap:7px;
+    border-left:1px solid var(--line);font-size:12.5px;color:var(--grey)}
+  .card .go .g{font-size:13.5px;font-weight:600;color:var(--c)}
+  .card .go .m{font-variant-numeric:tabular-nums}
+
+  .field{background:#fff;border:1px solid var(--line);padding:26px 30px;display:flex;flex-direction:column;gap:16px}
+  .field h2{font-size:12px;letter-spacing:.13em;text-transform:uppercase;color:var(--grey);font-weight:600}
+  .frow{display:grid;grid-template-columns:repeat(11,1fr);gap:5px}
+  .fsw{height:34px;position:relative}
+  .fsw.occupied::after{content:'';position:absolute;inset:auto 3px 3px 3px;height:2px;background:rgba(0,0,0,.35)}
+  .flegend{display:flex;gap:20px;font-size:12px;color:var(--grey);flex-wrap:wrap}
+  .flegend span{display:flex;align-items:center;gap:7px}
+  .flegend i{width:18px;height:3px;background:rgba(0,0,0,.35);display:inline-block}
+
+  .note{border-left:3px solid #141110;background:#fff;padding:19px 24px;font-size:14.5px;line-height:1.55;color:var(--grey)}
+  .note b{color:#141110;font-weight:600}
+  .note .warn{border-left-color:#8A3A12}
+
+  dl.rules{display:flex;flex-direction:column;border-top:1px solid var(--line)}
+  .rules .r{display:grid;grid-template-columns:172px 1fr;gap:26px;padding:18px 0;
+    border-bottom:1px solid var(--line);align-items:start}
+  .rules dt{font-size:12px;letter-spacing:.11em;text-transform:uppercase;color:var(--grey);font-weight:600}
+  .rules dd{font-size:15px;line-height:1.55;color:var(--grey);font-weight:300}
+  .rules dd b{color:#141110;font-weight:600}
+  footer{font-size:12.5px;color:var(--grey);border-top:1px solid var(--line);padding-top:16px;
+    display:flex;flex-direction:column;gap:5px}
+</style>
+</head>
+<body>
+
+<span class="eyebrow">Three options · pine abandoned · 38 brands measured</span>
+
+<h1>Three territories.<br>Not three shades of one idea.</h1>
+
+<p class="lede">I measured 16 crypto exchanges and 22 Ghanaian banks and fintechs — <b>38 real brands</b>. Pine died at 0.09 from GCB Bank, so it is gone. What the data shows instead: <b>green has 11 brands, blue has 8</b>, and the mass of the whole field sits bright. These three are different in <b>kind</b>, not in shade — no hue, earth, pigment.</p>
+
+<div class="cards">
+
+  <a class="card" href="opt-a-ink.html" style="--c:#1C1916">
+    <span class="panel"><span class="id">A</span><span class="nm">Ink</span><span class="hx">#1C1916</span></span>
+    <span class="mid">
+      <span class="t">No hue at all</span>
+      <span class="d">Achromatic. The brand is <b>near-black on bone</b> and refuses to compete on colour. Clearance over rivals: <b>6.67</b> — nothing is closer.</span>
+    </span>
+    <span class="go"><span class="g">Open →</span><span class="m">17.5:1 AAA</span><span class="m">nearest: Bybit</span></span>
+  </a>
+
+  <a class="card" href="opt-b-bronze.html" style="--c:#6B441F">
+    <span class="panel"><span class="id">B</span><span class="nm">Bronze</span><span class="hx">#6B441F</span></span>
+    <span class="mid">
+      <span class="t">Market earth</span>
+      <span class="d">Warm earth pigment — ochre, aged brass, the colour of a market stall at dusk. Clearance <b>12.18</b>. <b>Warmest</b> of the three.</span>
+    </span>
+    <span class="go"><span class="g">Open →</span><span class="m">8.5:1 AAA</span><span class="m">nearest: Bybit</span></span>
+  </a>
+
+  <a class="card" href="opt-c-aubergine.html" style="--c:#7C5666">
+    <span class="panel"><span class="id">C</span><span class="nm">Aubergine</span><span class="hx">#7C5666</span></span>
+    <span class="mid">
+      <span class="t">Deep pigment</span>
+      <span class="d">Aged dye, the colour of <b>adire</b> and traded cloth — now lightened. Clearance <b>70.89</b>, the most isolated in the whole field. <b>Most ownable.</b></span>
+    </span>
+    <span class="go"><span class="g">Open →</span><span class="m">6.2:1 AA</span><span class="m">nearest: CoinGate</span></span>
+  </a>
+
+</div>
+
+<div class="field">
+  <h2>Occupancy of the 38-brand field — where the mass actually is</h2>
+  <div class="frow">
+    <span class="fsw" style="background:#C1514D"></span>
+    <span class="fsw" style="background:#6B441F"></span>
+    <span class="fsw" style="background:#F0B90B"></span>
+    <span class="fsw" style="background:#4B4A00"></span>
+    <span class="fsw" style="background:#008751"></span>
+    <span class="fsw" style="background:#00A88F"></span>
+    <span class="fsw" style="background:#00DCFA"></span>
+    <span class="fsw" style="background:#0052FF"></span>
+    <span class="fsw" style="background:#827EF7"></span>
+    <span class="fsw" style="background:#C2185B"></span>
+    <span class="fsw" style="background:#3D0A1E"></span>
+  </div>
+  <div class="flegend">
+    <span><i></i>Underlined = occupied by a real competitor</span>
+    <span>Red · orange-brown · gold · olive · <b>green (11 brands)</b> · teal · cyan · <b>blue (8)</b> · purple · magenta · near-black</span>
+  </div>
+  <p style="font-size:14px;line-height:1.55;color:var(--grey);margin-top:4px">
+    Green and blue are where everyone already is. Bronze and aubergine have <b>zero</b> competitors in the field. Ink abandons the axis entirely and wins on depth instead — every exchange sits bright, mean lightness 0.61, and ink is 0.22.
+  </p>
+</div>
+
+<div class="note warn">
+  <b>Read this before choosing.</b> Pine was abandoned because 0.09 from GCB Bank made it indistinguishable from a bank. These three clear every measured brand by 6.67 or better, and all three leave red free for loss and destructive states. <b>None of them is the Ghanaian banking green</b> — that was the whole point of killing pine.
+</div>
+
+<div class="note">
+  <b>Two changes since this hub was built.</b> Aubergine was too dark — the scale moved up from lightness 0.345 to <b>0.42–0.50</b>, which pushed it <i>further</i> from every competitor (52.63 → <b>70.89</b>). And the typeface is no longer Bricolage Grotesque. See <a href="type.html" style="color:#1C1916;font-weight:600">the type test</a>.
+</div>
+
+<dl class="rules">
+  <div class="r"><dt>Unchanged from before</dt><dd>Whatever you pick: <b>#C1514D</b> is loss and destructive only. <b>#2F7D4F</b> is settled and escrow only, never a button. Prices and balances are always ink on bone, never the brand colour. Sell and Buy are never split by colour.</dd></div>
+  <div class="r"><dt>Also unchanged</dt><dd>The wordmark is the same in all three — <b>kudi</b> in the light step, <b>market</b> at 800. Direction <b>1c</b>, which you approved before colour entered the conversation. Only the colour changes.</dd></div>
+  <div class="r"><dt>How to choose</dt><dd><b>A</b> if you want to look like an instrument, not an app. <b>B</b> if you want warmth and market humanity. <b>C</b> if you want maximum ownership and do not mind a slightly literary tone.</dd></div>
+  <div class="r"><dt>My honest ranking</dt><dd><b>A is the strongest brand</b> — it has no hue to defend, no competitor nearby, and it makes the wordmark do all the work. <b>C is the most differentiated</b> but reads more premium-asset than market-place. <b>B is the warmest</b> and risks drifting toward Binance gold if the accent lightens.</dd></div>
+</dl>
+
+<footer>
+  <span>38 brands sampled and computed in OKLab. Contrast ratios in WCAG relative luminance.</span>
+  <span>Clearance = perceptual distance to the nearest competitor brand colour. Higher is safer. 0.25 is the "reads as the same colour" line.</span>
+</footer>
+
+</body>
+</html>

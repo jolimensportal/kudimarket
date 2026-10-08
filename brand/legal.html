@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KudiMarket · regulatory brief and counsel questions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --plum-deep:#331931; --plum:#462444; --plum-mkt:#5E2D5A; --plum-brt:#743F6F;
+    --loss:#933331; --loss-bg:#F8E7E5; --loss-ink:#5A1A18; --loss-fill:#C1514D;
+    --good:#185B37; --good-bg:#D7E8DC; --good-ink:#1B3D28;
+    --bone:#FCF6EE; --surf:#F6EFE8; --sand:#E8E2DB; --line:#DBD5CE;
+    --txt:#1C1916; --txt2:#6B635C;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bone);color:var(--txt);font-family:"Instrument Sans",system-ui,sans-serif;
+    padding:56px 40px 90px;max-width:1140px;margin:0 auto;display:flex;flex-direction:column;gap:44px;text-wrap:pretty}
+  h1{font-size:clamp(28px,4.4vw,42px);font-weight:600;letter-spacing:-.022em;line-height:1.08;text-wrap:balance}
+  h2{font-size:clamp(22px,3vw,30px);font-weight:600;letter-spacing:-.02em;line-height:1.14;text-wrap:balance}
+  h1 b,h2 b{color:var(--plum-mkt);font-weight:700}
+  .lede{font-size:16.5px;line-height:1.6;color:var(--txt2);max-width:74ch}
+  .lede b{color:var(--txt);font-weight:600}
+  p{max-width:78ch}
+
+  .card{border:1px solid var(--line);background:#fff;display:flex;flex-direction:column}
+  .card .hd{padding:16px 26px;border-bottom:1px solid var(--line);background:var(--surf);
+    font-size:14px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--txt2)}
+  .card .bd{padding:24px 26px;display:flex;flex-direction:column;gap:16px;font-size:16px;line-height:1.6;color:var(--txt2)}
+  .card .bd b{color:var(--txt);font-weight:600}
+  .card .bd ul{list-style:none;display:flex;flex-direction:column;gap:12px}
+  .card .bd li{display:grid;grid-template-columns:26px 1fr;gap:10px;font-size:15.5px;line-height:1.55}
+  .card .bd li i{font-style:normal;font-weight:700;grid-column:1;color:var(--txt2)}
+  .card .bd li span{grid-column:2}
+  .card.defect{border-color:var(--loss-fill)}
+  .card.defect .hd{background:var(--loss-bg);color:var(--loss-ink);border-bottom-color:var(--loss-fill)}
+  .card.defect li i{color:var(--loss)}
+
+  .verdict .q{font-size:clamp(20px,2.6vw,27px);font-weight:600;letter-spacing:-.02em;
+    padding:22px 26px 0;line-height:1.25;text-wrap:balance}
+  .verdict .rows{display:flex;flex-direction:column}
+  .verdict .row{display:grid;grid-template-columns:200px 1fr;gap:20px;padding:18px 26px;
+    border-top:1px solid var(--line);font-size:15.5px;line-height:1.55;color:var(--txt2)}
+  .verdict .row:first-child{margin-top:18px}
+  .verdict .row b{color:var(--txt);font-weight:600}
+  .verdict .row .k{font-size:14px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--plum-mkt)}
+
+  table{width:100%;border-collapse:collapse;font-size:15px}
+  .tbl{border:1px solid var(--line);background:#fff;overflow-x:auto}
+  .tbl th{text-align:left;font-size:14px;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--txt2);font-weight:700;padding:14px 16px;border-bottom:1px solid var(--line);white-space:nowrap}
+  .tbl td{padding:14px 16px;border-bottom:1px solid var(--line);vertical-align:top;line-height:1.5}
+  .tbl tr:last-child td{border-bottom:none}
+  .tbl .num{font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--txt2)}
+  .tbl .ent{font-weight:700;white-space:nowrap}
+  .tbl .tp{color:var(--plum-mkt)}
+  .tbl .act{color:var(--txt2)}
+  .tbl .act b{color:var(--txt);font-weight:600}
+  .cap{font-size:14.5px;line-height:1.55;color:var(--txt2);margin-top:-30px}
+  .cap b{color:var(--txt);font-weight:600}
+
+  .quote{font-size:15px;line-height:1.55;color:var(--txt2);padding:2px 0}
+  .quote .ref{font-variant-numeric:tabular-nums;color:var(--txt);font-weight:600;white-space:nowrap}
+
+  ol.qa{list-style:none;counter-reset:q;display:flex;flex-direction:column;gap:18px}
+  ol.qa li{counter-increment:q;display:grid;grid-template-columns:34px 1fr;gap:14px;
+    font-size:15.5px;line-height:1.55;color:var(--txt2);align-items:start}
+  ol.qa li::before{content:"Q" counter(q);font-size:16px;font-weight:700;color:var(--plum-mkt);
+    line-height:1.4;font-variant-numeric:tabular-nums}
+  ol.qa li b{color:var(--txt);font-weight:600}
+  ol.qa li em{font-style:normal;color:var(--txt2)}
+
+  ol.steps{list-style:none;counter-reset:s;display:flex;flex-direction:column;gap:14px}
+  ol.steps li{counter-increment:s;display:grid;grid-template-columns:30px 1fr;gap:14px;
+    font-size:16px;line-height:1.55;color:var(--txt2);align-items:start}
+  ol.steps li::before{content:counter(s) ".";font-size:17px;font-weight:700;color:var(--plum-mkt);
+    line-height:1.45;font-variant-numeric:tabular-nums}
+  ol.steps li b{color:var(--txt);font-weight:600}
+
+  nav{display:flex;gap:14px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:20px}
+  nav a{font-size:15px;color:var(--txt2);text-decoration:none;border:1px solid var(--line);
+    padding:11px 17px;background:#fff;display:inline-block;transition:border-color .15s,color .15s}
+  nav a:hover{border-color:var(--plum-mkt);color:var(--plum-mkt)}
+  nav a:focus-visible{outline:2px solid var(--plum-mkt);outline-offset:2px}
+  footer{font-size:14.5px;color:var(--txt2);display:flex;flex-direction:column;gap:7px;line-height:1.55}
+  footer b{color:var(--txt);font-weight:600}
+  footer a{color:var(--plum-mkt)}
+  ::selection{background:var(--sand);color:var(--txt)}
+
+  @media (max-width:760px){
+    body{padding:32px 20px 64px;gap:36px}
+    .verdict .row{grid-template-columns:1fr;gap:8px}
+    .card .hd{padding:14px 18px}
+    .card .bd{padding:20px 18px}
+    .verdict .row,.verdict .q{padding-left:18px;padding-right:18px}
+  }
+</style>
+</head>
+<body>
+
+<h1>The only SEC route open today,<br><b>and three questions gate everything.</b></h1>
+
+<p class="lede">Read clause by clause from the SEC's own guidelines PDF (SEC/GUI/001/03/2026, 42 pages) on 7 Oct 2026, with the clause number against every quote. Four findings survive the text: <b>SEC licensing is not open yet</b>, and the sandbox is the only SEC route to it; <b>category 1 is "Virtual Asset Exchanges and Trading Platforms" and six admitted firms already hold it</b>; <b>the application decides things we had queued as later design choices</b>, starting with the custody model, the chain, and the vendors; and <b>capital adequacy is relaxable inside the sandbox while minimum paid-up capital is decided case by case</b>. One caveat matters more than any of them: the guidelines contain no exclusivity clause, so "the sandbox is the only route in" was our inference and the Bank of Ghana's own track is unexamined.</p>
+
+<div class="card verdict">
+  <span class="q">The position in six lines</span>
+  <div class="rows">
+    <div class="row"><span class="k">The route in</span><span><b>SEC licensing is not open; the sandbox is how you get to it.</b> The notice of 23 January 2026 opens licensing for seven categories "upon the completion of the regulatory sandbox framework", and the August notice says the pilot is collecting data to finalise activity-specific licensing guidelines. 6(7) and 9(9): approval "shall not be construed as an endorsement, authorisation, or permanent licence". 10(5): on exit the entity "shall cease all Sandbox activities unless otherwise authorised". <b>The guidelines contain no exclusivity clause</b>, and the Bank of Ghana appears once in 42 pages, in a consumer disclaimer, so whether a second track exists is a question we have not answered.</span></div>
+    <div class="row"><span class="k">The category</span><span><b>Not open, and not ours.</b> Category 1 of the licence list is "Virtual Asset Exchanges and Trading Platforms", and six admitted firms hold exactly that activity. The guidelines define neither term, so the definitions live in Act 1154's Schedule, which we still do not have.</span></div>
+    <div class="row"><span class="k">The incumbents</span><span><b>Twenty participants, and the crowding is in our category.</b> Six trading platforms, five exchanges, five tokenisations, three brokerages, one real-world asset custodian. Five of the six trading platforms were in the first cohort of 10 March 2026. The binding tests are not 7(1)(a): 8(1)(d) allows rejection for "uncertainty relating to regulatory classification", 8(1)(f) for failure to demonstrate AML, fraud-prevention and sanctions compliance or "unacceptable risk of illicit financial activity or consumer harm", and 8(1)(h) for activity that "cannot be appropriately controlled, supervised, suspended or terminated in an orderly manner".</span></div>
+    <div class="row"><span class="k">The application</span><span><b>It decides what we thought was ours to decide.</b> 3(3)(b): the applicant's own testing plan sets "user limits, transaction caps and geographic scope". 3(3)(e)(i): "a clearly defined custody or asset control model". 3(5): a "winding up and failure management plan". 4(5): "An Applicant shall engage the SEC prior to submission". 6(1): ninety days "from the date the SEC determines that the application is complete <i>and satisfactory</i> for assessment", and lapse is "not construed as automatic approval". 11(1)(a): termination may follow where the entity "fails to commence the business" within three months of issue, and 11(2) lets the SEC "terminate a Regulatory Sandbox Licence at any time by written notice".</span></div>
+    <div class="row"><span class="k">Cost</span><span><b>Read Annex B's two tables separately.</b> "Possible to Relax" ends at licence fees: asset maintenance, board composition, cash balances, credit rating, financial soundness, capital adequacy, licence fees. A separate heading, "SEC's Guidelines that may be applicable in each case and on case-by-case basis", covers minimum liquid assets, minimum paid-up capital, relative size, reputation and track record, so minimum paid-up capital is not simply waived. Annex D also asks every VASP for a ratio of liquid assets to liabilities each quarter. 15(5): we bear audits, independent assurance and technical assessments.</span></div>
+    <div class="row"><span class="k">Marketing</span><span><b>The 20 February 2026 directive makes virtual-asset advocacy a regulated activity.</b> Whether honest product education counts as advocacy is untested, and the primary notice is not yet in our hands. The guidelines themselves contain no advertising clause, only disclosure duties.</span></div>
+  </div>
+</div>
+
+<h2>What a sandbox licence is, in the regulator's words</h2>
+
+<div class="card">
+  <div class="hd">Verbatim quotes and where they sit</div>
+  <div class="bd">
+    <p class="quote"><span class="ref">6(7)</span> "Approval to participate in the Sandbox shall not be construed as an endorsement, authorisation, or permanent licence to conduct regulated activities outside the Sandbox, unless otherwise expressly granted by the SEC."</p>
+    <p class="quote"><span class="ref">6(1)</span> "The approval process shall not exceed ninety (90) days from the date the SEC determines that the application is complete and satisfactory for assessment." With 6(2): the SEC may "suspend, defer, or discontinue the approval" process.</p>
+    <p class="quote"><span class="ref">9(9)</span> "A Regulatory Sandbox Licence shall be limited in scope and duration and shall not constitute a full licence, permanent authorisation, or approval to conduct regulated activities beyond the Sandbox unless otherwise expressly granted by the SEC."</p>
+    <p class="quote"><span class="ref">10(3)</span> "the Sandbox Entity may deploy the product or service on a broader scale, subject to obtaining all required licences, registrations, approvals, or authorisations under applicable laws"</p>
+    <p class="quote"><span class="ref">11(1)</span> Termination grounds "may include where", and 11(1)(a) is failure "to commence the business for which the Regulatory Sandbox Licence was issued within three (3) months of the issuance of the licence". 11(2): the SEC "may terminate a Regulatory Sandbox Licence at any time by written notice".</p>
+    <p class="quote"><span class="ref">12(1)</span> "A Sandbox Entity shall not cease operations, suspend testing, or exit the Sandbox without the prior written approval of the SEC, except where termination is directed by the SEC under these Guidelines."</p>
+    <p class="quote"><span class="ref">BoG FAQ</span> "The Act provides for regulatory transition arrangements, allowing existing operators time to comply once the law takes effect. Operating without authorisation after this period will attract sanctions."</p>
+  </div>
+</div>
+
+<h2>The application decides more than we assumed</h2>
+
+<div class="card">
+  <div class="hd">Section 3 is eligibility, and it is where our design choices now live</div>
+  <div class="bd">
+    <ul>
+      <li><i>3</i><span><b>3(3) is the testing plan.</b> An Applicant "shall provide a detailed testing plan including: (a) clear objectives, methodologies and timelines; (b) defined parameters such as user limits, transaction caps and geographic scope; (c) measurable expected outcomes and success criteria; (d) evidence of prior proof-of-concept testing where applicable".</span></li>
+      <li><i>3</i><span><b>3(3)(e) is the custody, chain and vendor clause.</b> For virtual-asset solutions the Applicant must demonstrate "(i) a clearly defined custody or asset control model, including whether assets are held in self-custody, hosted custody, or through third-party arrangements; (ii) governance arrangements for Private Key Management, transaction authorisation, and operational continuity; (iii) systems and controls for transaction monitoring, blockchain or distributed ledger analytics, and sanctions screening; and (iv) full disclosure of all material third-party service providers". Every one of those vendors is named in the application, so the contracts come before the filing.</span></li>
+      <li><i>3</i><span><b>3(5) is a failure plan, and 7(1)(k) asks for it again.</b> The Applicant must submit a "winding up and failure management plan demonstrating how the Applicant will: (a) cease operations in an orderly manner; (b) settle all outstanding customer obligations; (c) safeguard customer assets and data; and (d) notify customers and the SEC immediately".</span></li>
+      <li><i>3</i><span><b>3(3)(d) asks for prior proof-of-concept testing "where applicable".</b> What "where applicable" covers is not ours to decide, and reading it as permission to run a live market would be an over-reading.</span></li>
+      <li><i>4</i><span><b>4(2) says who may apply, 4(3) is about containing failure, 4(5) makes pre-submission engagement mandatory.</b> 4(3): "The Sandbox shall include appropriate safeguards to contain the consequences of failure and maintain the overall safety and soundness of the capital market." 4(5): "An Applicant shall engage the SEC prior to submission to clarify regulatory expectations and suitability for Sandbox testing. Such engagement shall not be construed as approval or endorsement by the SEC."</span></li>
+      <li><i>5</i><span><b>The audit may not be optional.</b> The addendum's evidence list asks for a "Tokenomics whitepaper or equivalent technical documentation" and "Smart contract audit reports", with no "where applicable" qualifier, unlike the node-governance item. Read literally, a keys-in-wallet design still has to address it. Ask the SEC rather than assume.</span></li>
+      <li><i>5</i><span><b>And segregation cuts against a pooled wallet.</b> The addendum asks for evidence of "segregation of client assets from proprietary funds", which is in tension with one omnibus escrow wallet for every trade. Either segregate, or write the case for a pooled account and let the SEC rule on it.</span></li>
+      <li><i>8</i><span><b>Three rejection grounds do the real work.</b> 8(1)(d) "uncertainty relating to regulatory classification, supervisory authority, enforceability, or regulatory treatment"; 8(1)(f) AML, fraud-prevention and sanctions compliance or unacceptable risk of illicit financial activity or consumer harm; 8(1)(h) activity that "cannot be appropriately controlled, supervised, suspended or terminated in an orderly manner". 7(1)(a) also requires the product to be "not substantially similar to products or services already available for which market operators are licensed by the SEC", but sandbox participants are not licensed operators, and six trading platforms were admitted anyway, so it is a weaker test than it first reads.</span></li>
+    </ul>
+  </div>
+</div>
+
+<h2>Caps are ours to propose. <b>Everything else is a safeguard the SEC may impose.</b></h2>
+
+<div class="card">
+  <div class="bd">
+    <p><b>The word matters.</b> 9(1) reads "The SEC may issue a Regulatory Sandbox Licence subject to such safeguards, terms and conditions, including requiring the Applicant to:", so the sub-clauses are conditions the SEC may impose rather than automatic statutory duties. Where we need firmer ground, Annex B is the better citation: the SEC intends to <b>maintain</b> confidentiality of customer information and data handling, fit and proper criteria, "handling of customer's moneys and assets by intermediaries", prevention of money laundering and countering the financing of terrorism, corporate governance, and environmental requirements.</p>
+    <p><b>Relaxable, per the first Annex B table:</b> asset maintenance requirement, board composition, cash balances, credit rating, financial soundness, capital adequacy, licence fees. <b>Case by case, per the second table in the same annex:</b> minimum liquid assets, minimum paid-up capital, relative size, reputation, track record. Reading those two lists as one flat list of relaxations was an error in the previous version, and it flattered the sandbox budget.</p>
+    <p><b>Liquidity is still measured.</b> Annex D's universal KPIs include "Capital/liquidity adequacy vs. requirements", measured as "Ratio of liquid assets to liabilities", quarterly, for every VASP category.</p>
+    <p><b>Insurance is a safeguard, not an Annex B entry.</b> It appears in 9(2)(c), where the SEC may require "asset protection, safeguarding, segregation, escrow, custody, trust, insurance, or equivalent arrangements where customer assets or funds are involved".</p>
+    <p><b>Who pays:</b> 15(5) puts audits, independent assurance, technical assessments, reporting and safeguard implementation on the Sandbox Entity, and 15(4) makes the licence fee non-refundable.</p>
+    <p><b>And the reporting clock:</b> 13(3) requires notification of a material incident, "including system failure, cyber-incident, data breach, fraud event, operational disruption or significant customer impact", within twenty-four hours. A frozen-account case caused by scam proceeds is likely to be both a fraud event and significant customer impact, so this is a live clock, not a formality.</p>
+  </div>
+</div>
+
+<h2>The KPI table assumes an order book</h2>
+
+<div class="card">
+  <div class="hd">Annex D, section 2.1: Virtual Asset Exchanges and Trading Platforms</div>
+  <div class="bd">
+    <ul>
+      <li><i>KPI</i><span><b>Suspicious transactions:</b> measured as "SARs filed as % of total transactions", target "≥100% flagged activity reported". Read literally that is a report on every flagged transaction, which is a stricter standard than the phrase suggests. Ask which table applies to us.</span></li>
+      <li><i>KPI</i><span><b>Liquidity:</b> "Average bid-ask spread for top 5 pairs", target "≤ 50 bps". A P2P marketplace between two people has no order book and no spread, so this target cannot describe our business.</span></li>
+      <li><i>KPI</i><span><b>Settlement efficiency:</b> "Failed settlement rate (%)", target "≤ 0.1%". Our dispute and reversal rate will plausibly exceed 0.1% at launch. If we land in this category, we must either explain the metric or breach it on day one.</span></li>
+      <li><i>KPI</i><span><b>Consumer protection:</b> "≥90%" of users completing a risk awareness quiz.</span></li>
+      <li><i>→</i><span><b>Universal KPIs</b> apply to every VASP category: transaction volume and value monthly, active users, incident notification within 24 hours, complaints and resolution rate, the quarterly liquid-assets ratio, uptime monthly, and client demographics.</span></li>
+    </ul>
+    <p><b>Read together, the category question is not academic.</b> Choosing "trading platform" brings exchange-shaped metrics that a marketplace cannot meet, and 8(1)(f) allows rejection for unacceptable risk of illicit financial activity or consumer harm.</p>
+  </div>
+</div>
+
+<h2>Twenty participants, and where the crowding is</h2>
+
+<div class="tbl">
+  <table>
+    <tr><th>#</th><th>Participant</th><th>Approved pilot activity</th></tr>
+    <tr><td class="num">1</td><td class="ent">Africoin Ghana</td><td class="act">Asset tokenisation: <b>gold</b></td></tr>
+    <tr><td class="num">2</td><td class="ent">Vaulta Digital Assets</td><td class="act">Asset tokenisation: <b>securities</b></td></tr>
+    <tr><td class="num">3</td><td class="ent">GFX Brokers</td><td class="act">Asset tokenisation: <b>T-bills</b></td></tr>
+    <tr><td class="num">4</td><td class="ent">One Africa Securities</td><td class="act">Asset tokenisation: <b>bonds</b></td></tr>
+    <tr><td class="num">5</td><td class="ent">WEWire Ghana</td><td class="act">Asset tokenisation: <b>trade finance</b></td></tr>
+    <tr><td class="num">6</td><td class="ent">Mansu Technologies</td><td class="act">Virtual asset <b>brokerage</b></td></tr>
+    <tr><td class="num">7</td><td class="ent">Sage Advance Global Services</td><td class="act">Virtual asset <b>brokerage</b></td></tr>
+    <tr><td class="num">8</td><td class="ent">Mojo Pay Ghana</td><td class="act">Virtual asset <b>brokerage</b></td></tr>
+    <tr><td class="num">9</td><td class="ent">Yellow Card Ghana</td><td class="act">Virtual asset <b>exchange</b></td></tr>
+    <tr><td class="num">10</td><td class="ent">Hyro Exchange</td><td class="act">Virtual asset <b>exchange</b></td></tr>
+    <tr><td class="num">11</td><td class="ent">Whitebit Ghana</td><td class="act">Virtual asset <b>exchange</b></td></tr>
+    <tr><td class="num">12</td><td class="ent">Koinkoin Ghana</td><td class="act">Virtual asset <b>exchange</b></td></tr>
+    <tr><td class="num">13</td><td class="ent">Ghana Commodities Exchange</td><td class="act">Virtual asset exchange: <b>commodities</b></td></tr>
+    <tr><td class="num">14</td><td class="ent">Ghana Gold Board</td><td class="act">Real world asset <b>custodian</b>: gold</td></tr>
+    <tr><td class="num">15</td><td class="ent">Xchain Technologies</td><td class="act tp">Virtual asset <b>trading platform</b></td></tr>
+    <tr><td class="num">16</td><td class="ent">Hanypay Ghana</td><td class="act tp">Virtual asset <b>trading platform</b></td></tr>
+    <tr><td class="num">17</td><td class="ent">The Blue Penguin Company</td><td class="act tp">Virtual asset <b>trading platform</b></td></tr>
+    <tr><td class="num">18</td><td class="ent">HSB Global Fintech</td><td class="act tp">Virtual asset <b>trading platform</b></td></tr>
+    <tr><td class="num">19</td><td class="ent">Mamoru Digital Ghana</td><td class="act tp">Virtual asset <b>trading platform</b></td></tr>
+    <tr><td class="num">20</td><td class="ent">BSystems</td><td class="act tp">Virtual asset <b>trading platform</b></td></tr>
+  </table>
+</div>
+<p class="cap"><b>Counts, corrected:</b> six trading platforms, five exchanges, five tokenisations, three brokerages, one real-world asset custodian. The earlier version of this brief listed thirteen rows, called them "four exchanges", and said no activity covered a marketplace. Five of the six trading platforms (Xchain, Hanypay, Blue Penguin, HSB Global, BSystems) appear in the first cohort named in the SEC's press release of 10 March 2026, so the activity we would apply for was largely filled at the sandbox's opening. Register: SEC Public Notice No. SEC/PN/001/08/2026, dated 19 August 2026.</p>
+
+<h2>Data protection, restated more carefully</h2>
+
+<div class="card">
+  <div class="hd">Data Protection Act, 2012 (Act 843)</div>
+  <div class="bd">
+    <ul>
+      <li><i>24</i><span><b>An append-only store is not automatically unlawful.</b> Section 24(1) bars keeping personal data longer than the purpose requires, subject to four exceptions: where law requires or authorises the retention, where it is reasonably necessary for a lawful purpose related to a function or activity, where a contract between the parties requires it, or where the data subject consents. AML record-keeping falls inside that list, so the earlier claim that write-once evidence cannot satisfy section 24 was wrong. (The four limbs are quoted here in paraphrase deliberately; the subsection itself should be read in full before it is relied on in a filing.)</span></li>
+      <li><i>24</i><span><b>The real tension is with AML records.</b> Section 24(4) sets retention for records used to make a decision about a data subject, 24(5) and (6) require destruction or de-identification at the end of the period preventing reconstruction in intelligible form, and section 44 lets the Commission order erasure and require notice to third parties. So the question is not immutability versus privacy but <b>which retention period governs a dispute record that is also an AML record</b>, and Annex B keeps "confidentiality of customer information and data handling" among the requirements the SEC intends to maintain.</span></li>
+      <li><i>→</i><span><b>Design consequence:</b> keep personal data erasable, hash-chain the evidence, and anchor digests rather than records. Then agree the retention periods with counsel against the AML record-keeping obligation rather than against a guessed privacy rule. Detail in the fiat-leg document.</span></li>
+      <li><i>46</i><span><b>Registration is its own obligation.</b> The Act establishes a Data Protection Register and bars processing without registration for assessable processing. Whether we are in scope on day one is question seven.</span></li>
+    </ul>
+  </div>
+</div>
+
+<h2>Questions for counsel, and for the SEC's pre-submission channel</h2>
+
+<ol class="qa">
+  <li><span><b>Which category, and what follows from it?</b> <em>Trading platform, exchange, or both, plus custodial wallet provider because we hold traders' crypto. Which Annex D KPI table attaches, and how do we answer a bid-ask spread target and a 0.1% failed-settlement ceiling in a marketplace with no order book? Definitions live in Act 1154's Schedule, which we need.</em></span></li>
+  <li><span><b>What custody model, chain, and vendor set do we file?</b> <em>3(3)(e)(i) requires a defined custody or asset control model at application, 3(3)(e)(iii)-(iv) names our analytics, sanctions and custody vendors, the addendum asks us to describe the digital tokens involved, and its evidence list includes a tokenomics whitepaper and smart-contract audit reports without an "if applicable" qualifier. So chain choice, vendor contracts and the audit question all land here: does a keys-in-wallet design still have to file an audit, and does one omnibus escrow wallet survive the segregation-evidence requirement?</em></span></li>
+  <li><span><b>Is our admission viable against six admitted trading platforms?</b> <em>The live grounds are 8(1)(d) classification uncertainty, 8(1)(f) illicit-finance and consumer-harm risk, and 8(1)(h) orderly control, suspension and termination. What is our differentiator on paper, and does it survive those rather than the 7(1)(a) test?</em></span></li>
+  <li><span><b>Are we a foreign applicant?</b> <em>The 30% local-participation threshold, the physical Ghana office and the resident senior or compliance officer apply to foreign virtual asset service providers. The answer depends on how the entity is structured and changes the application.</em></span></li>
+  <li><span><b>Is there a second route, and which regulator owns what?</b> <em>The guidelines contain no exclusivity clause and mention the Bank of Ghana once, in a consumer disclaimer. Whether the BoG operates a parallel authorisation or sandbox track for payment or custody activities, and which regulator owns which part of our product, is unanswered.</em></span></li>
+  <li><span><b>Is product education "advocacy" under the 20 February 2026 directive?</b> <em>And can we get the primary notice text rather than a report of it.</em></span></li>
+  <li><span><b>Retention, and the Data Protection Register.</b> <em>Reconcile section 24(4) retention with the AML record-keeping obligation, tell us which period governs a dispute record, and whether the registration duty bites at application or at launch.</em></span></li>
+  <li><span><b>Send us Act 1154: the licensing prohibition, the penalties, and the Schedule definitions.</b> <em>Our conclusion that real money needs authorisation rests on the sandbox guidelines plus a BoG FAQ, not on the Act. The Act's own short title appears in three forms across these guidelines, which is worth confirming against the enacted text.</em></span></li>
+  <li><span><b>What is the perimeter for naira, CFA and RMB?</b> <em>Cedi-to-dollar is foreign exchange under BoG rules, "other financial instruments" may be securities, and RMB rails prohibit virtual-currency transactions. Can one product serve four corridors under one authorisation?</em></span></li>
+  <li><span><b>Timeline, intake, and the fee.</b> <em>Next cohort dates, how long pre-submission engagement takes in practice, and confirmation of the non-refundable licence fee. Ninety days runs from deemed completeness, and 6(2) lets the SEC suspend or defer, so the queue before that clock matters more than the clock.</em></span></li>
+</ol>
+
+<h2>What happens next</h2>
+
+<ol class="steps">
+  <li><span><b>Open the pre-submission channel with the SEC</b> (mandated by 4(5)) and put counsel questions one, two and three to them in the same week. Everything else is sequenced behind those answers.</span></li>
+  <li><span><b>Obtain Act 1154</b> in full: licensing prohibition, penalties, and the Schedule category definitions.</span></li>
+  <li><span><b>Draft the testing plan</b>, because 3(3)(b) makes our tiered release design the numbers the SEC approves, and 3(3)(d) asks for evidence of prior proof-of-concept testing "where applicable".</span></li>
+  <li><span><b>Write the failure plan first.</b> 3(5) and 7(1)(k) both ask for it, 12(1) stops us ceasing operations without SEC approval, and 11(2) lets the SEC terminate at any time on written notice. Design what happens to in-flight trades when we are switched off, ideally a refund path that still works when our servers do not.</span></li>
+  <li><span><b>Assemble the admission file:</b> business registration; a three-to-five-year business plan with a feasibility study covering the activity, forecasts, capital structure, funding sources and regulatory constraints (5(1)(b)-(c)); three years of audited accounts or an audited statement of affairs (5(1)(d)); promoters, beneficial owners and directors (5(1)(e)); a winding-up and failure management plan (3(5)); the custody model, key-management and transaction-authorisation arrangements, monitoring, blockchain analytics and sanctions-screening controls, and third-party vendor disclosure (3(3)(e)); tax clearance certificate; details of shareholders holding five percent or more; director declarations covering fraud or dishonesty convictions within the last ten years; the licence fee receipt; and the addendum's technical and evidence items. For a new entity, the audited statement of affairs and the director checks are the long poles.</span></li>
+</ol>
+
+<nav>
+  <a href="oss-landscape.html">Build or adopt</a>
+  <a href="fiat-leg.html">Fiat leg</a>
+  <a href="index.html">Brand index</a>
+</nav>
+
+<footer>
+  <span><b>Primary source, read directly.</b> Securities Industry (Regulatory Sandbox Licensing) Guidelines 2026, SEC/GUI/001/03/2026, 42 pages, downloaded and text-extracted on 7 Oct 2026: <a href="https://sec.gov.gh/wp-content/uploads/Final-Regulatory-Laws/Guidelines/Guidelines_Regulatory_Sandbox%20Licensing_2026.pdf" style="color:var(--plum-mkt)">sec.gov.gh</a>. Clause numbers here were read off that extraction, not off a transcription. SEC Notice on the Virtual Asset Sandbox, SEC/VASP/002/01/2026, 23 Jan 2026 (category list). Press Release SEC/PR/001/03/2026, 10 Mar 2026 (first cohort of eleven). Public Notice No. SEC/PN/001/08/2026, 19 Aug 2026 (full register). Bank of Ghana FAQ on Act 1154: <a href="https://www.bog.gov.gh/wp-content/uploads/2026/03/VASP-Act-FAQs.pdf" style="color:var(--plum-mkt)">bog.gov.gh</a>. Data Protection Act, 2012 (Act 843): <a href="https://ghalii.org/akn/gh/act/2012/843" style="color:var(--plum-mkt)">ghalii.org</a>.</span>
+  <span><b>Not yet in hand, and not to be asserted:</b> Act 1154's licensing-prohibition and penalty sections and its Schedule category definitions; the joint BoG–SEC marketing directive of 20 February 2026; page numbers for any quote (clause numbers only, because a machine-assisted transcription of the guidelines was used for an earlier pass and its pagination could not be relied on); and any statement about the Bank of Ghana's own track. Annex B's two tables are separated here on the basis of the printed layout on page 34, which text extraction alone does not preserve.</span>
+  <span><b>Sourcing trap.</b> A similarly titled 2025 virtual-assets statute with its own licensing prohibition, advertising ban and record-custodian duties belongs to a different jurisdiction. It is easy to find, it is not Ghana's Act, and it must not be cited here. Competitor claims, such as Yellow Card's licence history, come from the company's own pages and are labelled as such.</span>
+  <span><b>Corrections made to the previous version of this brief,</b> so you can see what moved rather than trust it: 6(1) was misquoted and lost the words "and satisfactory for assessment", which is what puts the clock's start in the SEC's judgment; 11(1)(a) was described as a lapse when it is a termination ground, with 11(2) allowing termination at any time by written notice; Annex B's two tables were read as one, overstating what is relaxed (capital adequacy yes, minimum paid-up capital case by case); "the sandbox is the only route in" was stated flat where the guidelines contain no exclusivity clause, and it is now "the only SEC route open today"; 7(1)(a) was overweighted against 8(1)(d), (f) and (h); insurance was cited to Annex B when it appears in 9(2)(c); 3(3)(d) was glossed as "not a live market" when the clause only reads "where applicable"; Act 1154's title appears in three forms in the guidelines, not two; section 24(1) was quoted with two of its four exceptions; and stale cross-references between the documents were fixed.</span>
+</footer>
+
+</body>
+</html>

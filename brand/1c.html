@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KudiMarket — 1c · Two Languages, One Word</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300;12..96,400;12..96,600;12..96,800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --green: oklch(0.44 0.08 152);
+    --deep-green: oklch(0.31 0.06 156);
+    --ink: oklch(0.19 0.012 156);
+    --ink-soft: oklch(0.43 0.018 156);
+    --paper: oklch(0.965 0.013 84);
+    --paper-dim: oklch(0.91 0.016 82);
+    --settled: oklch(0.62 0.13 150);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:"Bricolage Grotesque",system-ui,sans-serif;
+    padding:56px 40px 96px;
+    max-width:1080px;
+    margin:0 auto;
+    display:flex; flex-direction:column; gap:56px;
+    text-wrap:pretty;
+  }
+  .idline{
+    display:flex; align-items:baseline; gap:14px;
+    font-size:13px; letter-spacing:0.14em; text-transform:uppercase;
+    color:var(--ink-soft);
+    border-bottom:1px solid var(--paper-dim);
+    padding-bottom:14px;
+  }
+  .idline strong{color:var(--deep-green);font-weight:600}
+  h1{font-size:clamp(30px,5vw,46px);font-weight:300;letter-spacing:-0.02em;line-height:1.05}
+  h1 em{font-style:normal;font-weight:800;color:var(--deep-green)}
+  .lede{font-size:17px;line-height:1.55;color:var(--ink-soft);max-width:60ch;font-weight:300}
+  .lede strong{font-weight:600;color:var(--ink)}
+
+  .stage{
+    background:#fff;
+    border:1px solid var(--paper-dim);
+    padding:72px 56px;
+    display:flex; flex-direction:column; gap:40px;
+    align-items:flex-start;
+  }
+
+  /* ---- the concept: two type treatments = two languages ---- */
+  .wordmark{
+    display:flex; flex-direction:column; gap:0;
+    line-height:0.84;
+  }
+  .wordmark .kudi{
+    font-size:clamp(56px,13vw,150px);
+    font-weight:300;
+    letter-spacing:0.02em;
+    color:var(--ink);
+  }
+  .wordmark .market{
+    font-size:clamp(56px,13vw,150px);
+    font-weight:800;
+    letter-spacing:-0.035em;
+    color:var(--deep-green);
+    margin-left:-0.04em;
+  }
+  .rule{width:56px;height:3px;background:var(--green);margin:8px 0 4px}
+
+  .tagline{
+    font-size:clamp(20px,2.6vw,27px);
+    font-weight:300;
+    letter-spacing:-0.01em;
+    color:var(--ink);
+  }
+  .tagline b{font-weight:600;color:var(--deep-green)}
+
+  .smalllockup{display:flex;align-items:center;gap:14px}
+  .smalllockup .m{
+    font-size:26px;font-weight:800;letter-spacing:-0.035em;color:var(--deep-green);
+  }
+  .smalllockup .t{font-size:13px;font-weight:400;color:var(--ink-soft);letter-spacing:0.02em}
+
+  .rows{display:flex;flex-direction:column;gap:0;border-top:1px solid var(--paper-dim)}
+  .row{
+    display:grid; grid-template-columns:150px 1fr; gap:28px;
+    padding:20px 0; border-bottom:1px solid var(--paper-dim);
+    align-items:start;
+  }
+  .row dt{font-size:12px;letter-spacing:0.12em;text-transform:uppercase;color:var(--deep-green);font-weight:600}
+  .row dd{font-size:15px;line-height:1.55;color:var(--ink-soft);font-weight:300}
+  .row dd strong{font-weight:600;color:var(--ink)}
+
+  .markzone{
+    border:1.5px dashed var(--green);
+    background:var(--paper);
+    padding:30px 34px;
+    display:flex; align-items:center; gap:24px;
+  }
+  .markzone .note{
+    font-size:13px;line-height:1.5;color:var(--deep-green);font-weight:400;
+  }
+  .swatches{display:flex;gap:0;border:1px solid var(--paper-dim)}
+  .sw{flex:1;min-width:88px;padding:14px 12px;font-size:10px;letter-spacing:0.08em;text-transform:uppercase}
+  footer{font-size:13px;color:var(--ink-soft);font-weight:300;border-top:1px solid var(--paper-dim);padding-top:18px}
+</style>
+</head>
+<body>
+
+<div class="idline"><strong>1c</strong> <span>Newest · recommended</span> <span>· Two Languages, One Word</span></div>
+
+<h1>The name is already<br>two languages. <em>Type it that way.</em></h1>
+
+<p class="lede"><strong>Kudi</strong> is Hausa. <strong>Market</strong> is English. One word holds both languages — which is exactly the customer: a trader who moves between them daily. This direction makes the wordmark carry that idea structurally instead of saying it in a tagline.</p>
+
+<div class="stage">
+  <div class="wordmark">
+    <span class="kudi">kudi</span>
+    <span class="market">market</span>
+  </div>
+  <div class="rule"></div>
+  <p class="tagline">Your market. Your rate.</p>
+</div>
+
+<div class="stage">
+  <div class="smalllockup">
+    <span class="m">kudi market</span>
+    <span class="t">Your market. Your rate.</span>
+  </div>
+</div>
+
+<div class="markzone">
+  <div class="note"><strong>Mark placeholder — not the logo.</strong><br>
+  Direction: a <em>kudi</em> pot silhouette holding two coins, or a woven-tray arc.<br>
+  Commission a designer to draw it. Do not ship this box.</div>
+</div>
+
+<dl class="rows">
+  <div class="row"><dt>Wordmark</dt><dd>Bricolage Grotesque. Light + 800 in the same family, so the contrast reads as deliberate rather than as two fonts. Distinctive terminals; not Inter, not generic fintech.</dd></div>
+  <div class="row"><dt>Why it lasts</dt><dd>Zero crypto vocabulary. Nothing to expire when the technology changes. Works for cedi today and cedi tomorrow without a rebrand.</dd></div>
+  <div class="row"><dt>Say test</dt><dd>"KU-di MAR-ket." Two chunks. Spelled once, spelled right.</dd></div>
+  <div class="row"><dt>Signature</dt><dd>The light/heavy split <em>is</em> the signature. It survives being shrunk to a favicon, stamped on a receipt, or embroidered on a merchant shirt.</dd></div>
+  <div class="row"><dt>Risk</dt><dd>Ten characters is long. Mitigate with the stacked lockup above — "kudi market" reads as two short words, not one long one.</dd></div>
+</dl>
+
+<div class="swatches">
+  <div class="sw" style="background:oklch(0.44 0.08 152);color:#fff">Market Green</div>
+  <div class="sw" style="background:oklch(0.31 0.06 156);color:#fff">Deep Green</div>
+  <div class="sw" style="background:oklch(0.19 0.012 156);color:#fff">Ink</div>
+  <div class="sw" style="background:oklch(0.965 0.013 84);color:oklch(0.19 0.012 156)">Bone</div>
+  <div class="sw" style="background:oklch(0.62 0.13 150);color:#fff">Settled</div>
+</div>
+
+<footer>kudimarket.com · wordmark direction only — final mark needs a designer and a real asset</footer>
+
+</body>
+</html>

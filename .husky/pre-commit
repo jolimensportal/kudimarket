@@ -1,0 +1,10 @@
+#!/bin/sh
+# KudiMarket design gate. See kudilint/CONSTITUTION.md
+echo "── kudilint ──"
+node kudilint/kudilint.mjs . || {
+  echo ""
+  echo "Design gate failed. Rules: kudilint/CONSTITUTION.md"
+  echo "Explain one:  node kudilint/kudilint.mjs --explain <rule-id>"
+  echo "If a rule is wrong, change kudilint/kudi.config.json — do not bypass it."
+  exit 1
+}

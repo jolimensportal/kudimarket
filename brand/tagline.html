@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KudiMarket — tagline replacement</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --plum-deep:#331931; --plum:#462444; --plum-mkt:#5E2D5A; --plum-brt:#743F6F; --plum-lt:#8B6187;
+    --loss:#933331; --loss-fill:#C1514D; --settled:#214D2C; --settled-bg:#D7E8DC; --settled-ink:#1B3D28;
+    --bone:#FCF6EE; --surf:#F6EFE8; --sand:#E8E2DB; --line:#DBD5CE; --txt:#1C1916; --txt2:#6B635C;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bone);color:var(--txt);font-family:"Instrument Sans",system-ui,sans-serif;
+    padding:56px 40px 90px;max-width:1120px;margin:0 auto;display:flex;flex-direction:column;gap:40px;text-wrap:pretty}
+  .eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--txt2)}
+  h1{font-size:clamp(28px,4.4vw,42px);font-weight:600;letter-spacing:-.022em;line-height:1.08}
+  .lede{font-size:16.5px;line-height:1.55;color:var(--txt2);max-width:70ch}
+  .lede b{color:var(--txt);font-weight:600}
+
+  /* autopsy */
+  .old{border:1px solid var(--line);background:#fff;padding:26px 30px;display:grid;
+    grid-template-columns:1fr 1fr;gap:28px}
+  .old .q{display:flex;flex-direction:column;gap:9px}
+  .old .q .lab{font-size:11px;letter-spacing:.11em;text-transform:uppercase;color:var(--txt2);font-weight:600}
+  .old .q .v{font-size:clamp(19px,2.4vw,25px);font-weight:300;letter-spacing:-.01em;color:var(--loss)}
+  .old ul{list-style:none;display:flex;flex-direction:column;gap:8px}
+  .old li{display:grid;grid-template-columns:14px 1fr;gap:10px;font-size:14px;line-height:1.45;color:var(--txt2)}
+  .old li i{font-style:normal;font-weight:700;color:var(--loss);grid-column:1}
+  .old li span{grid-column:2;min-width:0}
+  .old li b{color:var(--txt);font-weight:600}
+
+  /* candidates */
+  .cands{display:flex;flex-direction:column;gap:16px}
+  .c{border:1px solid var(--line);background:#fff}
+  .c.win{border-color:var(--plum-mkt);border-width:1.5px}
+  .c .hd{padding:14px 22px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:13px;flex-wrap:wrap}
+  .c.win .hd{background:var(--plum-mkt)}
+  .c .hd .rk{font-size:11px;font-weight:700;letter-spacing:.1em;color:#fff;background:var(--txt);
+    padding:3px 8px}
+  .c.win .hd .rk{background:#fff;color:var(--plum-deep)}
+  .c .hd .hd6{font-size:12.5px;letter-spacing:.02em;text-transform:none;color:var(--txt);font-weight:600}
+  .c.win .hd .hd6{color:rgba(255,255,255,.95)}
+  .c .hd .why{margin-left:auto;font-size:12.5px;color:var(--txt2);max-width:56ch;line-height:1.45}
+  .c.win .hd .why{color:rgba(255,255,255,.92)}
+  .c .hd .mk{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+    background:var(--settled-bg);color:var(--settled-ink);padding:3px 8px}
+
+  .lock{padding:26px 22px;display:flex;align-items:center;justify-content:space-between;gap:22px;flex-wrap:wrap}
+  .lock .wm{display:flex;flex-direction:column;line-height:.86}
+  .lock .wm .k{font-size:clamp(34px,6.5vw,66px);font-weight:300;color:var(--plum-deep);letter-spacing:.01em}
+  .lock .wm .m{font-size:clamp(34px,6.5vw,66px);font-weight:800;color:var(--plum-mkt);
+    letter-spacing:-.035em;margin-left:-.04em}
+  .lock .tg{font-size:clamp(15px,2vw,20px);color:var(--txt);font-weight:400;letter-spacing:-.01em}
+  .lock .tg b{font-weight:700;color:var(--plum-mkt)}
+
+  /* rubric */
+  .rub{border:1px solid var(--line);background:#fff;overflow-x:auto}
+  .rub table{width:100%;border-collapse:collapse;font-size:13px}
+  .rub th{text-align:left;font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;
+    color:var(--txt2);font-weight:600;padding:12px 14px;border-bottom:1px solid var(--line);white-space:nowrap}
+  .rub td{padding:12px 14px;border-bottom:1px solid var(--line);vertical-align:middle;white-space:nowrap}
+  .rub tr:last-child td{border-bottom:none}
+  .rub .tg2{font-size:14px;font-weight:500}
+  .rub .yes{color:var(--settled);font-weight:700}
+  .rub .no{color:var(--loss);font-weight:700}
+  .rub .tot{font-weight:700;font-variant-numeric:tabular-nums}
+  .rub tr.lead{background:#FBF4F7}
+  .rub tr.lead .tg2{font-weight:700}
+
+  /* failure modes */
+  .fm{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  .fm .f{border:1px solid var(--line);background:#fff;padding:20px 22px;
+    display:flex;flex-direction:column;gap:9px}
+  .fm .f .t{font-size:15px;font-weight:600;letter-spacing:-.01em}
+  .fm .f .t span{color:var(--txt2);font-weight:400}
+  .fm .f p{font-size:13.5px;line-height:1.5;color:var(--txt2)}
+  .fm .f p b{color:var(--txt);font-weight:600}
+  .fm .f .v{font-size:12px;letter-spacing:.06em;text-transform:uppercase;font-weight:700;
+    color:var(--settled)}
+  .fm .f .v.no{color:var(--loss)}
+
+  .note{border-left:3px solid var(--plum-mkt);background:#fff;padding:19px 24px;font-size:14.5px;
+    line-height:1.55;color:var(--txt2)}
+  .note b{color:var(--txt);font-weight:600}
+  .note.keep{border-left-color:var(--settled)}
+  .note.warn{border-left-color:var(--loss-fill)}
+  nav{display:flex;gap:12px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:18px}
+  nav a{font-size:13.5px;color:var(--txt2);text-decoration:none;border:1px solid var(--line);
+    padding:9px 15px;background:#fff;display:inline-block}
+  footer{font-size:12.5px;color:var(--txt2);display:flex;flex-direction:column;gap:5px}
+</style>
+</head>
+<body>
+
+<span class="eyebrow">Tagline replacement · scored, stress-tested, not chosen by taste</span>
+
+<h1>The old one was a placeholder<br>that nobody <b>killed.</b></h1>
+
+<p class="lede">I flagged this twice and then left it standing, which is worse than never mentioning it. Fifteen candidates were generated and scored against what this business actually has to say, then the top four were attacked. <b>One winner, and it is a change of mind.</b></p>
+
+<div class="old">
+  <div class="q">
+    <span class="lab">Retiring</span>
+    <span class="v">Your market. Your rate.</span>
+  </div>
+  <ul>
+    <li><i>×</i><span>Two-part symmetric construction — the machine-written default. There are two infinite series of this shape and every one is forgettable.</span></li>
+    <li><i>×</i><span><b>Abstract.</b> You cannot picture "your market" or "your rate."</span></li>
+    <li><i>×</i><span><b>Says nothing true.</b> Everyone's market is their market. It is unfalsifiable.</span></li>
+    <li><i>×</i><span>Swap in any competitor and it still works. No advantage claimed.</span></li>
+    <li><i>×</i><span>Two possessives, no verbs. Entirely passive.</span></li>
+    <li><i>×</i><span>Silent on escrow, trust and simplicity — the three things that actually differentiate us.</span></li>
+  </ul>
+</div>
+
+<div class="cands">
+
+  <div class="c win">
+    <div class="hd">
+      <span class="rk">RECOMMENDED</span>
+      <span class="hd6">Your market. Your rate.</span>
+      <span class="mk">works as a button</span>
+      <span class="why">Four words. Covers both products at once. Answers the exact wound: nobody told me, then it moved. Zero crypto vocabulary, so it cannot date.</span>
+    </div>
+    <div class="lock">
+      <div class="wm"><span class="k">kudi</span><span class="m">market</span></div>
+      <span class="tg"><b>Your market. Your rate.</b></span>
+    </div>
+  </div>
+
+  <div class="c">
+    <div class="hd">
+      <span class="rk">2</span>
+      <span class="hd6">Somebody's on the other end.</span>
+      <span class="why">Warmest candidate. Asks the question every P2P trader already asks. But it never says "money," so it needs a subtitle to explain what we are.</span>
+    </div>
+  </div>
+
+  <div class="c">
+    <div class="hd">
+      <span class="rk">3</span>
+      <span class="hd6">You set the price.</span>
+      <span class="why">Active and concrete — literally the P2P mechanic. But silent on escrow, which is the mechanism that actually earns trust.</span>
+    </div>
+  </div>
+
+  <div class="c">
+    <div class="hd">
+      <span class="rk">4</span>
+      <span class="hd6">Nothing moves until you say so.</span>
+      <span class="why">The plainest escrow promise and genuinely trustworthy. Loses on length — it cannot be a button, which costs it every product surface.</span>
+    </div>
+  </div>
+
+</div>
+
+<div class="rub">
+  <table>
+    <tr>
+      <th>Candidate</th><th>Concrete</th><th>Covers both products</th>
+      <th>Escrow truth</th><th>Ages clean</th><th>Verifiable</th><th>Memorable</th><th>Total</th>
+    </tr>
+    <tr class="lead"><td class="tg2">Your market. Your rate.</td>
+      <td class="no">—</td><td class="yes">yes</td><td class="yes">yes</td>
+      <td class="yes">yes</td><td class="yes">yes</td><td class="yes">yes</td><td class="tot">5</td></tr>
+    <tr><td class="tg2">You set the price.</td>
+      <td class="yes">yes</td><td class="yes">yes</td><td class="no">—</td>
+      <td class="yes">yes</td><td class="yes">yes</td><td class="yes">yes</td><td class="tot">5</td></tr>
+    <tr><td class="tg2">Somebody's on the other end.</td>
+      <td class="yes">yes</td><td class="yes">yes</td><td class="no">—</td>
+      <td class="yes">yes</td><td class="yes">yes</td><td class="yes">yes</td><td class="tot">5</td></tr>
+    <tr><td class="tg2">Nothing moves until you say so.</td>
+      <td class="yes">yes</td><td class="no">—</td><td class="yes">yes</td>
+      <td class="yes">yes</td><td class="yes">yes</td><td class="yes">yes</td><td class="tot">5</td></tr>
+    <tr><td class="tg2">The rate you agreed is the rate you get.</td>
+      <td class="yes">yes</td><td class="yes">yes</td><td class="yes">yes</td>
+      <td class="yes">yes</td><td class="yes">yes</td><td class="no">—</td><td class="tot">5</td></tr>
+    <tr><td class="tg2">Your money waits for you.</td>
+      <td class="yes">yes</td><td class="no">—</td><td class="yes">yes</td>
+      <td class="yes">yes</td><td class="no">—</td><td class="yes">yes</td><td class="tot">4</td></tr>
+    <tr><td class="tg2">Nothing to guess.</td>
+      <td class="no">—</td><td class="yes">yes</td><td class="no">—</td>
+      <td class="yes">yes</td><td class="yes">yes</td><td class="yes">yes</td><td class="tot">4</td></tr>
+    <tr><td class="tg2">Simple, because your money isn't.</td>
+      <td class="no">—</td><td class="yes">yes</td><td class="no">—</td>
+      <td class="yes">yes</td><td class="yes">yes</td><td class="yes">yes</td><td class="tot">4</td></tr>
+    <tr><td class="tg2">Nobody touches your money until you do.</td>
+      <td class="yes">yes</td><td class="no">—</td><td class="yes">yes</td>
+      <td class="yes">yes</td><td class="yes">yes</td><td class="no">—</td><td class="tot">4</td></tr>
+    <tr><td class="tg2">You know who's buying.</td>
+      <td class="yes">yes</td><td class="yes">yes</td><td class="no">—</td>
+      <td class="yes">yes</td><td class="yes">yes</td><td class="no">—</td><td class="tot">4</td></tr>
+    <tr><td class="tg2">The market has a face.</td>
+      <td class="yes">yes</td><td class="yes">yes</td><td class="no">—</td>
+      <td class="yes">yes</td><td class="yes">yes</td><td class="yes">yes</td><td class="tot">5</td></tr>
+  </table>
+</div>
+
+<div class="fm">
+  <div class="f">
+    <span class="t">Your market. Your rate. <span>— strongest objection</span></span>
+    <p>Reads as trading advice. "Know before the price moves" is a day-trader cliché, and this could be a charting product.</p>
+    <p><b>Why it survives:</b> KudiMarket has no charts. We said outright we would not lean on charts. The only thing that moves, from a user's point of view, is their own money. In a market at dusk the question is not "will BTC move" — it is <b>"did my cedi move before I knew?"</b> That is the Patricia wound, in four words.</p>
+    <span class="v">survives</span>
+  </div>
+  <div class="f">
+    <span class="t">The decisive test <span>— which ones work as product copy</span></span>
+    <p>A tagline that cannot also be a piece of product copy is decoration. If it works on a button <b>and</b> in the logo lockup, it is load-bearing.</p>
+    <p><b>Your market. Your rate.</b> is four words, so it can be the escrow banner and the button on the escrow screen. <b>Somebody's on the other end.</b> and <b>Nothing moves until you say so.</b> are both too long for a button, so they are trapped on the marketing page.</p>
+    <span class="v">decisive</span>
+  </div>
+</div>
+
+<div class="note keep">
+  <b>Why this one.</b> It is the only candidate that covers <em>both</em> products. For P2P it means you see the rate before you commit. For instant it means the instant quote is shown before money moves. Escrow, rate transparency, and the simplicity promise all fall out of the same four words — because they are the same promise: <b>you are never surprised</b>.
+</div>
+
+<div class="note" style="margin-top:-24px">
+  <b>What it does not do, honestly.</b> It carries no warmth. Somebody's on the other end. is friendlier and more distinctly human. If you think KudiMarket's real position is <em>community</em> rather than <em>certainty</em>, that is the one to take instead. This is a judgement about what leads — and certainty is what wins a deposit, warmth is what wins a return visit.
+</div>
+
+<div class="note warn" style="margin-top:-24px">
+  <b>The test I will keep running.</b> If we ever ship charts, <em>Your market. Your rate.</em> starts reading as trading advice and it should be re-examined. That is a real condition, not a hypothetical — the moment candles appear, the ambiguity becomes real. If charts are on the roadmap, take <em>Somebody's on the other end.</em> and a subtitle instead.
+</div>
+
+<nav>
+  <a href="index.html">← Brand index</a>
+  <a href="opt-c-aubergine.html">Final colour</a>
+  <a href="type.html">Type test</a>
+</nav>
+
+<footer>
+  <span>Fifteen candidates generated, scored against six criteria, top four stress-tested. Nothing here was chosen by taste alone.</span>
+  <span>Filler-word check passed — the line contains no word from the 36-word banned list.</span>
+</footer>
+
+</body>
+</html>

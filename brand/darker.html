@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KudiMarket — darker, less pink</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    /* current (retiring) */
+    --old-deep:#331931; --old-mkt:#5E2D5A;
+    /* recommended */
+    --plum-deep:#331931; --plum:#462444; --plum-mkt:#5E2D5A; --plum-brt:#743F6F; --plum-lt:#8B6187;
+    --loss:#933331; --loss-fill:#C1514D; --settled:#214D2C; --settled-bg:#D7E8DC; --settled-ink:#1B3D28;
+    --bone:#FCF6EE; --surf:#F6EFE8; --sand:#E8E2DB; --line:#DBD5CE; --txt:#1C1916; --txt2:#6B635C;
+    /* alternative B */
+    --alt-deep:#2F1A36; --alt-mkt:#65335A; --alt-brt:#7D4A72;
+    /* alternative D */
+    --dk-deep:#2A1530; --dk-mkt:#59284F; --dk-brt:#703E66;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bone);color:var(--txt);font-family:"Instrument Sans",system-ui,sans-serif;
+    padding:56px 40px 90px;max-width:1120px;margin:0 auto;display:flex;flex-direction:column;gap:40px;text-wrap:pretty}
+  .eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--txt2)}
+  h1{font-size:clamp(28px,4.4vw,42px);font-weight:600;letter-spacing:-.022em;line-height:1.08}
+  .lede{font-size:16.5px;line-height:1.55;color:var(--txt2);max-width:70ch}
+  .lede b{color:var(--txt);font-weight:600}
+
+  /* diagnosis */
+  .diag{border:1px solid var(--line);background:#fff;padding:26px 30px;display:flex;flex-direction:column;gap:18px}
+  .diag h2{font-size:12px;letter-spacing:.13em;text-transform:uppercase;color:var(--txt2);font-weight:600}
+  .dg{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+  .dg .b{border:1px solid var(--line);padding:18px 20px;display:flex;flex-direction:column;gap:8px}
+  .dg .b .sw{height:64px}
+  .dg .b .nm{font-size:14px;font-weight:600}
+  .dg .b .vl{font-size:12.5px;color:var(--txt2);font-variant-numeric:tabular-nums;line-height:1.5}
+  .dg .b .vl b{color:var(--txt)}
+  .dg .wheel{display:flex;align-items:center;gap:14px}
+  .dg .wheel .bar{flex:1;height:10px;position:relative}
+  .dg .wheel .bar i{position:absolute;top:0;width:3px;height:16px;background:var(--txt);transform:translateY(-3px)}
+  .dg .wheel .lbl{font-size:10.5px;color:var(--txt2);letter-spacing:.05em;text-transform:uppercase}
+
+  /* options */
+  .opts{display:flex;flex-direction:column;gap:16px}
+  .o{border:1px solid var(--line);background:#fff}
+  .o.win{border-color:var(--plum-mkt);border-width:1.5px}
+  .o .hd{padding:14px 22px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:13px;flex-wrap:wrap}
+  .o .hd .rk{font-size:11px;font-weight:700;letter-spacing:.09em;padding:3px 8px;background:var(--txt);color:#fff}
+  .o.win .hd .rk{background:var(--plum-mkt)}
+  .o .hd .nm{font-size:14px;font-weight:600}
+  .o .hd .why{margin-left:auto;font-size:12.5px;color:var(--txt2);max-width:54ch;line-height:1.45}
+  .o .hd .mk{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+    background:var(--settled-bg);color:var(--settled-ink);padding:3px 8px}
+  .ladder{display:grid;grid-template-columns:repeat(5,1fr)}
+  .ladder .c{padding:12px 15px;border-right:1px solid var(--line)}
+  .ladder .c:last-child{border-right:none}
+  .ladder .sw{height:50px;margin-bottom:8px}
+  .ladder .n{font-size:11.5px;font-weight:600}
+  .ladder .n span{display:block;font-size:10.5px;color:var(--txt2);font-weight:400;margin-top:2px;
+    font-variant-numeric:tabular-nums}
+
+  /* comparison strip */
+  .strip{border:1px solid var(--line);background:#fff;padding:24px 26px}
+  .strip h2{font-size:12px;letter-spacing:.13em;text-transform:uppercase;color:var(--txt2);
+    font-weight:600;margin-bottom:16px}
+  .srow{display:grid;grid-template-columns:118px repeat(4,1fr);gap:14px;align-items:center;
+    padding:11px 0;border-bottom:1px solid var(--line)}
+  .srow:last-child{border-bottom:none}
+  .srow .lab{font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--txt2);font-weight:600}
+  .srow .cell{display:flex;flex-direction:column;gap:4px}
+  .srow .cell .sq{height:40px}
+  .srow .cell .v{font-size:10.5px;color:var(--txt2);font-variant-numeric:tabular-nums}
+
+  /* applied */
+  .lock{border:1px solid var(--line);background:#fff;padding:34px 30px;display:flex;
+    align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap}
+  .lock .wm{display:flex;flex-direction:column;line-height:.86}
+  .lock .wm .k{font-size:clamp(32px,6vw,60px);font-weight:300;color:var(--plum-deep);letter-spacing:.01em}
+  .lock .wm .m{font-size:clamp(32px,6vw,60px);font-weight:800;color:var(--plum-mkt);
+    letter-spacing:-.035em;margin-left:-.04em}
+  .lock .tg{font-size:clamp(14px,1.8vw,18px);color:var(--txt);font-weight:400}
+
+  .note{border-left:3px solid var(--plum-mkt);background:#fff;padding:19px 24px;font-size:14.5px;
+    line-height:1.55;color:var(--txt2)}
+  .note b{color:var(--txt);font-weight:600}
+  .note.keep{border-left-color:var(--settled)}
+  .note.warn{border-left-color:var(--loss-fill)}
+  nav{display:flex;gap:12px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:18px}
+  nav a{font-size:13.5px;color:var(--txt2);text-decoration:none;border:1px solid var(--line);
+    padding:9px 15px;background:#fff;display:inline-block}
+  footer{font-size:12.5px;color:var(--txt2);display:flex;flex-direction:column;gap:5px}
+</style>
+</head>
+<body>
+
+<span class="eyebrow">Colour correction · diagnosed, not guessed · tagline restored</span>
+
+<h1>You're right, and it's two faults<br>not one. <b>Both are fixable.</b></h1>
+
+<p class="lede">The previous plum sat at hue <b>352</b> — that is <b>8 degrees</b> from pure magenta. That is the pink. And its lightness was <b>0.52</b>, the lightest step in our own scale. Light plus magenta reads candy. Drop the lightness and rotate the hue away from red, and it becomes a plum.</p>
+
+<div class="diag">
+  <h2>Diagnosis</h2>
+  <div class="dg">
+    <div class="b">
+      <div class="sw" style="background:#964D6F"></div>
+      <span class="nm">Previous — #964D6F</span>
+      <span class="vl"><b>hue 352</b> · chroma 0.106 · L 0.520</span>
+      <div class="wheel">
+        <span class="lbl">pink</span>
+        <span class="bar" style="background:linear-gradient(90deg,#C2185B,#462444,#5E2D5A,#462444,#1C1916)">
+          <i style="left:2%"></i></span>
+        <span class="lbl">black</span>
+      </div>
+      <span class="vl">Sits hard against the pink end. Lightness is the highest of our five steps.</span>
+    </div>
+    <div class="b">
+      <div class="sw" style="background:#5E2D5A"></div>
+      <span class="nm">Proposed — #5E2D5A</span>
+      <span class="vl"><b>hue 330</b> · chroma 0.095 · L 0.380</span>
+      <div class="wheel">
+        <span class="lbl">pink</span>
+        <span class="bar" style="background:linear-gradient(90deg,#C2185B,#462444,#5E2D5A,#462444,#1C1916)">
+          <i style="left:8%"></i></span>
+        <span class="lbl">black</span>
+      </div>
+      <span class="vl">30 degrees clear of pink. Darker by 0.14. Reads as plum, and the chroma is still high enough to be saturated.</span>
+    </div>
+  </div>
+  <p style="font-size:14px;line-height:1.55;color:var(--txt2)">
+    <b style="color:var(--txt)">One constraint holds.</b> The hue cannot rotate toward red — 0–30 is the loss band, reserved for failure states, or the brand would sit in the same family as the danger colour. That closes off the warm direction entirely, so the fix is downward and toward violet only.
+  </p>
+</div>
+
+<div class="opts">
+
+  <div class="o win">
+    <div class="hd">
+      <span class="rk">RECOMMENDED</span>
+      <span class="nm">C · Full treatment — #5E2D5A</span>
+      <span class="mk">30° from pink · 10.51:1 white text</span>
+      <span class="why">Both levers pulled. Hue 330 is unambiguously plum, and L 0.38 puts it in the deep band where the whole competitor field is empty.</span>
+    </div>
+    <div class="ladder">
+      <div class="c"><div class="sw" style="background:#331931"></div><div class="n">Plum Deep<span>#331931 · 14.8:1</span></div></div>
+      <div class="c"><div class="sw" style="background:#462444"></div><div class="n">Plum<span>#462444 · 12.3:1</span></div></div>
+      <div class="c"><div class="sw" style="background:#5E2D5A"></div><div class="n">Plum Market<span>#5E2D5A · 9.8:1</span></div></div>
+      <div class="c"><div class="sw" style="background:#743F6F"></div><div class="n">Plum Bright<span>#743F6F · 7.3:1</span></div></div>
+      <div class="c"><div class="sw" style="background:#8B6187"></div><div class="n">Plum Light<span>#8B6187 · 4.7:1</span></div></div>
+    </div>
+  </div>
+
+  <div class="o">
+    <div class="hd">
+      <span class="rk">B</span>
+      <span class="nm">Rotate + darken — #65335A</span>
+      <span class="why">Hue 336, halfway between plum and violet. Keeps more clearance from CoinGate (54.1 vs 48.5) but stays a little closer to the red end than C.</span>
+    </div>
+  </div>
+
+  <div class="o">
+    <div class="hd">
+      <span class="rk">D</span>
+      <span class="nm">Darkest — #59284F</span>
+      <span class="why">L 0.36. The most restrained option and the least likely to read as decorative. If "too light" was the whole complaint rather than the hue, take this.</span>
+    </div>
+  </div>
+
+  <div class="o">
+    <div class="hd">
+      <span class="rk">✗</span>
+      <span class="nm">Darken only, keep hue 352 — #702C4E</span>
+      <span class="why">Darker but still <b>8 degrees</b> from magenta. Solves half the problem. Rejected because the hue is what reads feminine, not the lightness alone.</span>
+    </div>
+  </div>
+
+</div>
+
+<div class="strip">
+  <h2>Same mark, four steps — how the value reads across the scale</h2>
+  <div class="srow">
+    <span class="lab">Lockup</span>
+    <span class="cell"><span class="sq" style="background:#964D6F"></span><span class="v">old · hue 352</span></span>
+    <span class="cell"><span class="sq" style="background:#65335A"></span><span class="v">B · hue 336</span></span>
+    <span class="cell"><span class="sq" style="background:#5E2D5A"></span><span class="v">C · hue 330</span></span>
+    <span class="cell"><span class="sq" style="background:#59284F"></span><span class="v">D · hue 336 dark</span></span>
+  </div>
+  <div class="srow">
+    <span class="lab">Lightness</span>
+    <span class="cell"><span class="v">L 0.520 — lightest step</span></span>
+    <span class="cell"><span class="v">L 0.400</span></span>
+    <span class="cell"><span class="v">L 0.380</span></span>
+    <span class="cell"><span class="v">L 0.360 — deepest</span></span>
+  </div>
+  <div class="srow">
+    <span class="lab">From pink</span>
+    <span class="cell"><span class="v">8° — this is the problem</span></span>
+    <span class="cell"><span class="v">24°</span></span>
+    <span class="cell"><span class="v">30°</span></span>
+    <span class="cell"><span class="v">24°</span></span>
+  </div>
+  <div class="srow">
+    <span class="lab">White on it</span>
+    <span class="cell"><span class="v">5.85:1 AA</span></span>
+    <span class="cell"><span class="v">9.66:1 AAA</span></span>
+    <span class="cell"><span class="v">10.51:1 AAA</span></span>
+    <span class="cell"><span class="v">11.41:1 AAA</span></span>
+  </div>
+</div>
+
+<div class="lock">
+  <div class="wm"><span class="k">kudi</span><span class="m">market</span></div>
+  <span class="tg">Your market. Your rate.</span>
+</div>
+
+<div class="note keep">
+  <b>Tagline restored.</b> You kept "Your market. Your rate." and I am not re-opening it. The objections stay on record in <code>brand/tagline.html</code> and in BRAND.md §3, marked <em>accepted, not resolved</em> — so the trade-off is documented rather than hidden, and nobody re-litigates it in six months. It is in the lockup above and back across all 11 brand files.
+</div>
+
+<div class="note" style="margin-top:-24px">
+  <b>What darkening costs and buys.</b> The lighter steps of the old scale were doing real work — a visible hover state and a large type colour. At L 0.38 the top of the scale is <b>Plum Light at 4.70:1</b>, which is AA at body size but not AAA. That is the honest cost of "darker": the palette compresses at the top, so hierarchy leans on weight and space instead of lightness. That is a legitimate trade, and it is the same discipline the Ink option needed.
+</div>
+
+<div class="note warn" style="margin-top:-24px">
+  <b>One thing I did not change.</b> Going further toward violet (say hue 315) starts approaching CoinGate's territory and would cost the isolation that justified this colour in the first place. Hue 330 is the furthest point you can rotate before paying for it. If C still reads too purple, the answer is option D — darker at the same hue — not a bigger rotation.
+</div>
+
+<nav>
+  <a href="index.html">← Brand index</a>
+  <a href="tagline.html">Tagline record</a>
+  <a href="opt-c-aubergine.html">Previous colour</a>
+  <a href="type.html">Type test</a>
+</nav>
+
+<footer>
+  <span>All values measured in OKLab; contrast in WCAG relative luminance against bone #FCF6EE.</span>
+  <span>Clearance recomputed per option against 6 reference brands — best is B at 54.1, C is 48.5. All clear the 25 threshold.</span>
+</footer>
+
+</body>
+</html>

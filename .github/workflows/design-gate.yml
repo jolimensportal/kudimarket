@@ -1,0 +1,23 @@
+name: design gate
+on:
+  push: { branches: [main] }
+  pull_request: {}
+
+jobs:
+  kudilint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - name: Lint
+        run: node kudilint/kudilint.mjs .
+      - name: Audit palette
+        run: node kudilint/kudilint.mjs --audit
+      - name: Palette audit must show no collisions
+        run: |
+          if node kudilint/kudilint.mjs --audit | grep -q 'COLLISION'; then
+            echo "Palette collision detected — a token is too close to a competitor."
+            exit 1
+          fi
+          echo "no collisions"

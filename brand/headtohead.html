@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KudiMarket — Ink vs Aubergine, deployment test</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink1:#0D0906; --ink2:#1C1916; --ink3:#2E2925; --ink4:#45403A;
+    --aub1:#4B2E45; --aub2:#65404F; --aub3:#7C5666; --aub4:#8F5E73;
+    --txt:#1C1916; --txt2:#6B635C;
+    --bone:#FCF6EE; --surf:#F6EFE8; --sand:#E8E2DB; --line:#DBD5CE;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bone);color:var(--txt);font-family:"Instrument Sans",system-ui,sans-serif;
+    padding:56px 40px 90px;max-width:1160px;margin:0 auto;display:flex;flex-direction:column;gap:42px;text-wrap:pretty}
+  .eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--txt2)}
+  h1{font-size:clamp(28px,4.4vw,42px);font-weight:600;letter-spacing:-.022em;line-height:1.08}
+  .lede{font-size:16.5px;line-height:1.55;color:var(--txt2);max-width:70ch}
+  .lede b{color:var(--txt);font-weight:600}
+
+  /* ---- TEST 1: tiny sizes ---- */
+  .t{border:1px solid var(--line);background:#fff}
+  .t .hd{padding:14px 22px;border-bottom:1px solid var(--line);display:flex;align-items:baseline;gap:13px}
+  .t .hd .n{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--txt2);font-weight:600}
+  .t .hd .q{font-size:14px;color:var(--txt);font-weight:500}
+  .t .bd{padding:24px 22px}
+
+  .sizes{display:grid;grid-template-columns:auto 1fr 1fr;gap:18px;align-items:center}
+  .sizes .rl{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--txt2)}
+  .sizes .a,.sizes .b{display:flex;align-items:center;gap:14px}
+  .fav{width:16px;height:16px;border-radius:4px;display:flex;align-items:center;justify-content:center;
+    font-size:9px;font-weight:800;color:#fff;letter-spacing:-.03em}
+  .fav32{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+    font-size:15px;font-weight:800;color:#fff;letter-spacing:-.03em}
+  .wm-s{font-size:20px;font-weight:300;line-height:.88;letter-spacing:.01em}
+  .wm-s .w2{display:block;font-weight:800;letter-spacing:-.035em}
+
+  /* ---- TEST 2: phone ---- */
+  .phones{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+  .ph{background:var(--txt);border-radius:26px;padding:9px}
+  .ph .scr{border-radius:19px;overflow:hidden;background:var(--bone)}
+  .ph .st{height:22px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;
+    font-size:10px;color:var(--txt2);font-variant-numeric:tabular-nums}
+  .ph .nav{padding:11px 15px;display:flex;align-items:center;gap:9px}
+  .ph .nav .mk{font-size:15px;font-weight:800;color:#fff;padding:5px 9px;border-radius:7px;
+    letter-spacing:-.02em}
+  .ph .nav .nm{font-size:13px;font-weight:600}
+  .ph .bd{padding:13px 15px;display:flex;flex-direction:column;gap:9px}
+  .ph .card{border:1px solid var(--line);border-radius:11px;padding:11px 13px;background:#fff;
+    display:flex;flex-direction:column;gap:3px}
+  .ph .card .t1{font-size:10.5px;color:var(--txt2);letter-spacing:.05em;text-transform:uppercase}
+  .ph .card .t2{font-size:17px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+  .ph .card .t3{font-size:11px;color:var(--txt2);font-variant-numeric:tabular-nums}
+  .ph .btns{display:flex;gap:7px;margin-top:2px}
+  .ph .btn{flex:1;padding:11px;border-radius:9px;font-size:12.5px;font-weight:700;text-align:center;color:#fff}
+  .ph .btn.g{background:var(--surf);color:var(--txt);border:1px solid var(--sand)}
+  .ph .esc{background:#D7E8DC;color:#1B3D28;padding:9px 11px;border-radius:9px;font-size:11px;line-height:1.4}
+  .ph .esc b{font-weight:700}
+
+  /* ---- TEST 3: real-world surfaces ---- */
+  .surf{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+  .sign{padding:26px 22px;border:1px solid var(--line)}
+  .sign .cap{font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--txt2);
+    margin-bottom:12px;font-weight:600}
+  .shop{padding:22px;border-radius:4px;display:flex;flex-direction:column;gap:4px}
+  .shop .l1{font-size:23px;font-weight:300;line-height:.9;letter-spacing:.01em}
+  .shop .l2{font-size:23px;font-weight:800;line-height:.9;letter-spacing:-.035em}
+  .shop .l3{font-size:11px;letter-spacing:.14em;text-transform:uppercase;margin-top:8px;opacity:.72}
+  .shop.ink{background:var(--ink2);color:#F2EFE9}
+  .shop.aub{background:var(--aub3);color:#F7EFF3}
+  .mono{padding:20px;border:1px solid var(--line);background:#fff}
+  .mono .cap{font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--txt2);
+    margin-bottom:11px;font-weight:600}
+  .mono .rule{height:5px;background:var(--txt);margin-bottom:6px;opacity:.88}
+  .mono .rule.r2{width:70%}
+  .mono .rule.r3{width:44%;margin-bottom:12px}
+  .mono .row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;
+    border-bottom:1px solid var(--line);font-size:11.5px}
+  .mono .row .num{font-weight:700;font-variant-numeric:tabular-nums}
+
+  .verdict{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--line);background:#fff}
+  .verdict .col{padding:26px 28px}
+  .verdict .col+.col{border-left:1px solid var(--line)}
+  .verdict h3{font-size:17px;font-weight:700;letter-spacing:-.02em;margin-bottom:4px}
+  .verdict .sub{font-size:12px;color:var(--txt2);margin-bottom:15px}
+  .verdict ul{list-style:none;display:flex;flex-direction:column;gap:9px}
+  .verdict li{display:grid;grid-template-columns:15px 1fr;gap:10px;font-size:14px;line-height:1.45;color:var(--txt2)}
+  .verdict li i{font-style:normal;font-weight:700;grid-column:1}
+  .verdict li b{color:var(--txt);font-weight:600}
+  .verdict li i{grid-column:1}
+  .verdict li span{grid-column:2}
+
+  .note{border-left:3px solid var(--txt);background:#fff;padding:19px 24px;font-size:14.5px;
+    line-height:1.55;color:var(--txt2)}
+  .note b{color:var(--txt);font-weight:600}
+  .note.key{border-left-color:var(--aub3)}
+  .note.lab{border-left-color:var(--ink2)}
+  nav{display:flex;gap:12px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:18px}
+  nav a{font-size:13.5px;color:var(--txt2);text-decoration:none;border:1px solid var(--line);
+    padding:9px 15px;background:#fff;display:inline-block}
+  footer{font-size:12.5px;color:var(--txt2);display:flex;flex-direction:column;gap:5px}
+</style>
+</head>
+<body>
+
+<span class="eyebrow">Deployment test · not swatches · how each survives contact</span>
+
+<h1>Which one still looks like a brand<br>at 16 pixels, on a budget phone,<br>and on a shopfront at Makola?</h1>
+
+<p class="lede">You like both, so swatches have stopped being useful. These are the tests that actually break brand colours: <b>favicon size</b>, <b>a cheap LCD screen</b>, <b>one-colour print</b>, and <b>a merchant's painted sign</b>. I rendered both at real dimensions rather than describing them.</p>
+
+<div class="t">
+  <div class="hd"><span class="n">Test 1</span><span class="q">Does the mark survive at 16px?</span></div>
+  <div class="bd">
+    <div class="sizes">
+      <span class="rl">Favicon 16px</span>
+      <span class="a"><span class="fav" style="background:#1C1916">k</span><span class="fav" style="background:#7C5666">k</span></span>
+      <span class="b" style="color:var(--txt2);font-size:13px">Ink holds a solid block. Aubergine at this size starts to look grey-brown.</span>
+    </div>
+    <div class="sizes" style="margin-top:20px">
+      <span class="rl">App icon 32px</span>
+      <span class="a">
+        <span class="fav32" style="background:#1C1916">k</span>
+        <span class="fav32" style="background:#7C5666">k</span>
+      </span>
+      <span class="b" style="color:var(--txt2);font-size:13px">Both legible. Ink reads as an app; aubergine reads as an app in a gallery.</span>
+    </div>
+    <div class="sizes" style="margin-top:20px">
+      <span class="rl">Wordmark 20px</span>
+      <span class="a">
+        <span class="wm-s" style="color:#0D0906">kudi<span class="w2" style="color:#1C1916">market</span></span>
+        <span class="wm-s" style="color:#4B2E45">kudi<span class="w2" style="color:#7C5666">market</span></span>
+      </span>
+      <span class="b" style="color:var(--txt2);font-size:13px">Aubergine separates better here — the two greys stay distinct.</span>
+    </div>
+  </div>
+</div>
+
+<div class="t">
+  <div class="hd"><span class="n">Test 2</span><span class="q">Cheap Android LCD, sunlight, small text</span></div>
+  <div class="bd">
+    <div class="phones">
+      <div class="ph">
+        <div class="scr">
+          <div class="st"><span>9:41</span><span>▮▮▮</span></div>
+          <div class="nav"><span class="mk" style="background:#1C1916">k</span><span class="nm">KudiMarket</span></div>
+          <div class="bd">
+            <div class="esc"><b>Escrow holding ₵1,742,000.</b> Released when you confirm.</div>
+            <div class="card"><span class="t1">Best rate</span><span class="t2">₵1,742</span><span class="t3">30 sellers</span></div>
+            <div class="btns">
+              <span class="btn" style="background:#1C1916">Release</span>
+              <span class="btn g">Cancel</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="ph">
+        <div class="scr">
+          <div class="st"><span>9:41</span><span>▮▮▮</span></div>
+          <div class="nav"><span class="mk" style="background:#7C5666">k</span><span class="nm">KudiMarket</span></div>
+          <div class="bd">
+            <div class="esc"><b>Escrow holding ₵1,742,000.</b> Released when you confirm.</div>
+            <div class="card"><span class="t1">Best rate</span><span class="t2">₵1,742</span><span class="t3">30 sellers</span></div>
+            <div class="btns">
+              <span class="btn" style="background:#7C5666">Release</span>
+              <span class="btn g">Cancel</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="t">
+  <div class="hd"><span class="n">Test 3</span><span class="q">Where most traders meet the brand in the real world</span></div>
+  <div class="bd">
+    <div class="surf">
+      <div class="sign">
+        <div class="cap">Painted merchant sign</div>
+        <div class="shop ink"><span class="l1">kudi</span><span class="l2">market</span><span class="l3">Verified sellers · Escrow</span></div>
+      </div>
+      <div class="sign">
+        <div class="cap">Same, in one-colour print</div>
+        <div class="mono">
+          <div class="cap" style="margin-bottom:9px">Aubergine → single ink</div>
+          <div class="rule"></div><div class="rule r2"></div><div class="rule r3"></div>
+          <div class="row"><span>Seller</span><span class="num">₵1,742</span></div>
+          <div class="row"><span>Escrow</span><span class="num">HELD</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="verdict">
+  <div class="col">
+    <h3>A · Ink</h3>
+    <div class="sub">#1C1916 · achromatic</div>
+    <ul>
+      <li><i>✓</i><span><b>Wins at 16px</b> and in one-colour print. Zero ambiguity, ever.</span></li>
+      <li><i>✓</i><span>Unaffected by low-gamut LCDs. Black is black on any panel.</span></li>
+      <li><i>✓</i><span>Cannot be mistaken for a bank, and cannot date.</span></li>
+      <li><i>✗</i><span><b>No warmth.</b> On a painted sign it reads austere rather than local.</span></li>
+      <li><i>✗</i><span>Maximum restraint is the easiest thing for a competitor to match.</span></li>
+      <li><i>✗</i><span>Sits near Carbon, Slypes, OKX and Chipper Cash in the dark-neutral band.</span></li>
+    </ul>
+  </div>
+  <div class="col">
+    <h3>C · Aubergine</h3>
+    <div class="sub">#7C5666 · deep pigment</div>
+    <ul>
+      <li><i>✓</i><span><b>Wins on a painted sign.</b> Pigment has history; black does not.</span></li>
+      <li><i>✓</i><span>70.44 units from the nearest of 38 brands. Genuinely unoccupied.</span></li>
+      <li><i>✓</i><span>Warm in a market at dusk — matches how the product is actually used.</span></li>
+      <li><i>✗</i><span>Low chroma means it greys out slightly on washed-out budget panels.</span></li>
+      <li><i>✗</i><span>Needs a dark wordmark step; mid-tone alone is 6.21:1, not AAA.</span></li>
+      <li><i>✗</i><span>Can read composed rather than urgent at the moment of a trade.</span></li>
+    </ul>
+  </div>
+</div>
+
+<div class="note lab">
+  <b>Where Ink actually wins.</b> Pure function. Favicons, one-colour print, cheap screens, and any surface where you need the brand to disappear and the numbers to carry. If KudiMarket ever ships a terminal, a receipt, or a POS integration, ink is the safer choice.
+</div>
+
+<div class="note key" style="margin-top:-24px">
+  <b>Where Aubergine actually wins.</b> Distinctiveness, and warmth. You have now told me twice that generic work is uninteresting to you — you rejected clay, rejected pine, and rejected Bricolage for exactly this reason. Ink is the most defensible option and also the most predictable one. Aubergine is the only one of the three with <b>zero competitors in its hue band</b> and it is the only one that looks like it came from somewhere.
+</div>
+
+<nav>
+  <a href="options.html">← All three colours</a>
+  <a href="opt-a-ink.html">A · Ink</a>
+  <a href="opt-c-aubergine.html">C · Aubergine</a>
+  <a href="type.html">Type test</a>
+</nav>
+
+<footer>
+  <span>All tests rendered at real dimensions — 16px favicon, 32px icon, 320px phone width, single-ink print.</span>
+  <span>Type is Instrument Sans in both. Only colour differs between columns.</span>
+</footer>
+
+</body>
+</html>

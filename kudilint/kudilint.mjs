@@ -1,0 +1,525 @@
+#!/usr/bin/env node
+/**
+ * kudilint — KudiMarket design constitution, machine-enforced.
+ *
+ * The premise: "be less generic" dies under deadline. Every rule here can fail,
+ * which means it can survive a sprint. Each rule traces to a real failure —
+ * usually one of ours.
+ *
+ * Usage:
+ *   node kudilint.mjs <paths...>        # lint paths
+ *   node kudilint.mjs --explain <RULE>   # why a rule exists, and what it replaced
+ *   node kudilint.mjs --audit            # palette drift + role collisions
+ */
+
+import fs from 'node:fs';
+import path from 'node:path';
+
+const configPath = new URL('./kudi.config.json', import.meta.url);
+const CONFIG = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+
+// ---------------------------------------------------------------- utils
+
+const SEVERITY_ORDER = { error: 0, warn: 1, info: 2 };
+const findings = [];
+let fileCount = 0;
+
+const EXTENSIONS = new Set(['.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs', '.css',
+  '.scss', '.html', '.json', '.md', '.mdx', '.txt', '.svg']);
+
+const IGNORED_DIRS = new Set(['node_modules', '.git', 'dist', 'build', '.next',
+  'coverage', '.turbo', '.cache']);
+
+function globToRegExp(glob) {
+  // Proper glob -> regex. Handles ** across separators, * within a segment,
+  // and ? single-char. The previous implementation compared '**' literally,
+  // so a pattern like '**\/kudilint/**' never matched anything.
+  const escaped = glob.replace(/[.+^${}()|[\]\\]/g, '\\$&');
+  const pattern = escaped
+    .replace(/\*\*\//g, '\u0000')      // marker for '**/' 
+    .replace(/\*\*/g, '\u0001')          // marker for trailing '**'
+    .replace(/\*/g, '[^/]*')
+    .replace(/\?/g, '[^/]')
+    .replace(/\u0000/g, '(?:.*/)?')       // '**/' -> optional any dirs
+    .replace(/\u0001/g, '.*');            // '**'  -> anything
+  return new RegExp('^' + pattern + '$');
+}
+
+const EXEMPT_RES = CONFIG.exempt.paths.map(globToRegExp);
+
+function isExempt(relPath) {
+  const norm = relPath.split(path.sep).join('/');
+  return EXEMPT_RES.some((re) => re.test(norm));
+}
+
+function walk(target, out = []) {
+  const abs = path.resolve(target);
+  if (!fs.existsSync(abs)) return out;
+
+  const stat = fs.statSync(abs);
+  if (stat.isFile()) {
+    if (EXTENSIONS.has(path.extname(abs)) && !/\.min\./.test(abs)) out.push(abs);
+    return out;
+  }
+
+  for (const entry of fs.readdirSync(abs)) {
+    if (IGNORED_DIRS.has(entry)) continue;
+    walk(path.join(abs, entry), out);
+  }
+  return out;
+}
+
+function report(file, line, rule, severity, message, hint) {
+  findings.push({ file, line, rule, severity, message, hint });
+}
+
+const lineOf = (text, index) => text.slice(0, index).split('\n').length;
+
+// ---------------------------------------------------------------- colour maths
+
+function hexToRgb(hex) {
+  const h = hex.replace('#', '');
+  const full = h.length === 3 ? h.split('').map((c) => c + c).join('') : h;
+  return {
+    r: parseInt(full.slice(0, 2), 16) / 255,
+    g: parseInt(full.slice(2, 4), 16) / 255,
+    b: parseInt(full.slice(4, 6), 16) / 255,
+  };
+}
+const toLin = (c) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
+const toSrgb = (c) => (c <= 0.0031308 ? c * 12.92 : 1.055 * c ** (1 / 2.4) - 0.055);
+
+function oklchOf(hex) {
+  const { r: r0, g: g0, b: b0 } = hexToRgb(hex);
+  const r = toLin(r0), g = toLin(g0), b = toLin(b0);
+  const l = 0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b;
+  const m = 0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b;
+  const s = 0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b;
+  const l_ = Math.cbrt(l), m_ = Math.cbrt(m), s_ = Math.cbrt(s);
+  const L = 0.2104542553 * l_ + 0.7936177850 * m_ - 0.0040720468 * s_;
+  const A = 1.9779984951 * l_ - 2.4285922050 * m_ + 0.4505937099 * s_;
+  const B = 0.0259040371 * l_ + 0.7827717662 * m_ - 0.8086757660 * s_;
+  const C = Math.hypot(A, B);
+  const H = C > 1e-6 ? (Math.atan2(B, A) * 180) / Math.PI + 360 % 360 : 0;
+  return { L, C, H: H % 360 };
+}
+
+function luminance(hex) {
+  const { r, g, b } = hexToRgb(hex);
+  return 0.2126 * toLin(r) + 0.7152 * toLin(g) + 0.0722 * toLin(b);
+}
+
+function contrastRatio(a, b) {
+  const la = luminance(a), lb = luminance(b);
+  const hi = Math.max(la, lb), lo = Math.min(la, lb);
+  return (hi + 0.05) / (lo + 0.05);
+}
+
+function oklabDistance(hexA, hexB) {
+  const a = oklchOf(hexA), b = oklchOf(hexB);
+  return Math.hypot(a.L - b.L, a.C - b.C, a.H - b.H);
+}
+
+// ---------------------------------------------------------------- rules
+
+const RULE_INDEX = {
+  'banned-font': {
+    title: 'Banned typeface',
+    why: 'Inter and Roboto are what a language model reaches for when nobody chose. Bricolage is a 2021 trend face we shipped and were rightly told off for.',
+    fix: (m) => `Replace ${m} with ${CONFIG.brand.approvedTypeface}.`,
+  },
+  'banned-color': {
+    title: 'Competitor or banking colour',
+    why: 'Pine looked fine in a swatch and was 0.09 OKLab units from Union Bank — a collision we shipped before checking. This rule is the check we skipped.',
+    fix: () => 'Use a token from kudi.config.json approvedTokens.colors.',
+  },
+  'forbidden-hue': {
+    title: 'Hue band owned by competitors',
+    why: 'Hue is a crowded axis. Gold, teal, cyan, blue and violet are saturated across 38 measured brands.',
+    fix: () => 'Keep the brand hue at 340-360 (plum), or justify a new hue with measured OKLab clearance > 25 from all 38.',
+  },
+  'filler-copy': {
+    title: 'Filler copy',
+    why: 'Words carrying zero information are the clearest signal of machine authorship, to humans and to readers.',
+    fix: () => 'Say the specific thing, or delete the sentence.',
+  },
+  'placeholder-data': {
+    title: 'Placeholder or invented data',
+    why: 'A demo number becomes a real number somebody relies on. There is no cost to deleting an unused branch.',
+    fix: () => 'Delete it, or wire it to real data before it can ship.',
+  },
+  'no-three-equal-columns': {
+    title: 'Three equal columns',
+    why: 'The most recognisable AI layout signature. Present in a large fraction of generated UIs.',
+    fix: () => 'Vary the widths, or drop to two. Asymmetry carries hierarchy.',
+  },
+  'no-uniform-center': {
+    title: 'Everything centre-aligned',
+    why: 'Centred text has no left edge for the eye to return to. Correct for charts and dialogs, wrong for reading.',
+    fix: () => 'Left-align body and interactive content.',
+  },
+  'no-single-spacing-value': {
+    title: 'Single spacing value',
+    why: 'One gap everywhere reads as unconsidered. Rhythm comes from at least three steps.',
+    fix: () => 'Adopt the spacing scale: 4 / 8 / 16 / 32 / 64.',
+  },
+  'no-accent-quote-block': {
+    title: 'Accent quote block',
+    why: 'border-left:3px + tinted background is the "insight card" that appears in nearly every generated response.',
+    fix: () => 'Set it as plain body copy, or give it real structure.',
+  },
+  'no-gradient-as-brand': {
+    title: 'Gradient on a primary surface',
+    why: 'Gradients are decoration. A gradient as identity means there was no identity.',
+    fix: () => 'Flat colour. Depth comes from contrast and space.',
+  },
+  'emoji-as-icon': {
+    title: 'Emoji used as an icon',
+    why: 'Emoji render differently on every platform and read as decoration, never as interface.',
+    fix: () => 'Use an icon set, or nothing.',
+  },
+  'tabular-figures-required': {
+    title: 'Currency without tabular figures',
+    why: 'This is a money product. Proportional numerals make columns of naira figures jitter as they update.',
+    fix: () => 'Add font-variant-numeric: tabular-nums.',
+  },
+  'min-body-size': {
+    title: 'Body copy below 14px',
+    why: 'Most of this market is on budget Android panels. Sub-14px text is not legible in daylight.',
+    fix: () => 'Raise to 14px minimum.',
+  },
+  'hardcoded-hex': {
+    title: 'Colour not from the token set',
+    why: 'A hex that is not in the config is a colour nobody has measured.',
+    fix: () => 'Add it to approvedTokens.colors with a measured contrast ratio, or use an existing token.',
+  },
+};
+
+// ---------------------------------------------------------------- checkers
+
+function checkFonts(text, file) {
+  for (const family of CONFIG.banned.fonts.families) {
+    const re = new RegExp(`["']?\\b${family.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'g');
+    let m;
+    while ((m = re.exec(text)) !== null) {
+      report(file, lineOf(text, m.index), 'banned-font', 'error',
+        `"${family}" is a banned typeface.`,
+        RULE_INDEX['banned-font'].fix(family));
+    }
+  }
+}
+
+function checkColors(text, file) {
+  const approved = new Set(
+    Object.values(CONFIG.approvedTokens.colors).map((h) => h.toLowerCase()));
+
+  // direct hex literals
+  // The lookbehind matters: HTML numeric entities are written &#8358; for the naira sign and
+  // &#8594; for an arrow, and without it every currency symbol in a document reads as a hex colour.
+  // 101 false warnings on one file is how a linter gets switched off.
+  const hexRe = /(?<!&)#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})\b/g;
+  let m;
+  while ((m = hexRe.exec(text)) !== null) {
+    const raw = m[0];
+    // A four-digit all-numeric hash is an identifier, not a colour: "Trade #4821" is a trade number.
+    // Real four-digit hex shorthand almost always contains a letter, and a shorthand can never match
+    // the six-digit banned-colour list anyway, so nothing is lost by skipping it.
+    if (/^#[0-9]{4}$/.test(raw)) continue;
+    let norm = raw.toLowerCase().slice(0, 7);
+    if (norm.length === 4) norm = '#' + norm[1] + norm[1] + norm[2] + norm[2] + norm[3] + norm[3];
+    const banned = CONFIG.banned.colors.hexes[raw.toUpperCase()]
+      || CONFIG.banned.colors.hexes[norm.toUpperCase()];
+    if (banned) {
+      report(file, lineOf(text, m.index), 'banned-color', 'error',
+        `${raw} is ${banned}'s brand colour.`,
+        RULE_INDEX['banned-color'].fix());
+    } else if (!approved.has(norm)) {
+      const { L, C, H } = oklchOf(norm);
+      const band = CONFIG.banned.hues.forbiddenHueRanges.find(
+        (r) => H >= r.min && H <= r.max && C > 0.04);
+      if (band) {
+        report(file, lineOf(text, m.index), 'forbidden-hue', 'error',
+          `${raw} sits at hue ${Math.round(H)} — the ${band.name} band (chroma ${C.toFixed(3)}).`,
+          RULE_INDEX['forbidden-hue'].fix());
+      } else {
+        report(file, lineOf(text, m.index), 'hardcoded-hex', 'warn',
+          `${raw} is not an approved token (oklch ${L.toFixed(3)} ${C.toFixed(3)} ${Math.round(H)}).`,
+          RULE_INDEX['hardcoded-hex'].fix());
+      }
+    }
+  }
+
+  // rgb()/hsl() literals — same rules, different notation
+  const fnRe = /\brgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})/g;
+  while ((m = fnRe.exec(text)) !== null) {
+    const hex = '#' + [1, 2, 3]
+      .map((i) => Number(m[i]).toString(16).padStart(2, '0')).join('').toUpperCase();
+    const banned = CONFIG.banned.colors.hexes[hex];
+    if (banned) {
+      report(file, lineOf(text, m.index), 'banned-color', 'error',
+        `rgb(${m[1]},${m[2]},${m[3]}) is ${banned}'s brand colour (${hex}).`,
+        RULE_INDEX['banned-color'].fix());
+    }
+  }
+}
+
+function checkCopy(text, file) {
+  const exemptions = new Set(CONFIG.fillerCopy.exemptions);
+  for (const word of CONFIG.fillerCopy.words) {
+    const re = new RegExp(`\\b${word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
+    let m;
+    while ((m = re.exec(text)) !== null) {
+      if (exemptions.has(word.toLowerCase())) continue;
+      const line = lineOf(text, m.index);
+      const ctx = text.split('\n')[line - 1] || '';
+      const isComment = /^\s*(\/\/|\*|\/\*|<!--)/.test(ctx);
+      report(file, line, 'filler-copy', isComment ? 'info' : 'error',
+        `"${word}" carries no information.`,
+        RULE_INDEX['filler-copy'].fix());
+    }
+  }
+
+  for (const { pattern, label } of CONFIG.placeholderData.patterns) {
+    const re = new RegExp(pattern, 'gi');
+    let m;
+    while ((m = re.exec(text)) !== null) {
+      const line = lineOf(text, m.index);
+      const ctx = text.split('\n')[line - 1] || '';
+      const isComment = /^\s*(\/\/|\*|\/\*|<!--)/.test(ctx);
+      report(file, line, 'placeholder-data', isComment ? 'info' : 'error',
+        `${label} present.`,
+        RULE_INDEX['placeholder-data'].fix());
+    }
+  }
+}
+
+function checkLayout(text, file) {
+  // three equal columns
+  const gridRe = /grid-template-columns:\s*(repeat\(\s*3\s*,\s*(1fr|33(\.\d+)?%)[^\)]*\)|1fr\s+1fr\s+1fr)/g;
+  let m;
+  while ((m = gridRe.exec(text)) !== null) {
+    report(file, lineOf(text, m.index), 'no-three-equal-columns', 'error',
+      'Three equal columns.', RULE_INDEX['no-three-equal-columns'].fix());
+  }
+
+  // accent quote block
+  const quoteRe = /border-left\s*:\s*(2|3|4)px[^;]*;/g;
+  while ((m = quoteRe.exec(text)) !== null) {
+    report(file, lineOf(text, m.index), 'no-accent-quote-block', 'error',
+      'border-left accent bar.', RULE_INDEX['no-accent-quote-block'].fix());
+  }
+
+  // gradient on what looks like a primary surface
+  const gradRe = /linear-gradient\([^)]*\)/g;
+  while ((m = gradRe.exec(text)) !== null) {
+    const line = text.split('\n')[lineOf(text, m.index) - 1] || '';
+    if (/background|bg-|surface|hero|banner/i.test(line)) {
+      report(file, lineOf(text, m.index), 'no-gradient-as-brand', 'error',
+        'Gradient on a primary surface.', RULE_INDEX['no-gradient-as-brand'].fix());
+    }
+  }
+
+  // single spacing value
+  const pads = [...text.matchAll(/(?:padding|gap|margin)[^;{]*?:\s*(\d+)px/g)].map((x) => x[1]);
+  if (pads.length >= 6) {
+    const unique = new Set(pads);
+    if (unique.size === 1) {
+      report(file, 1, 'no-single-spacing-value', 'warn',
+        `Every spacing value is ${[...unique][0]}px.`, RULE_INDEX['no-single-spacing-value'].fix());
+    } else if (unique.size <= 2 && pads.length >= 10) {
+      report(file, 1, 'no-single-spacing-value', 'warn',
+        `Only ${unique.size} spacing values across ${pads.length} uses.`,
+        RULE_INDEX['no-single-spacing-value'].fix());
+    }
+  }
+
+  // centre-aligned body
+  const centerCount = (text.match(/text-align\s*:\s*center/g) || []).length;
+  const textAlignCount = (text.match(/text-align\s*:/g) || []).length;
+  if (textAlignCount > 0 && centerCount === textAlignCount && centerCount >= 3) {
+    report(file, 1, 'no-uniform-center', 'error',
+      `All ${centerCount} text-align rules are center.`, RULE_INDEX['no-uniform-center'].fix());
+  }
+
+  // body size floor
+  const sizes = [...text.matchAll(/font-size\s*:\s*(\d+(?:\.\d+)?)px/g)].map((x) => parseFloat(x[1]));
+  const tooSmall = sizes.filter((s) => s > 0 && s < CONFIG.type.rules[1].minPx);
+  // Absolute, not a ratio. This used to fire only when more than 35% of type was small, which is
+  // not a floor at all: a third of your text could be 9px and the rule stayed silent. A floor that
+  // has an exemption threshold is a suggestion, and we already know what suggestions are worth.
+  if (sizes.length >= 4 && tooSmall.length > 0) {
+    const distinct = [...new Set(tooSmall)].sort((a, b) => a - b);
+    report(file, 1, 'min-body-size', 'error',
+      `${tooSmall.length} font sizes are below ${CONFIG.type.rules[1].minPx}px (${distinct.join(', ')}).`,
+      RULE_INDEX['min-body-size'].fix());
+  }
+}
+
+function checkEmoji(text, file) {
+  // Pictographs only. Geometric and dingbat glyphs used as status markers
+  // (check, cross, triangle, bullet) are legitimate UI, not decoration.
+  const pictograph = /[\u{1F300}-\u{1FAFF}\u{1F000}-\u{1F2FF}\u{FE0F}\u{1F900}-\u{1F9FF}]/gu;
+  let m;
+  while ((m = pictograph.exec(text)) !== null) {
+    const line = lineOf(text, m.index);
+    const ctx = text.split('\n')[line - 1] || '';
+    if (!/^\s*(\/\/|\*|\/\*|<!--)/.test(ctx)) {
+      report(file, line, 'emoji-as-icon', 'error',
+        `Emoji ${m[0]} used as interface.`, RULE_INDEX['emoji-as-icon'].fix());
+    }
+  }
+}
+
+function checkTabularFigures(text, file) {
+  // currency-bearing markup must be inside something with tabular-nums
+  const currencyNodes = /(?:₦|\$|€|£)\s?[\d,]+(?:\.\d+)?/g;
+  const hits = [...text.matchAll(currencyNodes)];
+  if (hits.length === 0) return;
+  const hasTabular = /font-variant-numeric\s*:\s*tabular-nums|tabular-nums/.test(text);
+  if (!hasTabular) {
+    report(file, lineOf(text, hits[0].index), 'tabular-figures-required', 'error',
+      `${hits.length} currency value(s) with no tabular-nums anywhere in the file.`,
+      RULE_INDEX['tabular-figures-required'].fix());
+  }
+}
+
+// ---------------------------------------------------------------- audit
+
+function audit() {
+  const { colors, roles, semantics } = CONFIG.approvedTokens;
+  console.log('\nKudiMarket palette audit\n' + '='.repeat(60));
+
+  // Surfaces are not text. Judging a background against bone produces noise.
+  const SURFACES = new Set(['bone', 'surface', 'sand', 'line',
+    'loss-bg', 'settled-bg', 'white']);
+  const surfacePairs = {
+    'loss-ink': 'loss-bg',
+    'settled-ink': 'settled-bg',
+    'ink': 'bone',
+    'ink-soft': 'bone',
+    'white': 'plum-market',
+  };
+
+  console.log('\nForeground contrast (text and UI on its intended surface)');
+  for (const [name, hex] of Object.entries(colors)) {
+    if (SURFACES.has(name)) continue;
+    const bg = surfacePairs[name] ? colors[surfacePairs[name]] : colors.bone;
+    const bgLabel = surfacePairs[name] || 'bone';
+    const r = contrastRatio(hex, bg);
+    const verdict = r >= 7 ? 'AAA' : r >= 4.5 ? 'AA' : r >= 3 ? 'large/UI only' : 'FAIL';
+    console.log(`  ${name.padEnd(13)} ${hex} on ${bgLabel.padEnd(9)} ${r.toFixed(2).padStart(6)}:1  ${verdict}`);
+  }
+
+  console.log('\nSurface tokens are not judged as text. Verifying they still separate from bone:');
+  for (const [name, hex] of Object.entries(colors)) {
+    if (!SURFACES.has(name) || name === 'bone') continue;
+    const r = contrastRatio(hex, colors.bone);
+    const verdict = r >= 1.3 ? 'distinct' : 'TOO SIMILAR to bone';
+    console.log(`  ${name.padEnd(13)} ${hex}  ${r.toFixed(2)}:1 vs bone  ${verdict}`);
+  }
+
+  console.log('\nColour distance to nearest banned colour');
+  for (const [name, hex] of Object.entries(colors)) {
+    if (name === 'bone' || name === 'white') continue;
+    let nearest = null, min = Infinity;
+    for (const [bhex, bname] of Object.entries(CONFIG.banned.colors.hexes)) {
+      const d = oklabDistance(hex, bhex);
+      if (d < min) { min = d; nearest = bname; }
+    }
+    const flag = min < 0.25 ? '  <-- COLLISION' : min < 1 ? '  <-- close' : '';
+    console.log(`  ${name.padEnd(13)} ${nearest.padEnd(22)} ${min.toFixed(2)}${flag}`);
+  }
+
+  console.log('\nRole collisions');
+  const seen = new Map();
+  for (const [role, names] of Object.entries(roles)) {
+    for (const n of names) {
+      const hex = colors[n];
+      if (seen.has(hex) && seen.get(hex) !== role) {
+        console.log(`  ${hex} is both ${seen.get(hex)} and ${role} — violates one-job-per-colour`);
+      }
+      seen.set(hex, role);
+    }
+  }
+
+  console.log('\nSemantics');
+  for (const s of semantics) console.log(`  ${s}`);
+  console.log('');
+}
+
+// ---------------------------------------------------------------- explain
+
+function explain(id) {
+  const r = RULE_INDEX[id];
+  if (!r) {
+    console.error(`No rule "${id}". Known:`);
+    console.error(Object.keys(RULE_INDEX).join(', '));
+    process.exit(2);
+  }
+  console.log(`\n${r.title}  [${id}]\n${'='.repeat(60)}`);
+  console.log(`\nWhy:\n  ${r.why}\n\nFix:\n  ${r.fix('')}\n`);
+}
+
+// ---------------------------------------------------------------- main
+
+const args = process.argv.slice(2);
+
+if (args.includes('--audit')) { audit(); process.exit(0); }
+if (args.includes('--explain')) {
+  explain(args[args.indexOf('--explain') + 1]);
+  process.exit(0);
+}
+if (args.includes('--rules')) {
+  console.log(Object.keys(RULE_INDEX).join('\n'));
+  process.exit(0);
+}
+
+const targets = args.filter((a) => !a.startsWith('--'));
+if (targets.length === 0) {
+  console.error('usage: node kudilint.mjs <paths...> | --audit | --explain <RULE>');
+  process.exit(2);
+}
+
+for (const target of targets) {
+  for (const abs of walk(target)) {
+    const rel = path.relative(process.cwd(), abs);
+    if (isExempt(rel)) continue;
+    fileCount++;
+    const text = fs.readFileSync(abs, 'utf8');
+    checkFonts(text, rel);
+    checkColors(text, rel);
+    checkCopy(text, rel);
+    checkLayout(text, rel);
+    checkEmoji(text, rel);
+    checkTabularFigures(text, rel);
+  }
+}
+
+findings.sort((a, b) =>
+  SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity]
+  || a.file.localeCompare(b.file)
+  || a.line - b.line);
+
+const errors = findings.filter((f) => f.severity === 'error');
+const warns = findings.filter((f) => f.severity === 'warn');
+const infos = findings.filter((f) => f.severity === 'info');
+
+const C = { r: '\x1b[31m', y: '\x1b[33m', b: '\x1b[34m', d: '\x1b[2m', g: '\x1b[32m', x: '\x1b[0m' };
+const tag = { error: `${C.r}error${C.x}`, warn: `${C.y} warn${C.x}`, info: `${C.d} info${C.x}` };
+
+console.log(`\nkudilint — ${fileCount} file(s)\n${'='.repeat(60)}\n`);
+let current = '';
+for (const f of findings) {
+  if (f.file !== current) { current = f.file; console.log(`${C.b}${current}${C.x}`); }
+  console.log(`  ${tag[f.severity]} ${C.d}${String(f.line).padStart(4)}${C.x}  ${f.message}`);
+  if (f.hint) console.log(`        ${C.d}↳ ${f.hint}${C.x}`);
+}
+console.log(`\n${'='.repeat(60)}`);
+console.log(`  ${C.r}${errors.length} error${C.x}   ${C.y}${warns.length} warning${C.x}   ${C.d}${infos.length} info${C.x}\n`);
+
+if (errors.length) {
+  console.log(`${C.d}Explain any rule: node kudilint.mjs --explain <rule-id>${C.x}`);
+  console.log(`${C.d}Audit the palette:  node kudilint.mjs --audit${C.x}\n`);
+  process.exit(1);
+}
+process.exit(0);

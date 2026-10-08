@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KudiMarket · the business as decided</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --plum-deep:#331931; --plum:#462444; --plum-mkt:#5E2D5A; --plum-brt:#743F6F;
+    --loss:#933331; --loss-bg:#F8E7E5; --loss-ink:#5A1A18; --loss-fill:#C1514D;
+    --good:#185B37; --good-bg:#D7E8DC; --good-ink:#1B3D28;
+    --bone:#FCF6EE; --surf:#F6EFE8; --sand:#E8E2DB; --line:#DBD5CE;
+    --txt:#1C1916; --txt2:#6B635C;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bone);color:var(--txt);font-family:"Instrument Sans",system-ui,sans-serif;
+    padding:56px 40px 90px;max-width:1140px;margin:0 auto;display:flex;flex-direction:column;gap:44px;text-wrap:pretty}
+  h1{font-size:clamp(28px,4.4vw,42px);font-weight:600;letter-spacing:-.022em;line-height:1.08;text-wrap:balance}
+  h2{font-size:clamp(22px,3vw,30px);font-weight:600;letter-spacing:-.02em;line-height:1.14;text-wrap:balance}
+  h1 b,h2 b{color:var(--plum-mkt);font-weight:700}
+  .lede{font-size:16.5px;line-height:1.6;color:var(--txt2);max-width:74ch}
+  .lede b{color:var(--txt);font-weight:600}
+  p{max-width:78ch}
+
+  .card{border:1px solid var(--line);background:#fff;display:flex;flex-direction:column}
+  .card .hd{padding:16px 26px;border-bottom:1px solid var(--line);background:var(--surf);
+    font-size:14px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--txt2)}
+  .card .bd{padding:24px 26px;display:flex;flex-direction:column;gap:16px;font-size:16px;line-height:1.6;color:var(--txt2)}
+  .card .bd b{color:var(--txt);font-weight:600}
+  .card .bd ul{list-style:none;display:flex;flex-direction:column;gap:12px}
+  .card .bd li{display:grid;grid-template-columns:26px 1fr;gap:10px;font-size:15.5px;line-height:1.55}
+  .card .bd li i{font-style:normal;font-weight:700;grid-column:1;color:var(--txt2)}
+  .card .bd li span{grid-column:2}
+  .card.decide{border-color:var(--plum-mkt);border-width:1.5px}
+  .card.decide .hd{background:#fff;color:var(--plum-mkt)}
+
+  .verdict .q{font-size:clamp(20px,2.6vw,27px);font-weight:600;letter-spacing:-.02em;
+    padding:22px 26px 0;line-height:1.25;text-wrap:balance}
+  .verdict .rows{display:flex;flex-direction:column}
+  .verdict .row{display:grid;grid-template-columns:200px 1fr;gap:20px;padding:18px 26px;
+    border-top:1px solid var(--line);font-size:15.5px;line-height:1.55;color:var(--txt2)}
+  .verdict .row:first-child{margin-top:18px}
+  .verdict .row b{color:var(--txt);font-weight:600}
+  .verdict .row .k{font-size:14px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--plum-mkt)}
+
+  table{width:100%;border-collapse:collapse;font-size:15px}
+  .tbl{border:1px solid var(--line);background:#fff;overflow-x:auto}
+  .tbl th{text-align:left;font-size:14px;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--txt2);font-weight:700;padding:14px 16px;border-bottom:1px solid var(--line);white-space:nowrap}
+  .tbl td{padding:14px 16px;border-bottom:1px solid var(--line);vertical-align:top;line-height:1.55}
+  .tbl tr:last-child td{border-bottom:none}
+  .tbl .q{font-weight:700;white-space:nowrap}
+  .tbl .a{font-weight:600}
+  .tbl .why{color:var(--txt2)}
+  .tbl .num{font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--txt2)}
+  .cap{font-size:14.5px;line-height:1.55;color:var(--txt2);margin-top:-30px}
+  .cap b{color:var(--txt);font-weight:600}
+
+  ol.steps{list-style:none;counter-reset:s;display:flex;flex-direction:column;gap:14px}
+  ol.steps li{counter-increment:s;display:grid;grid-template-columns:30px 1fr;gap:14px;
+    font-size:16px;line-height:1.55;color:var(--txt2);align-items:start}
+  ol.steps li::before{content:counter(s) ".";font-size:17px;font-weight:700;color:var(--plum-mkt);
+    line-height:1.45;font-variant-numeric:tabular-nums}
+  ol.steps li b{color:var(--txt);font-weight:600}
+
+  nav{display:flex;gap:14px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:20px}
+  nav a{font-size:15px;color:var(--txt2);text-decoration:none;border:1px solid var(--line);
+    padding:11px 17px;background:#fff;display:inline-block;transition:border-color .15s,color .15s}
+  nav a:hover{border-color:var(--plum-mkt);color:var(--plum-mkt)}
+  nav a:focus-visible{outline:2px solid var(--plum-mkt);outline-offset:2px}
+  footer{font-size:14.5px;color:var(--txt2);display:flex;flex-direction:column;gap:7px;line-height:1.55}
+  footer b{color:var(--txt);font-weight:600}
+  footer a{color:var(--plum-mkt)}
+  ::selection{background:var(--sand);color:var(--txt)}
+
+  @media (max-width:760px){
+    body{padding:32px 20px 64px;gap:36px}
+    .verdict .row{grid-template-columns:1fr;gap:8px}
+    .card .hd{padding:14px 18px}
+    .card .bd{padding:20px 18px}
+    .verdict .row,.verdict .q{padding-left:18px;padding-right:18px}
+  }
+</style>
+</head>
+<body>
+
+<h1>The business, as decided.<br><b>Not as it was described.</b></h1>
+
+<p class="lede">Twelve decisions, taken in one sitting on 7 Oct 2026 and recorded here so nobody has to remember a conversation. Three of them overturned what the earlier documents assumed. KudiMarket is <b>not a marketplace that matches strangers</b>: it is the first vendor, buying and selling currency out of its own pool, with a hand-vetted vendor network around it. It trades <b>seven currencies</b>, not one. And it quotes <b>its own rates</b> rather than listing prices.</p>
+
+<div class="card verdict">
+  <span class="q">What changed, and why it matters</span>
+  <div class="rows">
+    <div class="row"><span class="k">We are the counterparty</span><span><b>The biggest change.</b> KudiMarket buys currency from traders and sells to other traders out of its own float. That makes us a bureau de change and money-remittance business, not a matching platform, and it moves the first regulator to the Bank of Ghana with customer funds to be segregated from our own money.</span></div>
+    <div class="row"><span class="k">Seven currencies</span><span><b>Cedi, naira, CFA, RMB, dollars, pounds and euros.</b> An earlier version of this work said cedi only, and another said exclude RMB. Both were wrong: the demand is a Nigerian in Ghana selling naira, and an exporter paying a Chinese supplier.</span></div>
+    <div class="row"><span class="k">Our book, two currencies</span><span><b>We hold and quote cedi and naira.</b> Dollars, pounds, euros, the CFA franc and the Chinese yuan are all vendor supply from day one, and we never hold them. RMB was briefly added to our own book and taken back out: the flow barely happens, and holding it means carrying a Chinese-side receiving arrangement for a rare trade. Cedi is the pivot; everything is quoted against it.</span></div>
+    <div class="row"><span class="k">A closed, vetted start</span><span><b>Vendors are admitted by hand, starting with the team and a short list of mobile-money agents who already trade this way offline.</b> Automation comes later, once there is volume and capacity. A closed supply side is also the easiest shape to put in front of a regulator as a pilot.</span></div>
+    <div class="row"><span class="k">Two promises, not one</span><span><b>"Checked" and "KudiMarket handled".</b> A checked vendor is one whose identity, accounts and history we verified, and we do not promise delivery. A KudiMarket-handled trade is one we took the other side of, so our money is at risk and delivery is ours. At launch, the team holds the second label.</span></div>
+  </div>
+</div>
+
+<h2>The decision log</h2>
+
+<div class="tbl">
+  <table>
+    <tr><th>Question</th><th>Decided</th><th>Why</th></tr>
+    <tr><td class="q">Who buys?</td><td class="a">Anyone who registers, including non-Ghanaians living here</td><td class="why">The volume is a Nigerian resident selling naira. It also means every buyer is a customer we must identify, which is the price of being a money business.</td></tr>
+    <tr><td class="q">What is KudiMarket's own side?</td><td class="a">We are the first vendor, with a modest float</td><td class="why">It solves the cold-start problem that kills marketplaces: nobody will list if they think nobody will trade. Our own book is the first liquidity.</td></tr>
+    <tr><td class="q">How do we earn?</td><td class="a">A spread on the rate we quote</td><td class="why">It is how every Ghanaian already buys currency, so it needs no explanation, and it scales with volume rather than with fees.</td></tr>
+    <tr><td class="q">Which currencies do we hold?</td><td class="a">Cedi and naira only</td><td class="why">The pair that actually moves here, both directions, both sides on mobile money. RMB was tried and dropped for the same reason: negligible volume against a real compliance dependency.</td></tr>
+    <tr><td class="q">Which pairs do we quote?</td><td class="a">Cedi against naira, both directions</td><td class="why">A two-way board is what a bureau de change has always had. Dollars are the next candidate for our book, but on evidence of real volume rather than in advance.</td></tr>
+    <tr><td class="q">How does a trade settle?</td><td class="a">Both ways: fiat straight across, or crypto held in escrow</td><td class="why">Some traders trust each other with money moving directly; some will not. The escrow route is the one the SEC licence covers, so it is gated separately.</td></tr>
+    <tr><td class="q">Which blockchain?</td><td class="a">Tron only, for USDT</td><td class="why">One chain, cheap transfers, no contract of our own. Still owed research: whether local USDT actually sits on Tron.</td></tr>
+    <tr><td class="q">Who holds the crypto?</td><td class="a">Our wallets, a fresh address per trade</td><td class="why">Nothing to audit for the regulator, and one frozen address cannot stop every trade on the platform.</td></tr>
+    <tr><td class="q">What licence do we apply for?</td><td class="a">Trading platform, not exchange</td><td class="why">It is the honest description of the product, and it matches six admitted firms. The SEC decides, not us; the pre-submission conversation decides it fastest.</td></tr>
+    <tr><td class="q">What stops someone walking away?</td><td class="a">A small deposit from both sides, once vendor trading starts</td><td class="why">Not needed on our own book, because we are the risk. For vendor-to-vendor trades it is the only thing that makes cheating more expensive than honesty.</td></tr>
+    <tr><td class="q">What does a badge mean?</td><td class="a">Two levels: checked, and KudiMarket handled</td><td class="why">One badge that reads "safe to send money to" is a guarantee we have not priced. Two labels let us sell the strong promise on the trades we control and be factual on the rest.</td></tr>
+    <tr><td class="q">Who gets admitted as a vendor?</td><td class="a">Hand-vetted individuals and registered businesses</td><td class="why">Identity, address, own-name account, source of funds, Ghana Card match, and company details. Mobile-money agents with years of this trade offline are the natural first pool.</td></tr>
+  </table>
+</div>
+<p class="cap"><b>One rule that follows from the company decision.</b> A sole-proprietor registration in Ghana is not a separate legal person: the money goes to a personal account, our payer-name check must match that person's name rather than the trading name, and any claim against them is a claim against them personally. So the badge records the legal form and the exact account name that must appear as the payer.</p>
+
+<h2>What this does to the regulatory plan</h2>
+
+<div class="card">
+  <div class="bd">
+    <p><b>The order has changed.</b> The Bank of Ghana comes first, because the launch business is buying and selling currency with our own money, which is the activity the FX and remittance rules cover. The Securities and Exchange Commission matters second and specifically, because it covers the escrow route and because we hold traders' crypto. The sandbox application is still worth filing, and 4(5) still requires the pre-submission conversation before it, but it no longer gates the main business.</p>
+    <p><b>Three obligations follow from being the counterparty</b> and none of them exist in the marketplace version: customers' money must be segregated from our own float and reconciled; every buyer and vendor is a customer to be identified, monitored and, where suspicious, reported; and our own treasury positions in three currencies are a business risk the licence application will ask about.</p>
+    <p><b>And nothing exotic is in our book.</b> Cedi and naira both move by mobile money, which is why they are the right two. Every other currency, RMB included, is somebody else's inventory: the platform lists it, the vendor supplies it, and we never hold it. That keeps the treasury in two currencies, the licence narrow, and the Chinese-side question out of the launch entirely.</p>
+  </div>
+</div>
+
+<h2>Still open, and the order I would take them in</h2>
+
+<ol class="steps">
+  <li><span><b>Whether dollars come into our book,</b> and on what evidence: which currency a trader asks for most often that we currently cannot fill, and how often. This is the only plausible next currency, and it should be added to the board on volume rather than in advance.</span></li>
+  <li><span><b>How a non-mobile-money leg reaches the trader,</b> since dollars, euros and pounds do not arrive by MoMo: bank wire, card, wallet or cash hand-off, and what the trader is told to expect and when.</span></li>
+  <li><span><b>The claim window and the dispute desk:</b> how long a trader has to raise a problem, who decides, in which hours, and in which languages. Our own harm catalogue says this is the product's real internal surface.</span></li>
+  <li><span><b>Identity:</b> which KYC source and what liveness check, now that every buyer is a customer. Mobile-money registration names often differ from legal names, and our payer-name matching has to be designed with that, not bolted on after.</span></li>
+  <li><span><b>Limits:</b> per-trade and per-vendor caps, which are also the numbers we would propose to a regulator.</span></li>
+  <li><span><b>Vendor-to-vendor fees:</b> zero to grow the network, or a small fee that pays for the dispute desk.</span></li>
+  <li><span><b>Entity and ownership,</b> because it decides whether we are a foreign applicant under the 30% rule and what the Bank of Ghana application looks like.</span></li>
+</ol>
+
+<nav>
+  <a href="oss-landscape.html">Build or adopt</a>
+  <a href="legal.html">Regulatory brief</a>
+  <a href="fiat-leg.html">Fiat leg</a>
+  <a href="stack.html">The system we build on</a>
+  <a href="index.html">Brand index</a>
+</nav>
+
+<footer>
+  <span><b>Provenance.</b> Every row was decided in an interactive session on 7 Oct 2026, and this page exists because those decisions were otherwise living only in conversation. Where a decision overrode earlier written work, the footer of the affected document should be updated; where this page and another document disagree, this page is the newer statement of the product and the other document is the older reasoning.</span>
+  <span><b>Not yet decided, and therefore not built:</b> the claim window, the desk's hours and languages, the identity source, the limits, vendor fees, the entity, and the Chinese-side RMB arrangement. This document is a record of decisions taken, not of a finished plan.</span>
+</footer>
+
+</body>
+</html>
