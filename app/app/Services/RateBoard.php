@@ -107,6 +107,33 @@ final class RateBoard
     }
 
     /**
+     * An amount in minor units, rendered with its currency's own decimals.
+     *
+     * From the asset table rather than a divisor, because 200000 minor units is 2,000.00 in naira and
+     * 200,000.00 in a currency with no decimals, and hardcoding 100 gets that wrong silently.
+     */
+    public static function formatMoney(int|float|string|null $minorUnits, string $asset): string
+    {
+        if ($minorUnits === null) {
+            return '—';
+        }
+
+        $decimals = self::decimalsFor($asset);
+
+        // Cast to float before dividing. These columns arrive from a raw query as numeric STRINGS --
+        // '200000' -- and PHP's arithmetic on a numeric string, or a float cast that skips the
+        // parentheses, quietly produces 2000 with no decimal places.
+        //
+        // The thousands separator is the other half. number_format defaults to ',' for the separator,
+        // so 2000.00 came out as "2000.00" here and "2,000.00" only after the separator was set
+        // explicitly. Money on a board is read in columns of digits; an unseparated figure is harder
+        // to scan and reads as a different number at a glance.
+        $major = ((float) $minorUnits) / (10 ** $decimals);
+
+        return number_format($major, $decimals, '.', ',').' '.$asset;
+    }
+
+    /**
      * A rate as a person should read it.
      *
      * $minPlaces is a floor, not a fixed width. 148.2 and 148.20 are the same price and a board that

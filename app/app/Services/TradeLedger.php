@@ -27,6 +27,19 @@ final class TradeLedger
         );
     }
 
+    /**
+     * One trade, for the screen that shows it. Null when no such trade exists.
+     *
+     * Read on the trader connection, so the screen is rendered from the same role that will later be
+     * asked to act on it. A screen readable only by the app role would let the UI show something the
+     * trader themselves could not see.
+     */
+    public function trade(int $tradeId): ?object
+    {
+        return DB::connection('pgsql_trader')
+            ->selectOne('select * from trade_view where id = ?', [$tradeId]);
+    }
+
     public function quote(int $tradeId): ?object
     {
         return DB::connection('pgsql_ops')->selectOne(

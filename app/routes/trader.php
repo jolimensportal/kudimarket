@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\BoardController;
+use App\Http\Controllers\TradeController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -17,4 +18,5 @@ use Illuminate\Support\Facades\Route;
  */
 Route::middleware('auth:trader')->prefix('trade')->name('trade.')->group(function (): void {
     Route::get('/board', BoardController::class)->name('board');
+    Route::get('/{trade}', [TradeController::class, 'show'])->whereNumber('trade')->name('show');
 });
