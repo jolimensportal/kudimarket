@@ -49,10 +49,15 @@ class TradeController extends Controller
         } catch (RuntimeException $e) {
             // A refusal is information, not a crash: "someone already moved this" is something a
             // trader can act on. Back to the trade, with the current state on screen.
-            return back()->with('notice', $e->getMessage());
+            return redirect()->route('trade.show', $row->id)->with('notice', $e->getMessage());
         }
 
-        return back()->with('notice', 'Noted. We are checking for your payment.');
+        // By name, not back(). back() follows the Referer header, so a request without one -- a
+        // retried POST, a reopened tab, anything that did not come from the form -- sent the trader to
+        // the site root instead of the trade they just claimed. Success names its destination.
+        return redirect()
+            ->route('trade.show', $row->id)
+            ->with('notice', 'Noted. We are checking for your payment.');
     }
 
     /**

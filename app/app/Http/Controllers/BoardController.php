@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Services\OfferDesk;
 use App\Services\RateBoard;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
@@ -40,7 +41,14 @@ class BoardController extends Controller
             'base' => $from,
             'quote' => $to,
             'ours' => $board->ourRateForDisplay($from, $to),
-            'offers' => $board->offers($to, $from),
+            // From the offer book, not from open vendor_vendor trades.
+            //
+            // The old source read "offers" as any open vendor_vendor trade and ordered them by the RATE
+            // the seller had chosen, so the buyer's board displayed seller-set prices. That is a matching
+            // platform: the buyer picks a stranger's price. brand/product.html rules it out in writing --
+            // KudiMarket quotes its own rate -- so the board now shows what people will ACCEPT, against
+            // our rate, which is a different thing and the thing that is actually true.
+            'offers' => app(OfferDesk::class)->board(),
             'legs' => $board->forPair($from, $to),
         ]);
     }

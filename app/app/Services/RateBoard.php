@@ -17,28 +17,6 @@ use Illuminate\Support\Facades\DB;
 final class RateBoard
 {
     /**
-     * Vendor offers: trades opened against nobody, waiting for a counterparty.
-     *
-     * A trade in state 'open' is an offer, which is why no offers table is needed. When somebody
-     * accepts one it stops being open and becomes a trade with two parties, so the same row does both
-     * jobs without a second concept to keep in sync.
-     */
-    public function offers(string $quote, string $base, int $limit = 20): array
-    {
-        return DB::connection('pgsql_trader')->select(
-            "select id, seller, rate, fiat_amount, fiat_asset
-               from trade_view
-              where state = 'open'
-                and trade_type = 'vendor_vendor'
-                and fiat_asset = ?
-                and deposit_asset = ?
-              order by rate desc
-              limit {$limit}",
-            [$quote, $base]
-        );
-    }
-
-    /**
      * Both directions of a pair, ours only. Empty when we have published nothing.
      *
      * Matched on both legs explicitly rather than with `base_asset = ? or quote_asset = ?`. That
@@ -56,6 +34,27 @@ final class RateBoard
               order by base_asset',
             [$base, $quote, $quote, $base]
         );
+    }
+
+    /**
+     * Every rate currently on the card, keyed "BASE/QUOTE".
+     *
+     * The offer board weighs each open offer against our rate for its own pair, and asking per offer is a
+     * query per row on a screen built for a bad connection.
+     *
+     * @return array<string, object>
+     */
+    public function currentRates(): array
+    {
+        $rates = [];
+
+        foreach (DB::connection('pgsql_trader')->select(
+            'select base_asset, quote_asset, rate, effective_from from current_rate order by base_asset'
+        ) as $row) {
+            $rates[$row->base_asset.'/'.$row->quote_asset] = $row;
+        }
+
+        return $rates;
     }
 
     /** Our own rate for one direction, or null when we have not published one. Null is a real state. */
@@ -88,11 +87,36 @@ final class RateBoard
     }
 
     /**
-     * How many decimal places a currency carries, from the database rather than from PHP.
+     * Format a decimal rate for reading, from a string or a number.
      *
-     * Naira and cedi are two, USDT is six. Getting this wrong by hand is how ₦2,000.00 becomes
-     * ₦200,000.00, so the number is asked of the same table the ledger stores it in.
+     * Ten places, then trailing zeros trimmed but never below the floor. Ten is not arbitrary: the GHS/NGN
+     * leg is 148.20 and wants two, while the NGN/GHS leg is 0.00675676 and needs eight before it says
+     * anything. Rounding both to two turned the second into 0.01, which is not a rate, it is a rounding.
+     *
+     * Display only. The precision that matters is the number STORED, and that is handled where the
+     * number is stored: the rate card holds 18 places and trade.rate was widened to match it.
+     *
+     * An earlier version rounded a decimal string by hand at the decimal point, and rendered 148.2 as
+     * 148.00 and 0.00676 as 0.00, because it lost the whole number's own decimals. A version that
+     * ignored the small-value case rendered the naira leg as 0.01. Bounded formatting is the actual
+     * requirement and neither of those met it.
      */
+    private static function formatDecimalString(int|float|string $rate, int $minPlaces): string
+    {
+        $formatted = number_format((float) $rate, 10, '.', '');
+
+        if (! str_contains($formatted, '.')) {
+            return number_format((float) $rate, $minPlaces, '.', '');
+        }
+
+        [$whole, $decimals] = explode('.', $formatted, 2);
+
+        // Trim trailing zeros, then put back however many the floor demands.
+        $decimals = substr(str_pad(rtrim($decimals, '0'), $minPlaces, '0'), 0, max($minPlaces, strlen(rtrim($decimals, '0'))));
+
+        return $whole.'.'.$decimals;
+    }
+
     public static function decimalsFor(string $asset): int
     {
         $row = DB::connection('pgsql_trader')->selectOne('select decimals from asset where code = ?', [$asset]);
@@ -145,8 +169,18 @@ final class RateBoard
      * Static because the views call it without a service instance, and a static formatter needs no
      * database, so there is nothing to inject.
      */
-    public static function formatRate(float $rate, int $minPlaces = 2): string
+    /**
+     * @param  int|float|string  $rate  a decimal STRING whenever it came from the database. PHP floats are
+     *                                  doubles: 0.006756756756756756 round-trips through one as
+     *                                  0.0067567567567568, and that figure is displayed beside the card rate
+     *                                  it is meant to equal, so the loss is the reader's problem too.
+     */
+    public static function formatRate(int|float|string $rate, int $minPlaces = 2): string
     {
+        if (is_string($rate) && is_numeric($rate)) {
+            return self::formatDecimalString($rate, $minPlaces);
+        }
+
         // Ten places is enough for any pair we will list, and trailing zeros come off afterwards so
         // 0.50 reads as 0.5 rather than 0.5000000000.
         $formatted = rtrim(rtrim(number_format($rate, 10, '.', ''), '0'), '.');

@@ -560,6 +560,12 @@ expect_eq "a seller can publish an offer" "$(sql "select seller from offer where
 expect_eq "it is open and not expired" "$(sql "select expired from open_offer where id=$OF1;")" "f"
 expect_eq "nothing is escrowed by listing" "$(sql "select count(*) from account where owner like 'offer:%';")" "0"
 expect_eq "the offer chain verifies" "$(sql "select verify_offer_chain();")" "t"
+
+# Two sellers in sequence, in the SAME verification pass. One seller per section is what hid the bug where
+# the running hash was carried across sellers: a single-seller chain passes either way.
+sql "select publish_offer('ama','NGN','GHS',90000,0.0060);" >/dev/null
+sql "select publish_offer('ama','NGN','GHS',90000,0.0060);" >/dev/null
+expect_eq "two sellers chain independently and both still verify" "$(sql "select verify_offer_chain();")" "t"
 expect_eq "and the regulator-facing report says so" "$(sql "select offer_chain_ok from integrity_report;")" "t"
 expect_fail "a seller cannot publish an offer for themselves in both directions" \
   "$(astrader "select publish_offer('kwesi','GHS','GHS',1000,1);")" "two different assets"

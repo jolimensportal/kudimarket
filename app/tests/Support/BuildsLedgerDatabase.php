@@ -30,6 +30,7 @@ trait BuildsLedgerDatabase
         '006_rate_card.sql',
         '007_trader_role.sql',
         '008_traders.sql',
+        '009_offer_book.sql',
     ];
 
     protected function buildLedgerDatabase(): void

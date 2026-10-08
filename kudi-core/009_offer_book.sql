@@ -130,11 +130,22 @@ $$;
 -- seller has no predecessor, which is a starting point rather than a gap.
 create or replace function verify_offer_chain() returns boolean language plpgsql stable security definer
 set search_path = public, pg_temp as $$
-declare r record; v_prev bytea; v_expect bytea;
+declare r record; v_prev bytea; v_expect bytea; v_seller text;
 begin
+  -- v_prev is reset at the start of each seller's run.
+  --
+  -- The first version carried one v_prev through a single loop ordered by seller, id and never cleared
+  -- it, so the first offer of every seller after the first was compared against the PREVIOUS seller's
+  -- last hash and reported a break. kudi-core's own tests did not catch it because they used one seller
+  -- per section; the application test publishes as three different traders and found it immediately.
+  -- A per-seller chain needs a per-seller running hash, and the reset is the whole of it.
   for r in select seller, id, base_asset, quote_asset, amount, min_rate, created_at, expires_at,
                    hash, prev_hash
              from offer order by seller, id loop
+    if r.seller is distinct from v_seller then
+      v_prev := null;
+      v_seller := r.seller;
+    end if;
     if r.prev_hash is distinct from v_prev then return false; end if;
     v_expect := digest(coalesce(v_prev, '\x'::bytea) ||
                  convert_to(canonical_offer(r.id, r.seller, r.base_asset, r.quote_asset, r.amount,

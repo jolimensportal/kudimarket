@@ -1,0 +1,73 @@
+@extends('layouts.trader')
+
+@section('title', 'What others are selling')
+
+@section('content')
+    <p><a href="{{ route('trade.offer.position') }}">&larr; Where you stand</a></p>
+
+    <h1>What others are selling</h1>
+
+    <p class="note" style="margin:-4px 0 14px">
+        These are the lowest rates people will accept. Anything they take clears at <strong>our rate</strong>,
+        so a row below our rate still fills &mdash; later.
+    </p>
+
+    @forelse ($offers as $offer)
+        @php
+            $mine = $offer->seller === $me;
+            $pair = $offer->base_asset.'/'.$offer->quote_asset;
+            $board = $rates[$pair] ?? null;
+            $clears = $board !== null && (float) $board->rate >= (float) $offer->min_rate;
+        @endphp
+        <div class="card">
+            <dl>
+                <div>
+                    <dt>{{ $mine ? 'You are selling' : $offer->seller.' is selling' }}</dt>
+                    <dd class="num">{{ \App\Services\RateBoard::formatMoney($offer->amount, $offer->base_asset) }}</dd>
+                </div>
+                <div>
+                    <dt>For</dt>
+                    <dd class="num">{{ $offer->quote_asset }}</dd>
+                </div>
+                <div>
+                    <dt>No less than</dt>
+                    <dd class="num">{{ \App\Services\RateBoard::formatRate($offer->min_rate) }}</dd>
+                </div>
+                <div>
+                    <dt>Our rate now</dt>
+                    <dd class="num">{{ $board ? \App\Services\RateBoard::formatRate($board->rate) : 'not published' }}</dd>
+                </div>
+            </dl>
+
+            @if ($mine)
+                <form method="post" action="{{ route('trade.offer.withdraw', $offer->id) }}">
+                    @csrf
+                    <button type="submit" class="ghost">Withdraw this</button>
+                </form>
+            @elseif (! $board)
+                <p class="note">We have not published a rate for this pair, so nothing here can clear yet.</p>
+            @elseif (! $clears)
+                <p class="note">
+                    Our rate is below what they will accept, so this will not clear until it comes back.
+                    Your currency is not at risk and nothing has been traded.
+                </p>
+            @else
+                <form method="post" action="{{ route('trade.offer.accept', $offer->id) }}">
+                    @csrf
+                    <button type="submit">Take this</button>
+                </form>
+                <p class="note">Taking it opens a trade between you and {{ $offer->seller }}. Both deposits
+                   apply, because this is vendor to vendor and nobody here is KudiMarket.</p>
+            @endif
+        </div>
+    @empty
+        <div class="card">
+            <p>Nobody has anything on offer right now.</p>
+            <p><a href="{{ route('trade.offer.create') }}">Sell currency instead</a></p>
+        </div>
+    @endforelse
+
+    @if (session('notice'))
+        <p class="notice" role="status">{{ session('notice') }}</p>
+    @endif
+@endsection

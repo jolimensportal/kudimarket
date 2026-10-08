@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Http\Controllers\BoardController;
 use App\Http\Controllers\DisputeController;
+use App\Http\Controllers\OfferController;
 use App\Http\Controllers\TradeController;
 use Illuminate\Support\Facades\Route;
 
@@ -19,6 +20,15 @@ use Illuminate\Support\Facades\Route;
  */
 Route::middleware('auth:trader')->prefix('trade')->name('trade.')->group(function (): void {
     Route::get('/board', BoardController::class)->name('board');
+
+    // The seller's side. /sell/new rather than /new so the buy path and the sell path stay legible in the
+    // URL bar: a trader who mistyped one wants to see which they are on before they commit to anything.
+    Route::get('/sell', [OfferController::class, 'position'])->name('offer.position');
+    Route::get('/sell/new', [OfferController::class, 'create'])->name('offer.create');
+    Route::post('/sell/new', [OfferController::class, 'store'])->name('offer.store');
+    Route::get('/offers', [OfferController::class, 'board'])->name('offer.board');
+    Route::post('/offers/{offer}/withdraw', [OfferController::class, 'withdraw'])->whereNumber('offer')->name('offer.withdraw');
+    Route::post('/offers/{offer}/accept', [OfferController::class, 'accept'])->whereNumber('offer')->name('offer.accept');
 
     Route::get('/{trade}', [TradeController::class, 'show'])->whereNumber('trade')->name('show');
     Route::post('/{trade}/claim', [TradeController::class, 'claim'])->whereNumber('trade')->name('claim');

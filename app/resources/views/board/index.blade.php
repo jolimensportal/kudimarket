@@ -40,17 +40,30 @@
     @endif
 
     @if (count($offers) > 0)
-        <h2>Checked vendors</h2>
+        <h2>What people will accept</h2>
         <ul class="offers">
             @foreach ($offers as $offer)
                 <li>
                     <span class="who">{{ $offer->seller }}</span>
                     <span class="badge checked">Checked</span>
-                    <span class="r">{{ \App\Services\RateBoard::formatRate((float) $offer->rate) }}</span>
-                    <span class="num">1 {{ $base }} = {{ \App\Services\RateBoard::formatRate((float) $offer->rate) }} {{ $quote }}</span>
-                    <span class="note">Identity and receiving account verified. If they fail to deliver,
-                       KudiMarket decides the dispute and returns your money, but settlement is not
-                       guaranteed.</span>
+                    @if ($offer->will_not_clear ?? false)
+                        {{-- Shown with its reason rather than hidden. Our rate has moved past what this
+                             seller will take, so taking it now would trade them at a price they refused.
+                             An unexplained grey row teaches nothing; "our rate moved" does. --}}
+                        <span class="note">They want no less than
+                            {{ \App\Services\RateBoard::formatRate($offer->min_rate) }}.
+                            Our rate has moved below that, so this will not clear until it comes back.</span>
+                    @else
+                        <span class="r">{{ \App\Services\RateBoard::formatRate($offer->min_rate) }}</span>
+                        <span class="num">They will take no less than
+                            {{ \App\Services\RateBoard::formatRate($offer->min_rate) }}
+                            1 {{ $offer->base_asset }} = {{ \App\Services\RateBoard::formatRate($offer->min_rate) }}
+                            {{ $offer->quote_asset }}</span>
+                        <span class="note">It clears at our rate, not at the figure above &mdash; that is the
+                            lowest they will accept. Identity and receiving account verified. If they fail
+                            to deliver, KudiMarket decides the dispute and returns your money, but
+                            settlement is not guaranteed.</span>
+                    @endif
                 </li>
             @endforeach
         </ul>
