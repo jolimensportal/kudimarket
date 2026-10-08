@@ -613,6 +613,12 @@ expect_fail "an offer cannot be withdrawn twice" \
 # own rate and is not a matching platform. An acceptance is priced by the CARD, so a seller whose
 # walk-away is met still trades at the board rate, not at the number they typed.
 asprice "select set_rate('NGN','GHS',0.006756756756756756,'pricing@kudimarket.com');" >/dev/null
+# Both parties funded, because a vendor claim takes a deposit from each side and the deposit is 10% of
+# the BASE leg taken in cedi -- for a N120,000 trade that is C12,000, charged in a currency the naira
+# seller may not hold. See the deposit defect noted in the application suite: this is the same arithmetic
+# making a real trade impossible, and it is why these cases have to fund both sides at all.
+sql "select ledger_deposit('kwesi','GHS',9000000,'attest-kwesi');" >/dev/null
+sql "select ledger_deposit('ama','GHS',9000000,'attest-ama');" >/dev/null
 OF3=$(sql "select publish_offer('kwesi','NGN','GHS',200000,0.0060);")
 TRD_V=$(astrader "select accept_offer($OF3,'ama','ama');" 2>&1 | grep -oE '[0-9]+$' | head -1)
 expect_eq "accepting an offer creates a vendor_to_vendor trade" \
@@ -624,6 +630,54 @@ expect_eq "the buyer is whoever accepted" "$(sql "select buyer from trade where 
 expect_eq "accepting consumes the offer" "$(sql "select count(*) from open_offer where id=$OF3;")" "0"
 expect_eq "and records that it was filled, not withdrawn" "$(sql "select reason from offer_withdrawal where offer_id=$OF3;")" "filled"
 expect_eq "the offer chain still verifies" "$(sql "select verify_offer_chain();")" "t"
+
+# ---------------------------------------------------------------- vendor attestation
+# KudiMarket operations confirms a vendor payment. One step, one trade type, and only where we are
+# neither party -- and the last of those is the part worth testing, because the first two are what
+# somebody would expect and the third is what stops this becoming general authority to act for strangers.
+# Each case gets its own trade, and each trade is made by ACCEPTING an offer: an offer id is not a trade
+# id, and the first version of this passed the offer straight to transition_trade and got "no such trade".
+# This block needs a rate on the card, because accept_offer refuses without one -- and it sits BEFORE the
+# rate is published further down, so it publishes its own. Symmetric with the 004 lesson: an empty
+# substitution here silently turned $V1 into nothing and every later assertion failed for that reason.
+asprice "select set_rate('NGN','GHS',0.006756756756756756,'pricing@kudimarket.com');" >/dev/null
+# Prints the TRADE id and nothing else. The first version echoed both the offer id and the trade id, so
+# $V1 came out as "1 2" and every later "where id = $V1" was a syntax error -- which reads as an empty
+# result rather than as the broken substitution that caused it.
+vend() { local o t; o=$(sql "select publish_offer('kwesi','NGN','GHS',120000,0.0060);"); t=$(astrader "select accept_offer($o,'ama','ama');" | tail -1); echo "$t"; }
+
+V1=$(vend); astrader "select transition_trade($V1,'open','paid_claimed','vp1','ama');" >/dev/null
+ops "$V1" paid_claimed paid_attested vp2 ops@kudimarket.com >/dev/null
+expect_eq "operations may attest a vendor payment" "$(sql "select state from trade where id=$V1;")" "paid_attested"
+expect_eq "recorded against the staff member, not a counterparty" \
+  "$(sql "select actor from trade_event where trade_id=$V1 and to_state='paid_attested';")" "ops@kudimarket.com"
+
+V2=$(vend); astrader "select transition_trade($V2,'open','paid_claimed','vp3','ama');" >/dev/null
+expect_fail "a counterparty still may not attest the payment it is owed" \
+  "$(astrader "select transition_trade($V2,'paid_claimed','paid_attested','vp4','ama');")" "may not do"
+# The seller is the RECIPIENT of the buyer's payment, so saying "it arrived" is the seller's to say.
+# What the design forbids is the PAYER attesting -- the buyer, who is owed the naira and must not be the
+# one confirming they sent the cedi. Asserted so the distinction is on the record rather than assumed.
+V2B=$(vend); astrader "select transition_trade($V2B,'open','paid_claimed','vp5b','ama');" >/dev/null
+ops "$V2B" paid_claimed paid_attested vp5 ops@kudimarket.com >/dev/null
+expect_eq "the recipient may attest receipt, as before" "$(sql "select state from trade where id=$V2B;")" "paid_attested"
+
+V3=$(vend)
+# asops, not ops(): the ops() helper discards stdout, so expect_fail was being handed an empty string and
+# failing on every rule it was meant to check.
+expect_fail "and operations may not attest a trade nobody has claimed" \
+  "$(asops "select ops_transition($V3,'open','paid_attested','vp6','ops@kudimarket.com');")" "illegal transition"
+
+V4=$(vend); astrader "select transition_trade($V4,'open','paid_claimed','vp7','ama');" >/dev/null
+ops "$V4" paid_claimed paid_attested vp8 ops@kudimarket.com >/dev/null
+# The window is set here rather than inherited. Earlier in this suite it is zeroed for convenience, which
+# makes an "early release" legal -- so this assertion was passing over a release that should have succeeded
+# and proving nothing. Set, asserted, and put back: trade_policy is shared state.
+sql "update trade_policy set claim_window='5 seconds' where trade_type='vendor_vendor';" >/dev/null
+expect_fail "and the exception does not let operations release early either" \
+  "$(asops "select ops_transition($V4,'paid_attested','released','vp9','ops@kudimarket.com');")" "claim window"
+sql "update trade_policy set claim_window='0 seconds' where trade_type='vendor_vendor';" >/dev/null
+expect_eq "the trade chain verifies through all of it" "$(sql "select verify_trade_chain();")" "t"
 expect_fail "the same offer cannot be sold twice" \
   "$(astrader "select accept_offer($OF3,'ama','ama');")" "no longer open"
 

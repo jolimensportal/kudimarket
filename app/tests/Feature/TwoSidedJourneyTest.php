@@ -78,12 +78,19 @@ class TwoSidedJourneyTest extends TestCase
             'the trade is priced by our rate card, not by the walk-away the seller typed'
         );
 
-        // It claims, which is as far as a vendor-to-vendor trade can currently go. Operations cannot
-        // attest it -- see test_nobody_can_attest_a_vendor_to_vendor_payment -- so asserting a release
-        // here would be asserting something the product does not do.
+        // It settles the whole way, the same as a trade against our own book: the buyer claims, KudiMarket
+        // operations confirms the money arrived, the window elapses, and it releases.
         $this->post("/trade/{$tradeId}/claim");
         $this->assertSame('paid_claimed', $this->stateOf($tradeId));
 
+        app(TradeLedger::class)->attest($tradeId, 'ops@kudimarket.com');
+        $this->assertSame('paid_attested', $this->stateOf($tradeId));
+
+        $this->withClaimWindow('0 seconds', function () use ($tradeId): void {
+            app(TradeLedger::class)->release($tradeId, 'ops@kudimarket.com');
+        });
+
+        $this->assertSame('released', $this->stateOf($tradeId), 'a vendor-to-vendor trade completes');
         $this->assertEveryChainVerifies();
     }
 
@@ -340,65 +347,48 @@ class TwoSidedJourneyTest extends TestCase
         $this->assertSame(10000000, $held, 'each side is holding a deposit of GHS 50,000.00');
     }
 
-    public function test_nobody_can_attest_a_vendor_to_vendor_payment(): void
+    public function test_operations_confirms_a_vendor_payment_and_the_payer_still_cannot(): void
     {
-        /**
-         * A KNOWN DEFECT, pinned so it cannot be forgotten.
-         *
-         * A trade moves open -> paid_claimed -> paid_attested. Attestation is paid_claimed ->
-         * paid_attested and the rule's actor is 'seller'.
-         *
-         * On our own book the seller IS KudiMarket, so the operations branch of the authorisation check
-         * passes and a staff member can confirm the money arrived. On a vendor-to-vendor trade the seller
-         * is the other trader, and the same check reads: operations may act as the seller only when the
-         * seller is us. It is not, so operations are refused.
-         *
-         * That leaves two possible attestors and both are wrong. The counterparty cannot attest, because
-         * attestation exists precisely so that whoever is owed the money is not the person confirming
-         * they sent it -- TradeDesk already refuses that and Task 6 proved it. And nobody else has the
-         * right. So a vendor-to-vendor trade can be opened, funded and claimed, and then it stops for
-         * good, holding both deposits.
-         *
-         * The fix is a rule change -- who may attest when neither party is KudiMarket -- and that is a
-         * control question, not a typo. It is the single thing standing between this build and a working
-         * two-sided market.
-         */
+        // The rule that replaced a dead end. paid_claimed -> paid_attested has actor 'seller', so on our own
+        // book operations could confirm because the seller IS us. On a vendor trade the seller is the other
+        // trader and operations was refused -- and the payer cannot attest either, because attestation
+        // exists so that whoever is owed the money is not the one confirming they sent it. A vendor trade
+        // could be opened, funded, claimed, and then stopped for good holding both deposits.
+        //
+        // KudiMarket operations confirms vendor payments: somebody neutral to the trade looks at the
+        // payment. Narrowly -- one step, and only where we are neither party.
         $desk = app(OfferDesk::class);
 
-        $seller = $this->trader('attest-seller');
+        $seller = $this->trader('confirm-seller');
         $offerId = $desk->publish('NGN', 'GHS', 50000000, '0.0060');
 
-        $buyer = $this->trader('attest-buyer');
+        $buyer = $this->trader('confirm-buyer');
         $tradeId = $desk->accept($offerId);
 
         $this->fund($seller->email, 'GHS', 6000000);
         $this->fund($buyer->email, 'GHS', 6000000);
         $this->actingAs($buyer, 'trader')->post("/trade/{$tradeId}/claim");
+        $this->assertSame('paid_claimed', $this->stateOf($tradeId));
 
-        $this->assertSame('paid_claimed', $this->stateOf($tradeId), 'it can be claimed');
-
-        // Operations, refused.
-        $opsRefused = false;
+        // The payer cannot confirm its own payment, on a vendor trade or any other.
+        $payerRefused = false;
         try {
-            app(TradeLedger::class)->attest($tradeId, 'ops@kudimarket.com');
-        } catch (\RuntimeException) {
-            $opsRefused = true;
+            app(TradeDesk::class)->attestPaid($tradeId, $buyer->email);
+        } catch (\Throwable) {
+            $payerRefused = true;
         }
-        $this->assertTrue($opsRefused, 'operations cannot attest when the seller is not us');
+        $this->assertTrue($payerRefused, 'the party that owes the money may not confirm it arrived');
 
-        // The counterparty, also refused -- and correctly, because they are the one being paid.
-        $buyerRefused = false;
-        try {
-            app(TradeDesk::class)->claimPaid($tradeId, $buyer->email, 'attest-as-buyer');
-        } catch (\RuntimeException) {
-            $buyerRefused = true;
-        }
+        // Operations may, and it is recorded against the staff member.
+        app(TradeLedger::class)->attest($tradeId, 'ops@kudimarket.com');
+        $this->assertSame('paid_attested', $this->stateOf($tradeId));
 
-        $this->assertSame(
-            'paid_claimed',
-            $this->stateOf($tradeId),
-            'the trade cannot get past here'
-        );
+        $actor = DB::connection('pgsql_ops')->selectOne(
+            'select actor from trade_event where trade_id = ? and to_state = ?',
+            [$tradeId, 'paid_attested']
+        )->actor;
+        $this->assertSame('ops@kudimarket.com', $actor, 'recorded against the person who actually looked');
+
         $this->assertEveryChainVerifies();
     }
 
