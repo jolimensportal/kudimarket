@@ -52,17 +52,44 @@ class TradeScreenTest extends TestCase
         $this->assertStringNotContainsString('2,000.00 GHS', $body, 'the naira figure must not be labelled cedi');
     }
 
-    public function test_it_states_the_claim_window_in_words_not_just_a_clock(): void
+    public function test_it_says_plainly_that_disputing_does_not_move_money(): void
     {
-        // The rule the brand constitution records: a locked control must say why it is locked. A bare
-        // timestamp teaches a trader nothing about what they are allowed to do and when.
+        // The rule the brand constitution records: a locked control must say why it is locked, and must not
+        // promise an outcome the system does not produce. This assertion used to pin "You can dispute
+        // until the claim window closes", which was simply untrue: the window gates release, not disputes,
+        // and disputes carry no time limit. It now pins the sentence that is true.
+        $trader = Trader::factory()->create();
+        $this->actingAs($trader, 'trader');
+        $id = app(TradeDesk::class)->openAgainstUs($trader->email, 200000, 148.2);
+
+        // An open trade has not been paid yet, so it gets the other branch: reporting is not open, but
+        // neither is it forbidden. Both branches are checked, because the wrong sentence in EITHER one
+        // is a promise the system does not keep.
+        $this->get("/trade/{$id}")
+            ->assertOk()
+            ->assertSee('You can report a problem while we hold the money')
+            ->assertDontSee('Report a problem</a>');
+
+        $this->post("/trade/{$id}/claim");
+
+        $this->get("/trade/{$id}")
+            ->assertOk()
+            ->assertSee('Report a problem')
+            ->assertSee('does not move your money');
+    }
+
+    public function test_it_never_says_a_trade_settles_by_itself(): void
+    {
+        // paid_attested -> released has actor 'system' and no scheduler is registered, so nothing settles
+        // on its own. Telling a trader it will is how they come back believing their money is in flight
+        // when it is sitting in an escrow row nobody has touched.
         $trader = Trader::factory()->create();
         $this->actingAs($trader, 'trader');
         $id = app(TradeDesk::class)->openAgainstUs($trader->email, 200000, 148.2);
 
         $this->get("/trade/{$id}")
             ->assertOk()
-            ->assertSee('You can dispute until');
+            ->assertDontSee('settles on its own');
     }
 
     public function test_it_shows_the_write_once_event_record(): void

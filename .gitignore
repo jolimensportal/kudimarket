@@ -36,6 +36,9 @@ yarn-error.log*
 
 # The local Postgres cluster lives inside the repo and is gigabytes of binary.
 kudi-core/pgdata/
+# The cluster's server log. It was committed by accident and has been rewritten by every test run since,
+# which puts a wall of timestamped log noise in the diff of any real change.
+kudi-core/pg.log
 
 # macOS
 .DS_Store

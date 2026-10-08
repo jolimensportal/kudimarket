@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\BoardController;
+use App\Http\Controllers\DisputeController;
 use App\Http\Controllers\TradeController;
 use Illuminate\Support\Facades\Route;
 
@@ -21,4 +22,9 @@ Route::middleware('auth:trader')->prefix('trade')->name('trade.')->group(functio
 
     Route::get('/{trade}', [TradeController::class, 'show'])->whereNumber('trade')->name('show');
     Route::post('/{trade}/claim', [TradeController::class, 'claim'])->whereNumber('trade')->name('claim');
+
+    // Disputing is GET to read the form and POST to file it. Deliberately no resolve route for a trader:
+    // adjudication is operations' alone, and the capability is absent rather than refused.
+    Route::get('/{trade}/dispute', [DisputeController::class, 'create'])->whereNumber('trade')->name('dispute');
+    Route::post('/{trade}/dispute', [DisputeController::class, 'store'])->whereNumber('trade')->name('dispute');
 });

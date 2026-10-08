@@ -104,6 +104,14 @@
             margin-bottom: 16px;
         }
         form.pair label { font-size: 14px; color: var(--ink-soft); }
+        textarea {
+            width: 100%; font: inherit; color: var(--ink); padding: 10px 12px;
+            border-radius: 10px; border: 1px solid color-mix(in oklch, var(--plum-900) 20%, var(--bone));
+            background: var(--paper); resize: vertical; min-height: 120px;
+        }
+        textarea:focus-visible { outline: 2px solid var(--plum-600); outline-offset: 1px; }
+        label { display: block; font-size: 14px; font-weight: 600; margin: 14px 0 6px; }
+        .error { color: var(--red); font-size: 14px; margin-top: 6px; }
         select, button, input[type=text] {
             font: inherit; font-size: 16px;
             min-height: 44px;            /* a tap target you can hit on a moving bus */

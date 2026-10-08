@@ -93,15 +93,22 @@ final class TradeDesk
     /** The counterparty says something is wrong. Open, not adjudicated. */
     public function raiseDispute(int $tradeId, string $actor, string $reason): void
     {
-        if (trim($reason) === '') {
+        $reason = trim($reason);
+
+        if ($reason === '') {
             throw new RuntimeException('Say what happened, in your own words.');
         }
 
         // The reason's hash goes in the idempotency key so a resubmission of a *different* reason is a
         // different decision rather than a silent no-op replay of the first one.
+        //
+        // And the reason ITSELF now goes to the database, into the hash chain. It did not used to: the
+        // text was hashed into this key and then discarded, so the permanent record held the fact of a
+        // dispute and the name of the person who raised it, and nothing about what they said. A dispute
+        // whose content is not stored is not a dispute anybody can act on six weeks later.
         $this->call(
-            "select transition_trade(?, 'paid_claimed', 'disputed', ?, ?) as ok",
-            [$tradeId, $this->key($tradeId, 'dispute', substr(hash('sha256', $reason), 0, 12)), $actor],
+            'select transition_trade(?, ?, ?, ?, ?, ?, ?) as ok',
+            [$tradeId, 'paid_claimed', 'disputed', $this->key($tradeId, 'dispute', substr(hash('sha256', $reason), 0, 12)), $actor, null, $reason],
             'The ledger refused that dispute.'
         );
     }

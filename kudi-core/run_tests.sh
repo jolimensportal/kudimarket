@@ -474,6 +474,38 @@ expect_eq "and the stranger added no event" \
 expect_eq "and the claim still belongs to the trader who paid" \
   "$(sql "select actor from trade_event where trade_id=$TRD and to_state='paid_claimed';")" "tr1"
 
+# ---------------------------------------------------------------- the dispute narrative
+# A dispute that records THAT somebody disputed and WHO, but not what they said, is not a dispute. The
+# words are the evidence, so they go in the chain: if the narrative can be edited without breaking the
+# hash, it proves nothing to anybody reading it later.
+# A separate trade: disputing this one would leave $TRD in a state the assertions below expect.
+sql "select ledger_deposit('tr1','GHS',500000,'dtr2');" >/dev/null
+DSP=$(sql "select create_fiat_trade('platform','tr1',null,null,'NGN',200000,148.20,'platform_inventory');")
+astrader "select transition_trade($DSP,'open','paid_claimed','dp1','tr1');" >/dev/null
+expect_eq "a dispute reaches the disputed state" \
+  "$(astrader "select transition_trade($DSP,'paid_claimed','disputed','dp2','tr1',null,'The naira has not arrived at all.'); select state from trade where id=$DSP;" | tail -1)" "disputed"
+expect_eq "the trader's own words are stored" \
+  "$(sql "select narrative from trade_event where trade_id=$DSP and to_state='disputed';")" "The naira has not arrived at all."
+expect_eq "and the trade chain still verifies" "$(sql "select verify_trade_chain();")" "t"
+expect_eq "an event with no narrative stores none" \
+  "$(sql "select coalesce(narrative,'<null>') from trade_event where trade_id=$DSP and to_state='paid_claimed';")" "<null>"
+expect_eq "and a narrative-free event still verifies" "$(sql "select verify_trade_chain();")" "t"
+
+# Rewriting the trader's words as the database owner -- the only actor who can do it -- must break the
+# chain. This is the whole reason the narrative is hashed rather than stored beside it.
+sql "alter table trade_event disable trigger trade_event_append_only; update trade_event set narrative = 'They simply did not pay' where trade_id=$DSP and to_state='disputed';" >/dev/null
+expect_eq "editing the trader's words is detected" "$(sql "select verify_trade_chain();")" "f"
+expect_eq "and the integrity report says the trade chain is broken" "$(sql "select trade_chain_ok from integrity_report;")" "f"
+# Put it back the way the trader said it, by hand. This is the one repair that is legitimate: an operator
+# correcting a database error, as opposed to a person rewriting what a counterparty claimed.
+sql "update trade_event set narrative = 'The naira has not arrived at all.' where trade_id=$DSP and to_state='disputed';" >/dev/null
+expect_eq "restoring the true words restores the chain" "$(sql "select verify_trade_chain();")" "t"
+
+# A trade is disputed or it is not. It does not collect several grievances, so the state machine refuses
+# a second one whatever the reason.
+expect_fail "a trade cannot be disputed twice" \
+  "$(astrader "select transition_trade($DSP,'disputed','disputed','dp3','tr1',null,'and also this');")" "illegal transition"
+
 # Each of these asserts something the trader role must NOT be able to do. Using astrader rather than
 # asops matters: asops would pass for the wrong reason, because ops cannot set a rate either. Only
 # astrader proves the grant did not leak to the wrong account.

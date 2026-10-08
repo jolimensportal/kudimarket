@@ -45,7 +45,7 @@ grant select on trade_view, trade, trade_event, rate_card, current_rate, rate_bo
 -- time this was written with five.
 grant execute on function create_fiat_trade(text, text, text, numeric, text, numeric, numeric, text, text),
                           create_trade(text, text, text, numeric, text),
-                          transition_trade(bigint, text, text, text, text, text),
+                          transition_trade(bigint, text, text, text, text, text, text),
                           verify_chain(), verify_trade_chain(), verify_rate_chain() to kudi_trader;
 
 -- Explicitly NOT granted, and asserted by the suite rather than left for a reader to notice:

@@ -60,9 +60,28 @@
            that is not registered to you is a payment we cannot give you a receipt for.</p>
     </div>
 
+    {{--
+        Both of these sentences were wrong, and were written before the rules behind them were checked.
+
+        "You can dispute until the claim window closes" is not true: the claim window gates RELEASE, not
+        disputes. paid_claimed -> disputed has no time limit, and it should not have one -- money is still
+        being held while a trade sits in that state, so a counterparty who has not been paid yet is exactly
+        who needs to be able to complain.
+
+        "After that the trade settles on its own" is worse. paid_attested -> released has actor 'system',
+        and there is no scheduler registered, so nothing settles on its own. Anything else would tell a
+        trader their money is on its way when it is sitting in an escrow row nobody has touched. It only
+        becomes true when the release job exists.
+    --}}
     <div class="card">
-        <div class="label">Disputes</div>
-        <p>You can dispute until the claim window closes. After that the trade settles on its own.</p>
+        <div class="label">If something is wrong</div>
+        @if ($trade->state === 'paid_claimed')
+            <p>Tell us what happened and operations will look at it. Sending that does not move your money
+               &mdash; it puts the trade in front of somebody.</p>
+            <p><a href="{{ route('trade.dispute', $trade->id) }}">Report a problem</a></p>
+        @else
+            <p>You can report a problem while we hold the money for this trade.</p>
+        @endif
     </div>
 
     <h2>What has happened</h2>

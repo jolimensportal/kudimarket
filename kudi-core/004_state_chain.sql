@@ -34,12 +34,35 @@ alter table trade_event add column hash       bytea;
 create unique index trade_event_seq_uniq on trade_event(trade_id, seq);
 
 -- One canonical string per event. Write and verify MUST use this exact function.
+-- The trader's own account of a dispute.
+--
+-- nullable, because only a dispute carries one: creation, claims and attestations have nothing to
+-- narrate. Before this existed, TradeDesk hashed the trader's reason into the idempotency key and then
+-- threw the text away -- a dispute recorded THAT somebody disputed and WHO, with no record of what they
+-- said, while the screen promised "this is permanent, a regulator can read it".
+--
+-- It lives in trade_event rather than in a side table because a dispute narrative that is not in the
+-- hash chain is editable, and an editable statement of what happened is not evidence of anything.
+alter table trade_event add column narrative text;
+
+
+-- The canonical form every event hash is computed over, so an edit to any field -- including the
+-- narrative -- breaks the chain.
+--
+-- p_narrative is appended ONLY when there is one. Appending unconditionally would change the hash of
+-- every event ever written and invalidate every chain already verified in production; appending only
+-- on presence leaves every narrative-free event hashing exactly as it did before. The seven-argument
+-- callers in 005 still work because the eighth parameter has a default.
+drop function if exists canonical_event(bigint, int, text, text, text, text, timestamptz);
 create function canonical_event(p_trade bigint, p_seq int, p_from text, p_to text,
-                                p_actor text, p_fault text, p_created timestamptz)
+                                p_actor text, p_fault text, p_created timestamptz,
+                                p_narrative text default null)
 returns text language sql immutable as $$
   select p_trade::text || '|' || p_seq::text || '|' || coalesce(p_from,'') || '|' || coalesce(p_to,'')
          || '|' || coalesce(p_actor,'') || '|' || coalesce(p_fault,'')
          || '|' || extract(epoch from p_created)::text
+         || case when coalesce(p_narrative,'') = '' then ''
+                 else '|' || p_narrative end
 $$;
 
 
@@ -86,8 +109,10 @@ end $$;
 
 
 -- ---------------------------------------------------------------- 3. the transition writes a chained event, then the postings
-create or replace function _apply_transition(p_trade bigint, p_from text, p_to text, p_idem text,
-                                             p_actor text, p_ops boolean, p_fault text)
+drop function if exists _apply_transition(bigint, text, text, text, text, boolean, text);
+create function _apply_transition(p_trade bigint, p_from text, p_to text, p_idem text,
+                                  p_actor text, p_ops boolean, p_fault text,
+                                  p_narrative text default null)
 returns void language plpgsql security definer set search_path = public, pg_temp as $$
 declare
   t trade%rowtype; r trade_rule%rowtype; pol trade_policy%rowtype;
@@ -181,11 +206,13 @@ begin
     from trade_event where trade_id = p_trade;
   v_ev := digest(coalesce(v_prev, '\x'::bytea) ||
                  convert_to(canonical_event(p_trade, v_seq, p_from, p_to, p_actor,
-                                            case when v_fault = 'none' then null else v_fault end, v_now), 'UTF8'),
+                                            case when v_fault = 'none' then null else v_fault end, v_now,
+                                            p_narrative), 'UTF8'),
                  'sha256');
-  insert into trade_event(trade_id, idem_key, from_state, to_state, actor, fault, created_at, seq, prev_hash, hash)
+  insert into trade_event(trade_id, idem_key, from_state, to_state, actor, fault, created_at, seq, prev_hash, hash, narrative)
        values (p_trade, p_idem, p_from, p_to, p_actor,
-               case when v_fault = 'none' then null else v_fault end, v_now, v_seq, v_prev, v_ev);
+               case when p_fault = 'none' then null else p_fault end, v_now, v_seq, v_prev, v_ev,
+               nullif(p_narrative, ''));
 
 
   s_av := get_account(t.seller, 'available', coalesce(t.crypto_asset, da));
@@ -245,7 +272,7 @@ begin
       if e.prev_hash is distinct from v_prev then return false; end if;
       v_expect := digest(coalesce(v_prev, '\x'::bytea) ||
                    convert_to(canonical_event(e.trade_id, e.seq, e.from_state, e.to_state, e.actor,
-                                              e.fault, e.created_at), 'UTF8'), 'sha256');
+                                              e.fault, e.created_at, e.narrative), 'UTF8'), 'sha256');
       if v_expect is distinct from e.hash then return false; end if;
       v_prev := e.hash;
     end loop;
@@ -304,9 +331,27 @@ revoke all on integrity_report from public;
 grant select on trade_view, trade_quote, trade, trade_event, trade_policy, trade_rule,
                 account, asset, ledger_tx, posting, integrity_report to kudi_app, kudi_ops;
 
+-- transition_trade, upgraded to carry the trader's own words.
+--
+-- It has to happen HERE rather than in 002, because the body below passes eight arguments to
+-- _apply_transition and the eight-argument version of that function does not exist until the line
+-- above has run. Loading 002 first, this was an error at load time.
+--
+-- Dropped rather than create-or-replaced: in Postgres a changed parameter list is a different
+-- function, so the extra argument cannot be added in place. Dropping takes the kudi_app grant with it,
+-- which is why the grant immediately below names the new seven-argument signature.
+drop function if exists transition_trade(bigint, text, text, text, text, text);
+create function transition_trade(p_trade bigint, p_from text, p_to text, p_idem text,
+                                 p_actor text, p_fault text default null,
+                                 p_narrative text default null)
+returns void language sql security definer set search_path = public, pg_temp as $$
+  select _apply_transition(p_trade, p_from, p_to, p_idem, p_actor, false, p_fault, p_narrative)
+$$;
+
+
 grant execute on function create_trade(text,text,text,numeric,text),
                           create_fiat_trade(text,text,text,numeric,text,numeric,numeric,text,text),
-                          transition_trade(bigint,text,text,text,text,text),
+                          transition_trade(bigint,text,text,text,text,text,text),
                           verify_chain(), verify_trade_chain(), check_balances() to kudi_app;
 
 grant execute on function ops_transition(bigint,text,text,text,text,text),

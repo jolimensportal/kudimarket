@@ -104,6 +104,13 @@ end $$;
 -- ---------------------------------------------------------------- 3. every trade must have a chain
 -- Same body as 004 except for the last check, which no longer lets an empty event list pass. A
 -- trade whose only event was deleted now fails instead of being waved through.
+--
+-- THIS FUNCTION IS DEFINED TWICE IN THE SCHEMA, and only the last definition loaded is the live one.
+-- When the narrative was added to the chain, the copy in 004 was updated and this copy was not -- so the
+-- live verifier hashed seven fields while the writer hashed eight, and every trade that had ever carried
+-- a narrative reported a broken chain. Two definitions of one function is the underlying mistake; the
+-- narrative argument is just what exposed it. If this file ever diverges from 004 again, delete one of
+-- them rather than editing both.
 create or replace function verify_trade_chain() returns boolean language plpgsql stable security definer
 set search_path = public, pg_temp as $$
 declare
@@ -115,7 +122,7 @@ begin
       if e.prev_hash is distinct from v_prev then return false; end if;
       v_expect := digest(coalesce(v_prev, '\x'::bytea) ||
                    convert_to(canonical_event(e.trade_id, e.seq, e.from_state, e.to_state, e.actor,
-                                              e.fault, e.created_at), 'UTF8'), 'sha256');
+                                              e.fault, e.created_at, e.narrative), 'UTF8'), 'sha256');
       if v_expect is distinct from e.hash then return false; end if;
       v_prev := e.hash;
     end loop;
