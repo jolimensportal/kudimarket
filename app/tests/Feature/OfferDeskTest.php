@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Models\Trader;
+use App\Models\User;
 use App\Services\OfferDesk;
+use App\Services\VerificationDesk;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\RateLimiter;
@@ -356,6 +358,36 @@ class OfferDeskTest extends TestCase
         $this->assertStringContainsString('You can still buy from us today', $refused);
     }
 
+    /**
+     * Put a trader through the real check, because the gate reads the verification CHAIN and no longer
+     * trusts trader.verified_at. Applying and deciding through the service is the point: if only the test
+     * harness can make someone a counterparty, then nothing in the product can, which is the bug 010
+     * existed to fix.
+     */
+    protected function check(Trader $trader): void
+    {
+        // Sign the trader in FIRST: apply_for_verification reads the trader guard, and calling it before
+        // one exists fails with "You need to be signed in" -- which is the service refusing to apply on
+        // anybody's behalf, working correctly.
+        Auth::guard('trader')->setUser($trader);
+
+        $desk = VerificationDesk::class;
+        app($desk)->apply('Checked in tests. Ghana Card GHA-000000000-9-9, 1 Test Road Accra, own-name MTN 0240000009, funds from trading.');
+
+        $staff = User::firstOrNew(['email' => 'ops-fixtures@kudimarket.com']);
+        $staff->name = 'Fixtures';
+        $staff->password = bcrypt('kudi-dev-only');
+        $staff->email_verified_at = now();
+        $staff->save();
+
+        $this->actingAs($staff, 'web');
+        app($desk)->decide($trader->email, true, null);
+
+        // Back to the trader: deciding signed the staff member in, and the caller is about to act as the
+        // trader. Two guards, two identities, and the order matters.
+        Auth::guard('trader')->setUser($trader);
+    }
+
     // ---------------------------------------------------------------- helpers
 
     /**
@@ -371,8 +403,7 @@ class OfferDeskTest extends TestCase
         $trader = Trader::factory()->create();
 
         if ($verified) {
-            $trader->verified_at = now();
-            $trader->save();
+            $this->check($trader);
         }
 
         Auth::guard('trader')->setUser($trader);
@@ -392,9 +423,7 @@ class OfferDeskTest extends TestCase
         $trader = Trader::factory()->create([
             'email' => sprintf('%s-%s@example.com', $label, bin2hex(random_bytes(4))),
         ]);
-        $trader->verified_at = now();
-        $trader->save();
-
+        $this->check($trader);
         Auth::guard('trader')->setUser($trader);
 
         return $trader;

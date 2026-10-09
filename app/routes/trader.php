@@ -6,6 +6,7 @@ use App\Http\Controllers\BoardController;
 use App\Http\Controllers\DisputeController;
 use App\Http\Controllers\OfferController;
 use App\Http\Controllers\TradeController;
+use App\Http\Controllers\VerificationController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -23,6 +24,13 @@ Route::middleware('auth:trader')->prefix('trade')->name('trade.')->group(functio
 
     // The seller's side. /sell/new rather than /new so the buy path and the sell path stay legible in the
     // URL bar: a trader who mistyped one wants to see which they are on before they commit to anything.
+    // Getting checked. This is the only route that changes what a trader may DO elsewhere: it decides
+    // whether publish_offer will accept them. It is separate from selling so the route says plainly which
+    // of the two is being asked for.
+    Route::get('/check', [VerificationController::class, 'show'])->name('verification');
+    Route::get('/check/new', [VerificationController::class, 'create'])->name('verification.apply');
+    Route::post('/check/new', [VerificationController::class, 'store'])->name('verification.store');
+
     Route::get('/sell', [OfferController::class, 'position'])->name('offer.position');
     Route::get('/sell/new', [OfferController::class, 'create'])->name('offer.create');
     Route::post('/sell/new', [OfferController::class, 'store'])->name('offer.store');
