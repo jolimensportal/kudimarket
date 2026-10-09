@@ -62,12 +62,14 @@ class TradeScreenTest extends TestCase
         $this->actingAs($trader, 'trader');
         $id = app(TradeDesk::class)->openAgainstUs($trader->email, 200000, 'NGN');
 
-        // An open trade has not been paid yet, so it gets the other branch: reporting is not open, but
-        // neither is it forbidden. Both branches are checked, because the wrong sentence in EITHER one
-        // is a promise the system does not keep.
+        // An OPEN trade cannot be disputed: there is no trade_rule row from open to disputed, so the ledger
+        // would refuse it. This card used to say "You can report a problem while we hold the money" and
+        // offer no link -- which is the worst of both, a promise the ledger does not keep AND no way to act
+        // on it. It now says plainly that nothing has been sent yet, and offers nothing, because that is
+        // the truth.
         $this->get("/trade/{$id}")
             ->assertOk()
-            ->assertSee('You can report a problem while we hold the money')
+            ->assertSee('Nothing has been sent yet')
             ->assertDontSee('Report a problem</a>');
 
         $this->post("/trade/{$id}/claim");
@@ -80,9 +82,13 @@ class TradeScreenTest extends TestCase
 
     public function test_it_never_says_a_trade_settles_by_itself(): void
     {
-        // paid_attested -> released has actor 'system' and no scheduler is registered, so nothing settles
-        // on its own. Telling a trader it will is how they come back believing their money is in flight
-        // when it is sitting in an escrow row nobody has touched.
+        // paid_attested -> released has actor 'system'. There was no scheduler for it, and this test is
+        // why the copy never promised it: telling a trader it will settle on its own is how they come back
+        // believing their money is in flight when it is sitting in an escrow row nobody has touched.
+        //
+        // A sweep now exists (kudi-core/013, trades:release-due, every minute), but it waits out the claim
+        // window and the copy does not name an instant it cannot keep. What must never come back is a
+        // sentence asserting that something happens by itself with no window and no operator involved.
         $trader = Trader::factory()->create();
         $this->actingAs($trader, 'trader');
         $id = app(TradeDesk::class)->openAgainstUs($trader->email, 200000, 'NGN');

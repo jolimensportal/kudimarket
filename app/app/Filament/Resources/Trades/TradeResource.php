@@ -229,6 +229,11 @@ class TradeResource extends Resource
         $rate = static fn ($state) => rtrim(rtrim(number_format((float) $state, 8, '.', ''), '0'), '.');
         $hasCryptoLeg = $quote !== null && $quote->crypto_amount !== null;
 
+        // Fetched ONCE. The events are also rendered by the State record section below, and a trade record
+        // page that reads them twice for two sections is a page that can show one and not the other.
+        $events = $ledger->events($tradeId);
+        $narratives = array_values(array_filter($events, fn ($e) => filled($e->narrative ?? null)));
+
         $terms = [
             TextEntry::make('fiat_display')->label('Fiat leg'),
             TextEntry::make('crypto_display')->label('Crypto leg'),
@@ -278,6 +283,24 @@ class TradeResource extends Resource
             Section::make('Terms')
                 ->columns(3)
                 ->schema($terms),
+            Section::make('What was said')
+                ->description('The trader\'s own words. A dispute nobody can read is a dispute nobody can answer, so this is what an operator reads before deciding where the money goes.')
+                ->schema(array_map(
+                    fn (object $event): TextEntry => TextEntry::make('narrative-'.$event->seq)
+                        ->label(sprintf(
+                            '#%s %s, by %s',
+                            $event->seq,
+                            str_replace('_', ' ', (string) $event->to_state),
+                            $event->actor
+                        ))
+                        ->state((string) $event->narrative)
+                        ->prose(),
+                    $narratives
+                ))
+                // Hidden entirely when nobody said anything, rather than rendered as an empty section with
+                // a heading that promises words and shows none.
+                ->visible($narratives !== []),
+
             Section::make('State record')
                 ->description('Write-once and hash-chained. Each row commits to the one before it, so an edited or deleted row breaks the chain on the integrity page.')
                 ->schema([

@@ -112,14 +112,35 @@
         trader their money is on its way when it is sitting in an escrow row nobody has touched. It only
         becomes true when the release job exists.
     --}}
+    {{--
+        Whether a problem can be reported is a fact about the trade's STATE, and the ledger is the only
+        place that knows it: paid_claimed -> disputed and paid_attested -> disputed exist, and there is no
+        rule from `open`. This card used to say "you can report a problem" in five states and link it in
+        one -- so it promised a route in states where disputing is refused, and stayed silent in
+        paid_attested, which is precisely the state a trader reaches when the payment has been attested and
+        the money still has not arrived. That is the one state where somebody most needs to complain.
+    --}}
+    @php
+        $canDispute = in_array($trade->state, ['paid_claimed', 'paid_attested'], true);
+        $moneyHeld = in_array($trade->state, ['paid_claimed', 'paid_attested', 'disputed'], true);
+    @endphp
+
     <div class="card">
         <div class="label">If something is wrong</div>
-        @if ($trade->state === 'paid_claimed')
-            <p>Tell us what happened and operations will look at it. Sending that does not move your money
+        @if ($canDispute)
+            <p>Tell us what happened and operations will look at it. Reporting it does not move your money
                &mdash; it puts the trade in front of somebody.</p>
             <p><a href="{{ route('trade.dispute', $trade->id) }}">Report a problem</a></p>
+        @elseif ($trade->state === 'disputed')
+            <p>This one is with operations. They will read both accounts and decide where the money goes,
+               and you will see the reason on this page when they have.</p>
+        @elseif ($moneyHeld === false && in_array($trade->state, ['released', 'resolved_release'], true))
+            <p>This trade has settled, so there is nothing held to dispute. If that is not what you
+               expected, report it anyway from
+               <a href="{{ route('trade.board') }}">Rates</a> and we will look at what happened.</p>
         @else
-            <p>You can report a problem while we hold the money for this trade.</p>
+            <p>Nothing has been sent yet, so there is no payment to report. If you have already sent
+               something, tell us and operations will look at it.</p>
         @endif
     </div>
 

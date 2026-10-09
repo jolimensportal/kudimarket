@@ -5,7 +5,11 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Models\Trader;
+use App\Services\OfferDesk;
 use App\Services\TradeDesk;
+use App\Services\TradeLedger;
+use App\Services\VerificationDesk;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
 use Tests\TestCase;
 
@@ -121,6 +125,70 @@ class DisputeTest extends TestCase
 
         $this->assertSame('disputed', $event->to_state);
         $this->assertSame($trader->email, $event->actor);
+    }
+
+    public function test_a_seller_can_report_a_problem_on_their_own_trade(): void
+    {
+        /**
+         * The same bug as the seller being locked out of the trade screen, in a second place.
+         *
+         * TradeController owned a private copy of the party check and DisputeController owned another. The
+         * first was fixed -- a seller was getting "That trade belongs to somebody else" on a trade they are
+         * named on. The second was not, so a seller could still not report a problem.
+         *
+         * And a seller is frequently the party who needs to: on a vendor trade they are the recipient, and
+         * the whole of the Checked tier rests on nobody else being able to say the money reached them. A
+         * rule that let only the buyer complain is a rule that lets the wrong person be robbed quietly.
+         */
+        $offerDesk = app(OfferDesk::class);
+        $seller = $this->checkedTrader('seller-disputes');
+        $offerId = $offerDesk->publish('NGN', 'GHS', 20000000, '0.0060');
+
+        $buyer = $this->checkedTrader('buyer-for-seller-dispute');
+        $tradeId = $offerDesk->accept($offerId);
+
+        // Both sides must be able to post the vendor deposit before the buyer can claim, or the claim is
+        // refused for want of funds and never reaches paid_claimed.
+        $this->fund($seller->email);
+        $this->fund($buyer->email);
+
+        // The BUYER sends the naira and claims; the SELLER is the party who has not been paid.
+        $this->actingAs($buyer, 'trader')->post("/trade/{$tradeId}/claim");
+
+        $this->actingAs($seller, 'trader')
+            ->get("/trade/{$tradeId}/dispute")
+            ->assertOk();
+
+        $this->actingAs($seller, 'trader')
+            ->post("/trade/{$tradeId}/dispute", ['reason' => 'The naira has not reached my account.'])
+            ->assertRedirect();
+
+        $this->assertSame('disputed', $this->stateOf($tradeId));
+    }
+
+    public function test_a_trade_that_is_attested_still_offers_a_way_to_report_a_problem(): void
+    {
+        /**
+         * The state a trader reaches when the payment has been attested and the money still has not
+         * arrived -- and the one state where disputing is legal and the screen said nothing about it.
+         *
+         * The card said "you can report a problem" in five states and linked it in one. paid_attested is
+         * the state where somebody most needs to complain and could not find the link.
+         */
+        \DB::connection('pgsql_admin')->statement("update trade_policy set claim_window = '0 seconds'");
+        $buyer = Trader::factory()->create();
+        $this->actingAs($buyer, 'trader');
+        $tradeId = app(TradeDesk::class)->openAgainstUs($buyer->email, 200000, 'NGN');
+        $this->post("/trade/{$tradeId}/claim");
+        app(TradeLedger::class)->attest($tradeId, 'ops@kudimarket.com');
+
+        $this->assertSame('paid_attested', $this->stateOf($tradeId));
+
+        $screen = $this->actingAs($buyer, 'trader')->get("/trade/{$tradeId}")->assertOk()->getContent();
+
+        $this->assertStringContainsString('Report a problem', $screen,
+            'an attested, unreleased trade must still offer a way to complain');
+        $this->assertStringContainsString('/dispute', $screen, 'and the link must be a real one');
     }
 
     public function test_a_dispute_needs_something_written(): void
@@ -300,6 +368,42 @@ class DisputeTest extends TestCase
             $this->assertNotSame('D', $enabled, 'the append-only trigger was left disabled');
             $this->assertNotSame('R', $enabled, 'the append-only trigger was left disabled');
         }
+    }
+
+    /**
+     * A checked trader, because publishing a vendor offer requires one.
+     *
+     * Applied through the real service rather than by writing verified_at, so a fixture cannot drift from
+     * what the gate actually reads.
+     */
+    /**
+     * Just enough cedi to post a vendor deposit, minted on the operator identity because kudi_ops cannot
+     * mint and the suite asserts that on purpose.
+     */
+    private function fund(string $email): void
+    {
+        \DB::connection('pgsql_admin')->selectOne(
+            'select ledger_deposit(?, ?, ?, ?) as id',
+            [$email, 'GHS', 33784, 'fund-'.bin2hex(random_bytes(6))]
+        );
+    }
+
+    private function checkedTrader(string $label): Trader
+    {
+        $trader = Trader::factory()->create([
+            'email' => sprintf('%s-%s@example.com', $label, bin2hex(random_bytes(4))),
+        ]);
+
+        Auth::guard('trader')->setUser($trader);
+        app(VerificationDesk::class)->apply(
+            'Ghana Card GHA-000000000-1-1. 12 Boundary Road, Accra. Own-name MTN 0240000001. Funds from trading.'
+        );
+        \DB::connection('pgsql_ops')->selectOne(
+            'select decide_verification(?, ?, ?, ?) as ok',
+            [$trader->email, true, null, 'ops@kudimarket.com']
+        );
+
+        return $trader;
     }
 
     private function stateOf(int $tradeId): string

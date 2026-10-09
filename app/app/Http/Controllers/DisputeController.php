@@ -66,10 +66,12 @@ class DisputeController extends Controller
      */
     private function disputableTrade(Request $request, int $trade, TradeLedger $ledger): object
     {
-        $row = $ledger->trade($trade);
+        // Both parties, and by the same method the trade screen uses. A seller is quite often the party
+        // who is waiting to be paid -- on a vendor trade they are the recipient, and the whole of the
+        // Checked tier rests on nobody else being able to say the money reached them -- so a rule that let
+        // only the buyer report a problem was a rule that let the wrong person be robbed quietly.
+        $row = TradeAccess::party($request, $trade, $ledger);
 
-        abort_if($row === null, 404);
-        abort_unless($row->buyer === $request->user('trader')?->email, 403, 'That trade belongs to somebody else.');
         abort_unless(
             in_array($row->state, ['paid_claimed', 'paid_attested'], true),
             422,

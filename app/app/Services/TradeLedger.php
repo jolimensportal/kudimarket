@@ -51,7 +51,7 @@ final class TradeLedger
     public function events(int $tradeId): array
     {
         return DB::connection('pgsql_ops')->select(
-            'select seq, from_state, to_state, actor, fault, created_at
+            'select seq, from_state, to_state, actor, fault, narrative, created_at
                from trade_event where trade_id = ? order by seq', [$tradeId]
         );
     }

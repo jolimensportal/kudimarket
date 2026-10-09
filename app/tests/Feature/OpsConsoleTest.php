@@ -68,6 +68,59 @@ class OpsConsoleTest extends TestCase
             ->assertOk();
     }
 
+    public function test_operations_can_read_what_the_trader_actually_said(): void
+    {
+        /**
+         * The dispute was recorded, hash-chained and tamper-evident -- and invisible to the person who
+         * has to act on it. TradeLedger::events() did not even select the narrative column, and the trade
+         * record page had nowhere to put it.
+         *
+         * That is half a feature. A dispute nobody can read is a dispute nobody can answer, and the test
+         * that pinned the narrative being RECORDED was passing the whole time.
+         */
+        $desk = app(OfferDesk::class);
+        $seller = $this->trader('narrative-seller');
+        $offerId = $desk->publish('NGN', 'GHS', 50000000, '0.0060');
+        $buyer = $this->trader('narrative-buyer');
+        $tradeId = $desk->accept($offerId);
+
+        $this->fund($seller->email, 'GHS', 33784);
+        $this->fund($buyer->email, 'GHS', 33784);
+        $this->actingAs($buyer, 'trader')->post("/trade/{$tradeId}/claim");
+
+        // The SELLER raises it, which is the case that was broken: DisputeController had its own copy of
+        // the ownership check and that copy only allowed the buyer.
+        $this->actingAs($seller, 'trader')
+            ->post("/trade/{$tradeId}/dispute", ['reason' => 'The naira has not reached my account.'])
+            ->assertRedirect();
+
+        $record = $this->actingAs($this->operator(), 'web')
+            ->get("/admin/trades/{$tradeId}")
+            ->assertOk()
+            ->getContent();
+
+        $flat = $this->flat($record);
+
+        $this->assertStringContainsString('What was said', $flat, 'there is a place for it');
+        $this->assertStringContainsString('The naira has not reached my account.', $flat, 'and the words are in it');
+        $this->assertStringContainsString($seller->email, $flat, 'with the name of who said them');
+    }
+
+    public function test_a_trade_with_nothing_said_does_not_render_an_empty_section(): void
+    {
+        // An empty section with a heading that promises words is worse than no section, so it is hidden.
+        $trader = Trader::factory()->create();
+        $this->actingAs($trader, 'trader');
+        $tradeId = app(TradeDesk::class)->openAgainstUs($trader->email, 200000, 'NGN');
+
+        $record = $this->actingAs($this->operator(), 'web')
+            ->get("/admin/trades/{$tradeId}")
+            ->assertOk()
+            ->getContent();
+
+        $this->assertStringNotContainsString('What was said', $this->flat($record));
+    }
+
     public function test_a_vendor_trade_shows_operations_the_agreed_rate_and_what_it_is_worth(): void
     {
         /**
@@ -276,6 +329,23 @@ class OpsConsoleTest extends TestCase
         Auth::guard('trader')->setUser($trader);
 
         return $trader;
+    }
+
+    /** Markup flattened, so assertions are about the words rather than the tags between them. */
+    private function flat(string $html): string
+    {
+        $text = preg_replace('#<(script|style)\b[^>]*>.*?</\1>#si', '', $html) ?? $html;
+
+        return trim(preg_replace('/\s+/', ' ', html_entity_decode(strip_tags($text), ENT_QUOTES)) ?? $text);
+    }
+
+    /** Just enough cedi to post a vendor deposit, minted on the operator identity. */
+    private function fund(string $email, string $asset, int $minorUnits): void
+    {
+        \DB::connection('pgsql_admin')->selectOne(
+            'select ledger_deposit(?, ?, ?, ?) as id',
+            [$email, $asset, $minorUnits, 'fund-'.bin2hex(random_bytes(6))]
+        );
     }
 
     private function operator(): User
