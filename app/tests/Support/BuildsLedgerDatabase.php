@@ -33,6 +33,7 @@ trait BuildsLedgerDatabase
         '009_offer_book.sql',
         '010_verification.sql',
         '011_rate_direction.sql',
+        '012_trade_pair.sql',
     ];
 
     protected function buildLedgerDatabase(): void
@@ -163,6 +164,21 @@ trait BuildsLedgerDatabase
                 'migrate failed against the scratch database: '.Artisan::output()
             );
         }
+
+        // The application tables are created by the OPERATOR, because the application must not be able to
+        // alter its own schema -- but that leaves them owned by a role the application does not use, and
+        // an owner is not an implicit grant. So kudi_app is granted the DML it actually performs.
+        //
+        // This only bites on a genuinely fresh build. A scratch database left over from an earlier run
+        // already had these grants, which is why dropping kudi_test and rebuilding it was enough to turn
+        // 47 tests into "permission denied for table users" -- an error that reads like an authentication
+        // bug and is nothing of the kind. The migrations table is deliberately NOT granted: that is the
+        // permission the operator identity exists to withhold.
+        $this->psql($admin, $database, sprintf(
+            'grant select, insert, update, delete on %s to kudi_app',
+            implode(', ', ['users', 'sessions', 'cache', 'cache_locks', 'jobs', 'job_batches',
+                'failed_jobs', 'password_reset_tokens'])
+        ));
 
         // Belt and braces: a console test that cannot find users would fail for a reason that reads like
         // an authentication bug, which is a miserable thing to debug at 2am.

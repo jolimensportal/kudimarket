@@ -147,6 +147,36 @@ final class RateBoard
      * From the asset table rather than a divisor, because 200000 minor units is 2,000.00 in naira and
      * 200,000.00 in a currency with no decimals, and hardcoding 100 gets that wrong silently.
      */
+    /**
+     * A decimal string in major units, as minor units. The inverse of formatMoney.
+     *
+     * NO FLOATS, deliberately. 0.1 has no exact binary representation, so round-tripping a money amount
+     * through one loses pesewas: 1000.10 comes back as 1000.09, which is the same class of bug as dividing
+     * minor units by a major-per-major rate. Both were real bugs in this codebase.
+     *
+     * The string is parsed, not cast. Anything that is not a plain decimal number is refused rather than
+     * quietly becoming zero, because a buy screen that turns a typo into a trade for nothing is worse than
+     * one that says so.
+     *
+     * @throws \RuntimeException when the string is not a plain positive decimal
+     */
+    public static function toMinor(string $majorAmount, string $asset): int
+    {
+        $decimals = self::decimalsFor($asset);
+        $majorAmount = trim($majorAmount);
+
+        if (preg_match('/^\d{1,12}(\.\d*)?$/', $majorAmount) !== 1) {
+            throw new \RuntimeException(
+                "'{$majorAmount}' is not an amount of {$asset}: digits, and at most a decimal point"
+            );
+        }
+
+        [$whole, $fraction] = array_pad(explode('.', $majorAmount, 2), 2, '');
+        $fraction = substr(str_pad($fraction, $decimals, '0'), 0, $decimals);
+
+        return ((int) $whole) * (10 ** $decimals) + (int) $fraction;
+    }
+
     public static function formatMoney(int|float|string|null $minorUnits, string $asset): string
     {
         if ($minorUnits === null) {

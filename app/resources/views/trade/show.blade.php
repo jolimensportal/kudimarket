@@ -56,27 +56,48 @@
     </div>
 
     {{--
-        This card was one instruction to everybody. On a vendor trade the buyer sends NAIRA to the
-        seller's bank account and the seller sends CEDI to the buyer's mobile money -- kudi-core/003 says so
-        in one sentence -- so telling a buyer to send cedi to a Mobile Money number had them paying in the
-        wrong currency to the wrong party. The figures above this line already knew which side was looking;
-        this did not. Both cards are now written for whoever is reading.
+        WHO OWES WHAT, AND TO WHOM. This card was a hardcoded "Send the cedi to MTN Mobile Money" for
+        everybody, then patched to say naira for a vendor buyer, and was still wrong twice more: on a buy
+        of naira it told the buyer to send cedi, and on a buy of cedi it told a trader to send money rather
+        than naming the currency at all.
+
+        All four versions were the same bug. The currency to send is not a property of the trade, it is a
+        property of THIS PARTY ON THIS SIDE -- and the figures directly above this card already computed
+        it, because forTrade knows who is looking. So it is read from there rather than written out again
+        here, and the label can no longer drift from the number above it.
+
+        Three cases, because they genuinely differ:
+          - a buyer on a vendor trade sends to the SELLER's bank account, and the seller then owes the
+            other currency to the buyer's mobile money.
+          - a buyer on our own book sends to US. That is the "KudiMarket handled" tier: we are the
+            counterparty and delivery is ours.
+          - a seller sends to the BUYER's mobile money, which is the only account on this screen.
     --}}
-    @if ($trade->trade_type === 'vendor_vendor' && $trade->buyer === auth('trader')->user()?->email)
-        <div class="card">
-            <div class="label">Send the naira to</div>
+    @php
+        $sendName = ['GHS' => 'cedi', 'NGN' => 'naira'][$figures['send_asset']] ?? $figures['send_asset'];
+        $receiveName = ['GHS' => 'cedi', 'NGN' => 'naira'][$figures['receive_asset']] ?? $figures['receive_asset'];
+        $isBuyer = $role === 'buyer';
+    @endphp
+
+    <div class="card">
+        @if ($trade->seller === 'platform' && $isBuyer)
+            <div class="label">Send the {{ $sendName }} to us</div>
+            <p class="num" style="margin-top:4px;color:var(--ink);font-weight:600">MTN Mobile Money &middot; 024 000 1122</p>
+            <p>KudiMarket Sim, Adwoa Serwaa. We are the counterparty here, so this {{ $receiveName }} is ours
+               to deliver and our money is at risk until it is. Use your own name as the reference, then tell
+               us it has gone.</p>
+        @elseif ($isBuyer)
+            <div class="label">Send the {{ $sendName }} to</div>
             <p class="num" style="margin-top:4px;color:var(--ink);font-weight:600">{{ $trade->seller }} &middot; bank account on file</p>
-            <p>Use the reference we gave you. {{ $trade->seller }} confirms the naira arrived, and then owes
-               the cedi into your own mobile money account.</p>
-        </div>
-    @else
-        <div class="card">
-            <div class="label">Send the cedi to</div>
+            <p>Use the reference we gave you. {{ $trade->seller }} confirms the {{ $sendName }} arrived, and
+               then owes the {{ $receiveName }} into your own mobile money account.</p>
+        @else
+            <div class="label">Send the {{ $sendName }} to</div>
             <p class="num" style="margin-top:4px;color:var(--ink);font-weight:600">MTN Mobile Money &middot; 024 000 1122</p>
             <p>KudiMarket Sim, Adwoa Serwaa. Use your own name as the reference. A payment from a number
                that is not registered to you is a payment we cannot give you a receipt for.</p>
-        </div>
-    @endif
+        @endif
+    </div>
 
     {{--
         Both of these sentences were wrong, and were written before the rules behind them were checked.

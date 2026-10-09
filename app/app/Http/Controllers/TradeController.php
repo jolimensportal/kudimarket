@@ -22,9 +22,12 @@ class TradeController extends Controller
         $trade = $this->ownedTrade($request, $trade, $ledger);
         $email = $request->user('trader')?->email;
 
+        $role = $trade->seller === $email ? 'seller' : 'buyer';
+
         return view('trade.show', [
             'trade' => $trade,
-            'figures' => TradeFigures::forTrade($trade, $trade->seller === $email ? 'seller' : 'buyer'),
+            'role' => $role,
+            'figures' => TradeFigures::forTrade($trade, $role),
             'events' => $ledger->events($trade->id),
         ]);
     }

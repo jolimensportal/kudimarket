@@ -12,6 +12,16 @@
         so a row below our rate still fills &mdash; later.
     </p>
 
+    {{-- Two tiers, two boards, and the difference is the whole of what we promise. Taking a row here is a
+         CHECKED trade: we verified that seller, we do not guarantee delivery. Buying from us is KUDIMARKET
+         HANDLED: we are the counterparty, our money is at risk and delivery is ours. The vendor board is
+         first because it is what this page is, but the buy link is not buried at the bottom -- it is the
+         only trade here that somebody can be certain about. --}}
+    <div class="card">
+        <p>Want currency without relying on another trader being who they say they are?</p>
+        <p><a href="{{ route('trade.buy.create') }}">Buy from KudiMarket &mdash; we are the counterparty</a></p>
+    </div>
+
     @forelse ($offers as $offer)
         @php
             $mine = $offer->seller === $me;
@@ -64,6 +74,7 @@
         <div class="card">
             <p>Nobody has anything on offer right now.</p>
             <p><a href="{{ route('trade.offer.create') }}">Sell currency instead</a></p>
+            <p><a href="{{ route('trade.buy.create') }}">Or buy from KudiMarket &mdash; we are the counterparty</a></p>
         </div>
     @endforelse
 

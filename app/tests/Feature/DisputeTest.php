@@ -175,7 +175,7 @@ class DisputeTest extends TestCase
         // arrive, and claiming first is what says so.
         $trader = Trader::factory()->create();
         $this->actingAs($trader, 'trader');
-        $id = app(TradeDesk::class)->openAgainstUs($trader->email, 200000, 148.2);
+        $id = app(TradeDesk::class)->openAgainstUs($trader->email, 200000, 'NGN');
 
         $this->post("/trade/{$id}/dispute", ['reason' => 'I am claiming something untrue.']);
 
@@ -245,7 +245,7 @@ class DisputeTest extends TestCase
         $trader = Trader::factory()->create();
         $this->actingAs($trader, 'trader');
 
-        $trader->trade_id = app(TradeDesk::class)->openAgainstUs($trader->email, 200000, 148.2);
+        $trader->trade_id = app(TradeDesk::class)->openAgainstUs($trader->email, 200000, 'NGN');
         $this->post("/trade/{$trader->trade_id}/claim");
 
         return $trader;

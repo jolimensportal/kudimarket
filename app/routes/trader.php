@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Http\Controllers\BoardController;
 use App\Http\Controllers\DisputeController;
 use App\Http\Controllers\OfferController;
+use App\Http\Controllers\BuyController;
 use App\Http\Controllers\TradeController;
 use App\Http\Controllers\VerificationController;
 use Illuminate\Support\Facades\Route;
@@ -37,6 +38,12 @@ Route::middleware('auth:trader')->prefix('trade')->name('trade.')->group(functio
     Route::get('/offers', [OfferController::class, 'board'])->name('offer.board');
     Route::post('/offers/{offer}/withdraw', [OfferController::class, 'withdraw'])->whereNumber('offer')->name('offer.withdraw');
     Route::post('/offers/{offer}/accept', [OfferController::class, 'accept'])->whereNumber('offer')->name('offer.accept');
+
+    // Buying from KudiMarket's own book: we are the counterparty, so this is the tier we guarantee. The
+    // other board routes live above the '/{trade}' wildcard deliberately -- a literal path that starts
+    // with a number-free segment still loses to a number wildcard the moment the segment parses as a digit.
+    Route::get('/buy', [BuyController::class, 'create'])->name('buy.create');
+    Route::post('/buy', [BuyController::class, 'store'])->name('buy.store');
 
     Route::get('/{trade}', [TradeController::class, 'show'])->whereNumber('trade')->name('show');
     Route::post('/{trade}/claim', [TradeController::class, 'claim'])->whereNumber('trade')->name('claim');

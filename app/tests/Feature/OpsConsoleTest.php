@@ -200,7 +200,7 @@ class OpsConsoleTest extends TestCase
         // There is nothing to confirm while a trade is merely open: no money is claimed as sent.
         $trader = Trader::factory()->create();
         Auth::guard('trader')->setUser($trader);
-        $tradeId = app(TradeDesk::class)->openAgainstUs($trader->email, 200000, 148.2);
+        $tradeId = app(TradeDesk::class)->openAgainstUs($trader->email, 200000, 'NGN');
 
         $this->tradesPage()
             ->assertTableActionHidden('attest', record: (string) $tradeId);
@@ -234,7 +234,7 @@ class OpsConsoleTest extends TestCase
         $trader = Trader::factory()->create();
         Auth::guard('trader')->setUser($trader);
 
-        $trader->trade_id = app(TradeDesk::class)->openAgainstUs($trader->email, 200000, 148.2);
+        $trader->trade_id = app(TradeDesk::class)->openAgainstUs($trader->email, 200000, 'NGN');
         app(TradeDesk::class)->claimPaid($trader->trade_id, $trader->email);
 
         return $trader;

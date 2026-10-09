@@ -209,7 +209,7 @@ class FullJourneyTest extends TestCase
         $trader = Trader::factory()->create();
         $this->actingAs($trader, 'trader');
 
-        $trader->trade_id = app(TradeDesk::class)->openAgainstUs($trader->email, $amount, 148.2);
+        $trader->trade_id = app(TradeDesk::class)->openAgainstUs($trader->email, $amount, 'NGN');
         $this->post("/trade/{$trader->trade_id}/claim");
 
         return $trader;

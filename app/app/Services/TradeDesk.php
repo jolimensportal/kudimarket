@@ -26,14 +26,25 @@ final class TradeDesk
      * @param  float  $rate  the agreed rate, quote per one base, as shown to the trader
      * @return int the trade id
      */
-    public function openAgainstUs(string $traderEmail, int $fiatMinorUnits, float $rate): int
+    /**
+     * Buy currency from KudiMarket's own book. We are the counterparty, so this is the tier we guarantee.
+     *
+     * brand/product.html: "Which pairs do we quote? Cedi against naira, BOTH DIRECTIONS." So the trader
+     * says which currency they want to RECEIVE and the service works out the other end. The first version
+     * of this took the rate as an argument and hardcoded a GHS/NGN pair, which meant a trader could buy
+     * naira with cedi and nothing else -- half of what the brand says we sell.
+     *
+     * $receiveMinorUnits is the amount of $receiveAsset the trader wants, in minor units. It is the leg
+     * they receive, and the one stored on the trade; the leg they pay is derived from the published rate.
+     *
+     * The $rate argument is GONE rather than ignored. It was passed by nine tests and used by none of
+     * them, because the rate always came off the card instead -- a parameter that looks authoritative and
+     * is not is how the wrong rate gets set by somebody who believes it is being honoured.
+     */
+    public function openAgainstUs(string $traderEmail, int $receiveMinorUnits, string $receiveAsset): int
     {
-        if ($fiatMinorUnits <= 0) {
+        if ($receiveMinorUnits <= 0) {
             throw new RuntimeException('A trade needs a positive amount.');
-        }
-
-        if ($rate <= 0) {
-            throw new RuntimeException('A trade needs a rate above zero.');
         }
 
         // The constructor takes the counterparty as an argument, so nothing at the database stops a
@@ -47,24 +58,47 @@ final class TradeDesk
             throw new RuntimeException('A trade can only be opened in your own name.');
         }
 
+        $receiveAsset = strtoupper(trim($receiveAsset));
+        if (! in_array($receiveAsset, self::BOOK, true)) {
+            throw new RuntimeException(
+                'We only hold cedi and naira. Dollars, pounds, euros and the CFA franc are vendor supply, '
+                .'and brand/product.html is explicit that we never hold them.'
+            );
+        }
+
+        // The one thing we sell is what the trader does NOT receive. Cedi is the pivot and naira is the
+        // other leg of our book; there is no third currency to pay in.
+        $payAsset = $receiveAsset === 'NGN' ? 'GHS' : 'NGN';
+
         // The rate comes from the rate card, never from the request. A trader who can choose their own
-        // rate can choose their own price, and this service is the only thing standing between the
-        // query string and the ledger.
-        // quote_asset comes back with it and is passed on to create_fiat_trade, which records which asset
-        // the rate counts in. Reading `rate` and leaving quote_asset on the table is what made one rate
-        // column mean two opposite things, and kudi-core/011 exists because of it.
+        // rate can choose their own price, and this service is the only thing standing between the query
+        // string and the ledger. base_asset is what the buyer PAYS and quote_asset what they RECEIVE, which
+        // is the invariant kudi-core/012 checks for all three trade shapes.
+        //
+        // Both halves come back and both are recorded, so the row alone can be converted either way without
+        // anybody re-deriving them. Reading `rate` and leaving the pair on the table is what made one rate
+        // column mean two opposite things; 011 and 012 exist because of it.
         $published = DB::connection('pgsql_trader')->selectOne(
-            'select rate, quote_asset from current_rate where base_asset = ? and quote_asset = ?',
-            ['GHS', 'NGN']
+            'select rate, base_asset, quote_asset from current_rate where base_asset = ? and quote_asset = ?',
+            [$payAsset, $receiveAsset]
         );
 
         if ($published === null) {
-            throw new RuntimeException('We have not published a rate for this pair yet.');
+            throw new RuntimeException(
+                "We have not published a rate for {$payAsset}/{$receiveAsset} yet."
+            );
         }
 
         $id = $this->call(
-            "select create_fiat_trade('platform', ?, null, null, 'NGN', ?, ?, 'platform_inventory', 'GHS', ?) as id",
-            [$traderEmail, $fiatMinorUnits, (float) $published->rate, $published->quote_asset],
+            "select create_fiat_trade('platform', ?, null, null, ?, ?, ?, 'platform_inventory', 'GHS', ?, ?) as id",
+            [
+                $traderEmail,
+                $receiveAsset,
+                $receiveMinorUnits,
+                (float) $published->rate,
+                $published->quote_asset,
+                $published->base_asset,
+            ],
             'The ledger refused to open that trade.'
         );
 
@@ -72,6 +106,13 @@ final class TradeDesk
         // id has to be pulled off it and cast. Casting the object itself throws.
         return (int) ($id->id ?? 0);
     }
+
+    /**
+     * What we hold and quote: cedi against naira, both directions. Everything else is vendor supply.
+     *
+     * @var list<string>
+     */
+    public const BOOK = ['GHS', 'NGN'];
 
     /** The buyer says the money is on its way. */
     public function claimPaid(int $tradeId, string $actor): void

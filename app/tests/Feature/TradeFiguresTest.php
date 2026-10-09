@@ -86,24 +86,36 @@ class TradeFiguresTest extends TestCase
          * N500,000 is then either C13.50 (wrong, divide) or C3,378.38 (right, multiply). The screen said
          * C74,000,000, which is neither, because the real fixture quotes the rate from the other end.
          */
+        // The SELLER on this trade receives the cedi leg, so this is the seller view. Under the uniform
+        // rule the buyer is the one sending naira, which is what the next assertion covers.
         $vendor = TradeFigures::forTrade((object) [
             'id' => 6,
             'fiat_amount' => '50000000',
             'fiat_asset' => 'NGN',
             'rate' => '0.006756756756756756',
-            'rate_quote_asset' => 'GHS',
-        ]);
+            'rate_quote_asset' => 'GHS', 'rate_base_asset' => 'NGN',
+        ], 'seller');
 
         $this->assertSame('3,378.38 GHS', $vendor['send'], 'a vendor rate counts cedi per naira, so multiply');
         $this->assertSame('500,000.00 NGN', $vendor['receive']);
+
+        $buyer = TradeFigures::forTrade((object) [
+            'id' => 6,
+            'fiat_amount' => '50000000',
+            'fiat_asset' => 'NGN',
+            'rate' => '0.006756756756756756',
+            'rate_quote_asset' => 'GHS', 'rate_base_asset' => 'NGN',
+        ], 'buyer');
+
+        $this->assertSame('500,000.00 NGN', $buyer['send'], 'and the buyer is the one paying it');
 
         $platform = TradeFigures::forTrade((object) [
             'id' => 7,
             'fiat_amount' => '50000000',
             'fiat_asset' => 'NGN',
             'rate' => '148.2',
-            'rate_quote_asset' => 'NGN',
-        ]);
+            'rate_quote_asset' => 'NGN', 'rate_base_asset' => 'GHS',
+        ], 'buyer');
 
         $this->assertSame('3,373.82 GHS', $platform['send'], 'a platform rate counts naira per cedi, so divide');
 
@@ -132,6 +144,7 @@ class TradeFiguresTest extends TestCase
             'fiat_asset' => 'NGN',
             'rate' => '0.006756756756756756',
             'rate_quote_asset' => 'GHS',
+            'rate_base_asset' => 'NGN',
         ];
 
         $buyer = TradeFigures::forTrade($trade, 'buyer');
@@ -148,22 +161,49 @@ class TradeFiguresTest extends TestCase
         $this->assertSame($buyer['receive_minor'], $seller['send_minor']);
     }
 
-    public function test_a_platform_trade_keeps_its_existing_wording(): void
+    public function test_both_directions_of_buying_from_us_derive_correctly(): void
     {
-        // platform_inventory is deliberately NOT role-aware. What its fiat leg means is not written down
-        // anywhere in the core, so inventing a direction here would be a guess with a real number on it.
-        // Pinned so the day someone does decide, this test says they changed it on purpose.
-        $trade = (object) [
-            'id' => 9,
-            'trade_type' => 'platform_inventory',
-            'fiat_amount' => '200000',
-            'fiat_asset' => 'NGN',
-            'rate' => '148.2',
-            'rate_quote_asset' => 'NGN',
+        /**
+         * brand/product.html: "Which pairs do we quote? Cedi against naira, BOTH DIRECTIONS."
+         *
+         * This file used to treat platform trades as role-blind, on the comment that their fiat leg was
+         * not documented anywhere and inventing a direction would be a guess with a real number on it.
+         * kudi-core/012 removed the guess by recording both ends of the pair, and then the uniform rule
+         * covers both directions with no special case:
+         *
+         *   buying naira with cedi  base GHS, quote NGN   the trader pays cedi
+         *   buying cedi with naira  base NGN, quote GHS   the trader pays naira
+         */
+        $buyingNaira = (object) [
+            'id' => 10, 'trade_type' => 'platform_inventory',
+            'fiat_amount' => '200000', 'fiat_asset' => 'NGN',
+            'rate' => '148.2', 'rate_base_asset' => 'GHS', 'rate_quote_asset' => 'NGN',
         ];
+        $figures = TradeFigures::forTrade($buyingNaira, 'buyer');
+        $this->assertSame('13.50 GHS', $figures['send'], 'the trader pays cedi');
+        $this->assertSame('2,000.00 NGN', $figures['receive'], 'and receives naira');
 
-        $this->assertSame('13.50 GHS', TradeFigures::forTrade($trade, 'buyer')['send']);
-        $this->assertSame('13.50 GHS', TradeFigures::forTrade($trade, 'seller')['send']);
+        $buyingCedi = (object) [
+            'id' => 11, 'trade_type' => 'platform_inventory',
+            'fiat_amount' => '1350', 'fiat_asset' => 'GHS',
+            'rate' => '0.006756756756756756', 'rate_base_asset' => 'NGN', 'rate_quote_asset' => 'GHS',
+        ];
+        $figures = TradeFigures::forTrade($buyingCedi, 'buyer');
+        $this->assertSame('1,998.00 NGN', $figures['send'], 'the other way round: the trader pays naira');
+        $this->assertSame('13.50 GHS', $figures['receive'], 'and receives cedi');
+    }
+
+    public function test_a_trade_with_no_pair_is_refused_rather_than_assumed(): void
+    {
+        // A rate of 1, or a row written before 012, has no pair to convert with. Assuming is what put
+        // C74,000,000 on a C3,378 trade.
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('no rate pair');
+
+        TradeFigures::forTrade((object) [
+            'id' => 12, 'fiat_amount' => '200000', 'fiat_asset' => 'NGN', 'rate' => '1',
+            'rate_base_asset' => 'NGN', 'rate_quote_asset' => 'NGN',
+        ], 'buyer');
     }
 
     public function test_cedi_value_is_derived_the_same_way_for_everyone_who_asks(): void
@@ -178,11 +218,11 @@ class TradeFiguresTest extends TestCase
          */
         $vendor = (object) [
             'id' => 6, 'trade_type' => 'vendor_vendor', 'fiat_amount' => '50000000', 'fiat_asset' => 'NGN',
-            'rate' => '0.006756756756756756', 'rate_quote_asset' => 'GHS',
+            'rate' => '0.006756756756756756', 'rate_quote_asset' => 'GHS', 'rate_base_asset' => 'NGN',
         ];
         $platform = (object) [
             'id' => 7, 'trade_type' => 'platform_inventory', 'fiat_amount' => '50000000', 'fiat_asset' => 'NGN',
-            'rate' => '148.2', 'rate_quote_asset' => 'NGN',
+            'rate' => '148.2', 'rate_quote_asset' => 'NGN', 'rate_base_asset' => 'GHS',
         ];
 
         $this->assertSame(337838, TradeFigures::cediMinor($vendor));
@@ -196,9 +236,10 @@ class TradeFiguresTest extends TestCase
     public function test_a_rate_quoted_in_neither_leg_is_refused_rather_than_guessed(): void
     {
         // Same reasoning as a zero rate: an authoritative-looking wrong number on a money screen is worse
-        // than a refusal that says what is wrong with the data.
+        // than a refusal that says what is wrong with the data. The pair here is GHS/EUR and the trade
+        // holds naira, which is not one end of it -- so no arithmetic here can be right.
         $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('neither its fiat asset');
+        $this->expectExceptionMessage('is not one end of its GHS/EUR pair');
 
         TradeFigures::forTrade((object) [
             'id' => 8,
@@ -206,7 +247,8 @@ class TradeFiguresTest extends TestCase
             'fiat_asset' => 'NGN',
             'rate' => '148.2',
             'rate_quote_asset' => 'EUR',
-        ]);
+            'rate_base_asset' => 'GHS',
+        ], 'buyer');
     }
 
     /** @return array{send: string, receive: string, send_minor: int, receive_minor: int} */
@@ -249,6 +291,8 @@ class TradeFiguresTest extends TestCase
             'fiat_amount' => (string) $amount,
             'fiat_asset' => $asset,
             'rate' => (string) $rate,
+            'rate_quote_asset' => $asset,
+            'rate_base_asset' => $asset === 'NGN' ? 'GHS' : 'NGN',
         ]);
     }
 }

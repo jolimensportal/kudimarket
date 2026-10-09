@@ -100,7 +100,8 @@ $ama = Trader::where("email", "ama@example.com")->firstOrFail();
 Auth::guard("trader")->setUser($ama);
 $open = DB::connection("pgsql_trader")->select("select id from trade where buyer = ? and state = ?", [$ama->email, "open"]);
 if (! count($open)) {
-    echo "   opened trade #" . app(TradeDesk::class)->openAgainstUs($ama->email, 75000, 148.2) . "\n";
+    # The third argument is now the currency Ama RECEIVES, not a rate: the rate always came off the card.
+    echo "   opened trade #" . app(TradeDesk::class)->openAgainstUs($ama->email, 75000, "NGN") . "\n";
 }
 '
 

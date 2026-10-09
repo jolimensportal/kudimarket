@@ -21,7 +21,7 @@ ops()  { sql "select ops_transition($1,'$2','$3','$4','$5'${6:+,'$6'});" >/dev/n
 
 
 dropdb --if-exists "$DB" >/dev/null 2>&1; createdb "$DB" || exit 1
-for f in 001_core.sql 002_trade_types.sql 003_fiat_leg.sql 004_state_chain.sql 005_creation_anchor.sql 006_rate_card.sql 007_trader_role.sql 008_traders.sql 009_offer_book.sql 010_verification.sql 011_rate_direction.sql; do
+for f in 001_core.sql 002_trade_types.sql 003_fiat_leg.sql 004_state_chain.sql 005_creation_anchor.sql 006_rate_card.sql 007_trader_role.sql 008_traders.sql 009_offer_book.sql 010_verification.sql 011_rate_direction.sql 012_trade_pair.sql; do
   psql -X -q -v ON_ERROR_STOP=1 -d "$DB" -f "$HERE/$f" >/dev/null || { echo "schema $f failed"; exit 1; }
 done
 sql "insert into asset values ('USDT',6),('GHS',2);" >/dev/null
@@ -457,7 +457,7 @@ expect_eq "and the report now carries it" "$(asapp "select rate_chain_ok from in
 echo "== a trader can trade and cannot judge"
 asprice "select set_rate('GHS','NGN',148.20,'pricing@kudimarket.com');" >/dev/null
 sql "select ledger_deposit('tr1','GHS',500000,'dtr1');" >/dev/null
-TRD=$(sql "select create_fiat_trade('platform','tr1',null,null,'NGN',200000,148.20,'platform_inventory');")
+TRD=$(sql "select create_fiat_trade('platform','tr1',null,null,'NGN',200000,148.20,'platform_inventory','GHS','NGN','GHS');")
 expect_eq "trader can open a trade against us" "$(sql "select state from trade where id=$TRD;")" "open"
 expect_eq "trader can claim their own payment" \
   "$(astrader "select transition_trade($TRD,'open','paid_claimed','tc1','tr1'); select state from trade where id=$TRD;" | tail -1)" "paid_claimed"
@@ -481,7 +481,7 @@ expect_eq "and the claim still belongs to the trader who paid" \
 # hash, it proves nothing to anybody reading it later.
 # A separate trade: disputing this one would leave $TRD in a state the assertions below expect.
 sql "select ledger_deposit('tr1','GHS',500000,'dtr2');" >/dev/null
-DSP=$(sql "select create_fiat_trade('platform','tr1',null,null,'NGN',200000,148.20,'platform_inventory');")
+DSP=$(sql "select create_fiat_trade('platform','tr1',null,null,'NGN',200000,148.20,'platform_inventory','GHS','NGN','GHS');")
 astrader "select transition_trade($DSP,'open','paid_claimed','dp1','tr1');" >/dev/null
 expect_eq "a dispute reaches the disputed state" \
   "$(astrader "select transition_trade($DSP,'paid_claimed','disputed','dp2','tr1',null,'The naira has not arrived at all.'); select state from trade where id=$DSP;" | tail -1)" "disputed"
@@ -800,7 +800,7 @@ echo "== the deposit is a share of the trade's VALUE, not of the base leg"
 sql "insert into asset values ('NGN',2);" >/dev/null
 sql "select ledger_deposit('dv1','GHS',100000,'dep-dv1'); select ledger_deposit('dw1','GHS',100000,'dep-dw1');" >/dev/null
 # 500,000 minor naira at 0.0067567... cedi per naira is 3,378 minor cedi, so a 10% deposit is 337.
-DV=$(sql "select create_fiat_trade('dv1','dw1',null,null,'NGN',500000,0.006756756756756756,'vendor_vendor');")
+DV=$(sql "select create_fiat_trade('dv1','dw1',null,null,'NGN',500000,0.006756756756756756,'vendor_vendor','GHS','GHS','NGN');")
 # The deposit is taken when the buyer claims, which is where a fiat-only trade first has both parties on
 # the hook. There is no crypto leg to escrow, so open -> escrowed is refused outright.
 tt $DV open paid_claimed dvc dw1
@@ -832,8 +832,8 @@ expect_eq "and it is the quote asset of the pair the offer was priced from" \
   "$(sql "select rate_quote_asset from trade where id=$DT and rate = 0.006756756756756756;")" "GHS"
 
 # The platform shape: rate quoted in the fiat asset itself.
-PT=$(sql "select create_fiat_trade('platform','dw5',null,null,'NGN',200000,148.2,'platform_inventory');")
-expect_eq "a trade that says nothing records its own fiat asset" \
+PT=$(sql "select create_fiat_trade('platform','dw5',null,null,'NGN',200000,148.2,'platform_inventory','GHS','NGN','GHS');")
+expect_eq "a nine-argument caller is untouched and records its own fiat asset" \
   "$(sql "select rate_quote_asset from trade where id=$PT;")" "NGN"
 
 expect_eq "the two shapes are now distinguishable from the row alone" \
@@ -844,6 +844,64 @@ expect_eq "a nine-argument caller is untouched and gets its fiat asset" \
   "$(sql "select rate_quote_asset from trade where id=$OT;")" "NGN"
 expect_eq "and its deposit asset is still cedi, which 011 must not have cost it" \
   "$(sql "select deposit_asset from trade where id=$OT;")" "GHS"
+
+echo "== the pair, so both currencies on a trade are named rather than inferred"
+# 011 recorded what the rate COUNTS IN. It did not record the other end of the pair, which left every
+# consumer inferring it -- and the inference was hardcoded to cedi, because until now cedi was the only
+# currency a buyer could receive from us. brand/product.html settles the product question: "Which pairs do
+# we quote? Cedi against naira, BOTH DIRECTIONS." A trader who buys cedi with naira receives a currency
+# the app had no stored fact about.
+#
+# The invariant this file relies on, checked against all three existing shapes rather than assumed:
+#
+#   vendor (offer NGN/GHS)   buyer pays NGN, receives GHS   pair NGN/GHS
+#   platform buy naira       buyer pays GHS, receives NGN   pair GHS/NGN
+#   platform buy cedi        buyer pays NGN, receives GHS   pair NGN/GHS
+#
+# The buyer always pays the BASE leg. That is not a coincidence to be leaned on quietly -- it is what
+# makes one rule serve every trade, and it is asserted below rather than described.
+sql "insert into asset values ('NGN',2);" >/dev/null
+set_rate() { sql "select set_rate('$1','$2',$3,'pricing@kudimarket.com');" >/dev/null; }
+set_rate GHS NGN 148.2
+set_rate NGN GHS 0.006756756756756756
+
+# The trader has to exist before it can apply to be checked, so the insert comes first.
+sql "insert into trader(email,name,phone,password) values ('pair@e.com','Pair Test','0240000000','x') on conflict (email) do nothing;" >/dev/null
+sql "select apply_for_verification('pair@e.com','Ghana Card GHA-1. 12 Boundary Road Accra. Own-name MTN 0240000000. Funds from trading.');" >/dev/null
+sql "select decide_verification('pair@e.com',true,null,'ops@kudimarket.com');" >/dev/null
+
+# Buying NAIRA with cedi: pays GHS, receives NGN.
+sql "select publish_offer('pair@e.com','NGN','GHS',50000000,0.0060,interval '15 minutes');" >/dev/null
+sql "select accept_offer((select max(id) from offer),'pair-buyer@e.com','pair-buyer@e.com');" >/dev/null
+NV=$(sql "select max(id) from trade where trade_type = 'vendor_vendor';")
+expect_eq "a vendor trade names both ends of its pair" \
+  "$(sql "select rate_base_asset||'/'||rate_quote_asset from trade where id=$NV;")" "NGN/GHS"
+expect_eq "the base is the currency the buyer pays" \
+  "$(sql "select rate_base_asset from trade where id=$NV;")" "NGN"
+
+# Buying NAIRA from us: pays GHS, receives NGN. The pair is the other way round.
+BN=$(sql "select create_fiat_trade('platform','pair-buyer@e.com',null,null,'NGN',200000,148.2,'platform_inventory','GHS','NGN','GHS');")
+expect_eq "buying naira with cedi names the cedi-naira pair" \
+  "$(sql "select rate_base_asset||'/'||rate_quote_asset from trade where id=$BN;")" "GHS/NGN"
+
+# Buying CEDI from us: pays NGN, receives GHS. Same rate card row as the vendor trade, opposite side of it.
+BC=$(sql "select create_fiat_trade('platform','pair-buyer@e.com',null,null,'GHS',1350,0.006756756756756756,'platform_inventory','GHS','GHS','NGN');")
+expect_eq "buying cedi with naira names the naira-cedi pair" \
+  "$(sql "select rate_base_asset||'/'||rate_quote_asset from trade where id=$BC;")" "NGN/GHS"
+expect_eq "and the cedi amount it received is in the cedi leg" \
+  "$(sql "select fiat_amount = 1350 and fiat_asset = 'GHS' from trade where id=$BC;")" "t"
+
+# Naira to naira at 148.2 is the kind of mistake that looks fine on a form: both ends filled in, a real
+# rate, and no pair at all. A rate of 1 is exempt, because 1 is the placeholder for "no conversion here"
+# rather than a conversion between a currency and itself.
+expect_fail "a pair whose two ends are the same is refused, because a rate would mean nothing" \
+  "$(sql "select create_fiat_trade('platform','pair-buyer@e.com',null,null,'NGN',200000,148.2,'platform_inventory','GHS','NGN','NGN');")" \
+  "different assets"
+
+EX1=$(sql "select create_fiat_trade('platform','pair-buyer@e.com',null,null,'NGN',300000,1,'platform_inventory','GHS','NGN','NGN');")
+expect_eq "a single-unit rate is exempt, being a placeholder rather than a conversion" \
+  "$(sql "select rate::text from trade where id=$EX1;")" "1.000000000000000000"
+
 
 echo "== integrity"
 expect_eq "cached balances equal sum of postings" "$(sql "select count(*) from check_balances();")" "0"

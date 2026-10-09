@@ -21,106 +21,126 @@ namespace App\Services;
 final class TradeFigures
 {
     /**
-     * @param  object  $trade  a trade_view row: needs fiat_amount, fiat_asset, rate and rate_quote_asset
-     * @param  string  $viewer  'buyer' or 'seller' -- which side of the trade is looking at this screen
-     * @return array{send: string, receive: string, send_minor: int, receive_minor: int}
-     */
-    /**
-     * What the trade is worth in cedi, in minor units, with no opinion about who is looking.
+     * Convert an amount between the two ends of a trade's rate pair.
      *
-     * One place knows which way the rate points, because two places is how the same currency bug gets
-     * written twice. forTrade uses this for its arithmetic, and the operations console uses it to show an
-     * agreed value -- there is no buyer or seller to ask on that screen, so it is deliberately the neutral
-     * question rather than one of the two views.
+     * rate is quote per base, so converting INTO the quote multiplies and into the base divides. Both ends
+     * come from the row -- rate_base_asset and rate_quote_asset, recorded by kudi-core/012 -- so nothing
+     * here is hardcoded to cedi. That hardcoding was the bug: a trader buying cedi with naira receives a
+     * currency the old code had no stored fact about, so it assumed.
      *
-     * @throws \RuntimeException when the rate counts in neither cedi nor the fiat leg
+     * @return array{0: int, 1: string} the amount in minor units, and the asset it is now in
      */
-    public static function cediMinor(object $trade): int
+    public static function convert(object $trade, int $minorUnits, string $targetAsset): array
     {
-        $rate = (float) $trade->rate;
+        $base = $trade->rate_base_asset ?? null;
+        $quote = $trade->rate_quote_asset ?? null;
+        $from = $trade->fiat_asset;
 
+        if ($base === null || $quote === null || $base === $quote) {
+            // No pair, or a pair whose ends are the same -- a rate of 1 is the placeholder for "no
+            // conversion here". Either way there is nothing to convert with, and inventing a conversion
+            // is how this file shipped four wrong figures.
+            throw new \RuntimeException(
+                "trade {$trade->id} has no rate pair to convert between, so {$targetAsset} cannot be derived"
+            );
+        }
+
+        if ($from !== $base && $from !== $quote) {
+            throw new \RuntimeException(
+                "trade {$trade->id} holds {$from}, which is not one end of its {$base}/{$quote} pair"
+            );
+        }
+
+        if ($targetAsset !== $base && $targetAsset !== $quote) {
+            throw new \RuntimeException(
+                "trade {$trade->id} cannot be converted to {$targetAsset}: its pair is {$base}/{$quote}"
+            );
+        }
+
+        // Converting a leg to itself is the identity, NOT the rate. Without this the leg that happens to be
+        // stored got multiplied by the rate on its way to being reported -- so N200,000 came back as
+        // N296,400 at a rate of 148.2, which is a number nobody on earth asked for.
+        if ($from === $targetAsset) {
+            return [$minorUnits, $from];
+        }
+
+        $rate = (float) $trade->rate;
         if ($rate <= 0) {
+            // A trade with no rate is a data problem, not something to paper over with a zero. Guessing
+            // here would render a real amount to send as 0.00.
             throw new \RuntimeException("trade {$trade->id} has no usable rate");
         }
 
-        $quoteAsset = $trade->rate_quote_asset ?? $trade->fiat_asset;
-        $fiatMajor = ((int) $trade->fiat_amount) / (10 ** RateBoard::decimalsFor($trade->fiat_asset));
+        // Major units in the middle, because the rate compares majors to majors. Dividing minor units by a
+        // major-per-major rate is out by a factor of a hundred, which is the first version of this file.
+        $major = $minorUnits / (10 ** RateBoard::decimalsFor($from));
+        $converted = $targetAsset === $quote ? $major * $rate : $major / $rate;
 
-        $cediMajor = match ($quoteAsset) {
-            'GHS' => $fiatMajor * $rate,
-            $trade->fiat_asset => $fiatMajor / $rate,
-            default => throw new \RuntimeException(
-                "trade {$trade->id} has a rate quoted in {$quoteAsset}, which is neither its fiat asset "
-                ."({$trade->fiat_asset}) nor cedi, so the cedi side cannot be derived"
-            ),
-        };
-
-        return (int) round($cediMajor * (10 ** RateBoard::decimalsFor('GHS')));
+        return [(int) round($converted * (10 ** RateBoard::decimalsFor($targetAsset))), $targetAsset];
     }
 
-    public static function forTrade(object $trade, string $viewer = 'seller'): array
+    /**
+     * What the trade is worth in cedi, in minor units, with no opinion about who is looking.
+     *
+     * The operations console asks the same question this does, which is the reason it is a method rather
+     * than a line copied across: two implementations of one currency rule is how one of them goes stale.
+     *
+     * @throws \RuntimeException when the trade has no pair, or its pair does not include cedi
+     */
+    public static function cediMinor(object $trade): int
     {
-        $receiveMinor = (int) $trade->fiat_amount;
-        // A trade with no usable rate is a data problem, not something to paper over with a zero, and
-        // cediMinor refuses it rather than returning a rate of zero.
-        //
-        // WHICH WAY THE RATE POINTS is decided once, in cediMinor(), and asked for here rather than
-        // reimplemented. Two implementations of the same currency rule is how one of them ends up stale:
-        // this file and the operations console both need it, and the bug that started all of it was
-        // exactly one rule living in one place and the rest of the app guessing.
-        //
-        // rate is "how many rate_quote_asset per one unit of the other asset in the pair". The core has
-        // always stored two rates in this one column, quoted from opposite ends, and this class had to
-        // assume which one it was looking at -- so it assumed the platform way and divided, always.
-        //
-        //   platform_inventory   148.2 NGN per GHS, fiat_asset NGN -> naira / 148.2  = cedi.  Divide.
-        //   vendor_vendor        0.0067567 GHS per NGN, fiat_asset NGN -> naira * 0.0067 = cedi. Multiply.
-        //
-        // Both rows read "fiat_amount 500000, fiat_asset NGN", so the wrong guess was invisible in the data
-        // and 21904x wrong on the screen. kudi-core/011 records the direction on the row.
-        $sendMinor = self::cediMinor($trade);
+        [$minor] = self::convert($trade, (int) $trade->fiat_amount, 'GHS');
 
-        // WHICH WAY ROUND, which depends on whose screen this is.
-        //
-        // kudi-core/003 states the vendor flow in one sentence: "A buyer in Accra pays 300,000 naira into
-        // a seller's Nigerian bank account; the seller owes cedis into the buyer's mobile money." So on a
-        // vendor trade the BUYER sends fiat_asset and receives the cedi, and the seller is the exact mirror.
-        //
-        // This class used to hand both of them the seller's view -- "You send GHS" -- because it was never
-        // told who was looking. The numbers were right and the labels were backwards, so the buyer was
-        // told to send cedi to a Nigerian bank account while holding the naira, and the instruction printed
-        // under the figures said "Send the cedi to MTN Mobile Money", which is the seller's instruction.
-        //
-        // Only vendor_vendor is role-aware, because it is the only shape whose direction is written down
-        // anywhere. platform_inventory keeps today's wording: what its fiat leg means is not documented,
-        // and inventing a rule for it here would be a guess with a real number attached. Flagged rather
-        // than fixed.
-        $isVendor = ($trade->trade_type ?? null) === 'vendor_vendor';
+        return $minor;
+    }
 
-        if ($isVendor && $viewer === 'seller') {
-            return [
-                'send' => RateBoard::formatMoney($sendMinor, 'GHS'),
-                'receive' => RateBoard::formatMoney($receiveMinor, $trade->fiat_asset),
-                'send_minor' => $sendMinor,
-                'receive_minor' => $receiveMinor,
-            ];
+    /**
+     * What each side of a trade sends and receives.
+     *
+     * ONE RULE, and it is the reason this file needs no special cases:
+     *
+     *   THE BUYER PAYS THE BASE LEG AND RECEIVES THE QUOTE LEG.
+     *
+     * Checked against all three shapes rather than assumed, because the whole file rests on it:
+     *
+     *   vendor, offer NGN/GHS     buyer pays NGN, receives GHS   -> base NGN,  quote GHS
+     *   platform, buying naira    buyer pays GHS, receives NGN   -> base GHS,  quote NGN
+     *   platform, buying cedi     buyer pays NGN, receives GHS   -> base NGN,  quote GHS
+     *
+     * The vendor flow stores the naira leg and the platform flow stores the cedi leg, and both fall out of
+     * the same sentence. Only the stored leg differs, and that is just which of the two numbers was kept.
+     *
+     * $viewer is 'buyer' or 'seller'. On a platform trade the trader is whichever side they are -- our book
+     * makes them the buyer -- and on a vendor trade they are one or the other, which is what the two
+     * directions of the same screen are.
+     *
+     * @param  object  $trade  a trade_view row: needs fiat_amount, fiat_asset, rate, rate_quote_asset
+     *                         and rate_base_asset
+     * @return array{send: string, receive: string, send_minor: int, receive_minor: int, send_asset: string, receive_asset: string}
+     */
+    public static function forTrade(object $trade, string $viewer = 'buyer'): array
+    {
+        $base = $trade->rate_base_asset ?? null;
+        $quote = $trade->rate_quote_asset ?? null;
+
+        if ($base === null || $quote === null || $base === $quote) {
+            throw new \RuntimeException("trade {$trade->id} has no rate pair, so the two sides cannot be named");
         }
 
-        if ($isVendor) {
-            // The buyer, on a vendor trade: sends the naira, receives the cedi.
-            return [
-                'send' => RateBoard::formatMoney($receiveMinor, $trade->fiat_asset),
-                'receive' => RateBoard::formatMoney($sendMinor, 'GHS'),
-                'send_minor' => $receiveMinor,
-                'receive_minor' => $sendMinor,
-            ];
-        }
+        $sendAsset = $viewer === 'seller' ? $quote : $base;
+        $receiveAsset = $viewer === 'seller' ? $base : $quote;
+        $stored = (int) $trade->fiat_amount;
+
+        [$sendMinor, $sendAsset] = self::convert($trade, $stored, $sendAsset);
+        [$receiveMinor, $receiveAsset] = self::convert($trade, $stored, $receiveAsset);
 
         return [
-            'send' => RateBoard::formatMoney($sendMinor, 'GHS'),
-            'receive' => RateBoard::formatMoney($receiveMinor, $trade->fiat_asset),
+            'send' => RateBoard::formatMoney($sendMinor, $sendAsset),
+            'receive' => RateBoard::formatMoney($receiveMinor, $receiveAsset),
             'send_minor' => $sendMinor,
             'receive_minor' => $receiveMinor,
+            'send_asset' => $sendAsset,
+            'receive_asset' => $receiveAsset,
         ];
     }
 }

@@ -235,7 +235,7 @@ class SettlementTest extends TestCase
         $trader = Trader::factory()->create();
         $this->actingAs($trader, 'trader');
 
-        $trader->trade_id = app(TradeDesk::class)->openAgainstUs($trader->email, 200000, 148.2);
+        $trader->trade_id = app(TradeDesk::class)->openAgainstUs($trader->email, 200000, 'NGN');
 
         return $trader;
     }

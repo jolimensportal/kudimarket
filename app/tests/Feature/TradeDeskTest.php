@@ -24,7 +24,7 @@ class TradeDeskTest extends TestCase
         $trader = Trader::factory()->create();
         $this->actingAs($trader, 'trader');
 
-        $id = app(TradeDesk::class)->openAgainstUs($trader->email, 200000, 200000.0);
+        $id = app(TradeDesk::class)->openAgainstUs($trader->email, 200000, 'NGN');
 
         $row = \DB::connection('pgsql_trader')->selectOne('select * from trade_view where id = ?', [$id]);
 
@@ -44,7 +44,7 @@ class TradeDeskTest extends TestCase
         $trader = Trader::factory()->create();
         $this->actingAs($trader, 'trader');
 
-        $id = app(TradeDesk::class)->openAgainstUs($trader->email, 200000, 200000.0);
+        $id = app(TradeDesk::class)->openAgainstUs($trader->email, 200000, 'NGN');
 
         $events = \DB::connection('pgsql_trader')->select(
             'select seq, from_state, to_state, actor from trade_event where trade_id = ? order by seq',
@@ -65,7 +65,7 @@ class TradeDeskTest extends TestCase
         $trader = Trader::factory()->create();
         $this->actingAs($trader, 'trader');
 
-        $id = app(TradeDesk::class)->openAgainstUs($trader->email, 200000, 200000.0);
+        $id = app(TradeDesk::class)->openAgainstUs($trader->email, 200000, 'NGN');
 
         // Read as the admin connection, and that is the point: a trader cannot read `posting` at all, which
         // is why the assertions about what money did not move cannot be made from the trader's own
@@ -99,7 +99,7 @@ class TradeDeskTest extends TestCase
         $desk = app(TradeDesk::class);
 
         $this->expectException(RuntimeException::class);
-        $desk->openAgainstUs($trader->email, 0, 0.0);
+        $desk->openAgainstUs($trader->email, 0, 'NGN');
     }
 
     public function test_the_amount_is_stored_in_minor_units(): void
@@ -109,7 +109,7 @@ class TradeDeskTest extends TestCase
         $trader = Trader::factory()->create();
         $this->actingAs($trader, 'trader');
 
-        $id = app(TradeDesk::class)->openAgainstUs($trader->email, 200000, 200000.0);
+        $id = app(TradeDesk::class)->openAgainstUs($trader->email, 200000, 'NGN');
         $row = \DB::connection('pgsql_trader')->selectOne('select fiat_amount, fiat_asset from trade where id = ?', [$id]);
 
         $this->assertSame(200000, (int) $row->fiat_amount);
@@ -128,7 +128,7 @@ class TradeDeskTest extends TestCase
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessageMatches('/in your own name/i');
 
-        app(TradeDesk::class)->openAgainstUs($victim->email, 200000, 200000.0);
+        app(TradeDesk::class)->openAgainstUs($victim->email, 200000, 'NGN');
     }
 
     private function raw(string $sql): string

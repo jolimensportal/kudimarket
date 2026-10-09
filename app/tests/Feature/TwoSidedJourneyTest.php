@@ -276,7 +276,7 @@ class TwoSidedJourneyTest extends TestCase
 
         // And one against our own book, so both trade types are in the same verification pass.
         $buyer = $this->trader('day-platform-buyer');
-        $direct = app(TradeDesk::class)->openAgainstUs($buyer->email, 200000, 148.2);
+        $direct = app(TradeDesk::class)->openAgainstUs($buyer->email, 200000, 'NGN');
         $this->actingAs($buyer, 'trader')->post("/trade/{$direct}/claim");
 
         $this->assertEveryChainVerifies();
@@ -344,12 +344,19 @@ class TwoSidedJourneyTest extends TestCase
             'the cedi figure on the screen is the derived one'
         );
 
-        // And it is a plausible fraction of the naira, not a different order of magnitude. The old figure
-        // was C74,000,000 against N500,000, which is 21904x; this asserts it is roughly a tenth.
-        $this->assertLessThan(
-            $figures['receive_minor'] / 2,
-            $figures['send_minor'],
-            'a cedi figure of the same order as the naira, not thousands of times it'
+        // The two legs agree with each other at the agreed rate. The old comparison divided one currency's
+        // minor units by another's, which is meaningless now that the buyer sends naira and receives cedi --
+        // 50,000,000 minor naira is naturally a bigger NUMBER than 337,838 minor cedi. So this compares
+        // majors against the rate instead, which is the actual invariant.
+        $sendMajor = $figures['send_minor'] / 100;
+        $receiveMajor = $figures['receive_minor'] / 100;
+        $rate = (float) app(TradeLedger::class)->trade($tradeId)->rate;
+
+        $this->assertEqualsWithDelta(
+            $sendMajor * $rate,
+            $receiveMajor,
+            1.0,
+            'the cedi leg is the naira leg at the agreed rate, not some other order of magnitude'
         );
 
         // The two figures are read the RIGHT WAY ROUND for each party, which is the half that stayed wrong

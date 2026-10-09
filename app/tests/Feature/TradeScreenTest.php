@@ -25,7 +25,7 @@ class TradeScreenTest extends TestCase
     {
         $trader = Trader::factory()->create();
         $this->actingAs($trader, 'trader');
-        $id = app(TradeDesk::class)->openAgainstUs($trader->email, 200000, 148.2);
+        $id = app(TradeDesk::class)->openAgainstUs($trader->email, 200000, 'NGN');
 
         $this->get("/trade/{$id}")
             ->assertOk()
@@ -45,7 +45,7 @@ class TradeScreenTest extends TestCase
         // screen is the only place they read that number from.
         $trader = Trader::factory()->create();
         $this->actingAs($trader, 'trader');
-        $id = app(TradeDesk::class)->openAgainstUs($trader->email, 200000, 148.2);
+        $id = app(TradeDesk::class)->openAgainstUs($trader->email, 200000, 'NGN');
 
         $body = $this->get("/trade/{$id}")->assertOk()->getContent();
 
@@ -60,7 +60,7 @@ class TradeScreenTest extends TestCase
         // and disputes carry no time limit. It now pins the sentence that is true.
         $trader = Trader::factory()->create();
         $this->actingAs($trader, 'trader');
-        $id = app(TradeDesk::class)->openAgainstUs($trader->email, 200000, 148.2);
+        $id = app(TradeDesk::class)->openAgainstUs($trader->email, 200000, 'NGN');
 
         // An open trade has not been paid yet, so it gets the other branch: reporting is not open, but
         // neither is it forbidden. Both branches are checked, because the wrong sentence in EITHER one
@@ -85,7 +85,7 @@ class TradeScreenTest extends TestCase
         // when it is sitting in an escrow row nobody has touched.
         $trader = Trader::factory()->create();
         $this->actingAs($trader, 'trader');
-        $id = app(TradeDesk::class)->openAgainstUs($trader->email, 200000, 148.2);
+        $id = app(TradeDesk::class)->openAgainstUs($trader->email, 200000, 'NGN');
 
         $this->get("/trade/{$id}")
             ->assertOk()
@@ -96,7 +96,7 @@ class TradeScreenTest extends TestCase
     {
         $trader = Trader::factory()->create();
         $this->actingAs($trader, 'trader');
-        $id = app(TradeDesk::class)->openAgainstUs($trader->email, 200000, 148.2);
+        $id = app(TradeDesk::class)->openAgainstUs($trader->email, 200000, 'NGN');
 
         $this->get("/trade/{$id}")
             ->assertOk()
@@ -109,7 +109,7 @@ class TradeScreenTest extends TestCase
     {
         $owner = Trader::factory()->create();
         $this->actingAs($owner, 'trader');
-        $id = app(TradeDesk::class)->openAgainstUs($owner->email, 200000, 148.2);
+        $id = app(TradeDesk::class)->openAgainstUs($owner->email, 200000, 'NGN');
 
         $this->actingAs(Trader::factory()->create(), 'trader')
             ->get("/trade/{$id}")
@@ -129,7 +129,7 @@ class TradeScreenTest extends TestCase
     {
         $owner = Trader::factory()->create();
         $this->actingAs($owner, 'trader');
-        $id = app(TradeDesk::class)->openAgainstUs($owner->email, 200000, 148.2);
+        $id = app(TradeDesk::class)->openAgainstUs($owner->email, 200000, 'NGN');
         $this->post('/sign-out');
 
         $this->get("/trade/{$id}")->assertRedirect(route('login'));
@@ -141,7 +141,7 @@ class TradeScreenTest extends TestCase
         // settle a trade they have not paid for.
         $trader = Trader::factory()->create();
         $this->actingAs($trader, 'trader');
-        $id = app(TradeDesk::class)->openAgainstUs($trader->email, 200000, 148.2);
+        $id = app(TradeDesk::class)->openAgainstUs($trader->email, 200000, 'NGN');
 
         $this->get("/trade/{$id}")
             ->assertOk()

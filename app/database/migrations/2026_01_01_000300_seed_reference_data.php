@@ -29,10 +29,23 @@ return new class extends Migration
         DB::select("select ledger_deposit('adwoa','GHS',60000,'seed-adwoa-ghs')");
 
         // One trade settled, one waiting on its window, one disputed, one open.
-        DB::select("select create_fiat_trade('platform','ama',null,null,'NGN',200000,0.10,'platform_inventory')");
-        DB::select("select create_fiat_trade('platform','kwesi',null,null,'NGN',85000,0.105,'platform_inventory')");
-        DB::select("select create_fiat_trade('adwoa','ama',null,null,'NGN',120000,0.10,'vendor_vendor')");
-        DB::select("select create_fiat_trade('kwesi','adwoa',null,null,'GHS',150000,1,'vendor_vendor')");
+        //
+        // Each names the rate card pair it was priced from, because a rate without one is refused now and
+        // should have been refused then: 0.10 was a plausible-looking number that meant nothing, and the
+        // console derives every cedi figure on it. The pair is (what the buyer pays, what the buyer
+        // receives) -- kudi-core/012 records both ends for this reason.
+        //
+        //   platform: the trader pays cedi and receives naira, so the pair is GHS/NGN.
+        //   vendor:   the buyer pays naira and receives cedi, so the pair is NGN/GHS.
+        DB::select("select set_rate('GHS','NGN',148.2,'pricing@kudimarket.com')");
+        DB::select("select set_rate('NGN','GHS',0.006756756756756756,'pricing@kudimarket.com')");
+
+        DB::select("select create_fiat_trade('platform','ama',null,null,'NGN',200000,148.2,'platform_inventory','GHS','NGN','GHS')");
+        DB::select("select create_fiat_trade('platform','kwesi',null,null,'NGN',85000,148.2,'platform_inventory','GHS','NGN','GHS')");
+        DB::select("select create_fiat_trade('adwoa','ama',null,null,'NGN',120000,0.006756756756756756,'vendor_vendor','GHS','GHS','NGN')");
+        // A same-currency vendor pair, at rate 1. It is the one exemption: 1 is the placeholder for "no
+        // conversion here" rather than a conversion between a currency and itself.
+        DB::select("select create_fiat_trade('kwesi','adwoa',null,null,'GHS',150000,1,'vendor_vendor','GHS','GHS','GHS')");
 
         // Settle the first one so the console shows a completed trade as well as open ones.
         $t = DB::select("select id from trade where buyer='ama' and state='open'")[0]->id;
