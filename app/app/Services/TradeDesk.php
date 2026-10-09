@@ -50,8 +50,11 @@ final class TradeDesk
         // The rate comes from the rate card, never from the request. A trader who can choose their own
         // rate can choose their own price, and this service is the only thing standing between the
         // query string and the ledger.
+        // quote_asset comes back with it and is passed on to create_fiat_trade, which records which asset
+        // the rate counts in. Reading `rate` and leaving quote_asset on the table is what made one rate
+        // column mean two opposite things, and kudi-core/011 exists because of it.
         $published = DB::connection('pgsql_trader')->selectOne(
-            'select rate from current_rate where base_asset = ? and quote_asset = ?',
+            'select rate, quote_asset from current_rate where base_asset = ? and quote_asset = ?',
             ['GHS', 'NGN']
         );
 
@@ -60,8 +63,8 @@ final class TradeDesk
         }
 
         $id = $this->call(
-            "select create_fiat_trade('platform', ?, null, null, 'NGN', ?, ?, 'platform_inventory') as id",
-            [$traderEmail, $fiatMinorUnits, (float) $published->rate],
+            "select create_fiat_trade('platform', ?, null, null, 'NGN', ?, ?, 'platform_inventory', 'GHS', ?) as id",
+            [$traderEmail, $fiatMinorUnits, (float) $published->rate, $published->quote_asset],
             'The ledger refused to open that trade.'
         );
 

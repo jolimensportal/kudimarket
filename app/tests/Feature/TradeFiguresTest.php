@@ -71,6 +71,62 @@ class TradeFiguresTest extends TestCase
         $this->assertGreaterThan(0, $figures['send_minor'], 'the cedi side must not vanish');
     }
 
+    public function test_a_vendor_rate_is_read_in_the_direction_it_was_quoted(): void
+    {
+        /**
+         * The bug that mattered, pinned on both sides of the same pair.
+         *
+         * The core stores two rates in one column. openAgainstUs reads the card for (GHS,NGN) and gets
+         * 148.2 NGN per cedi; accept_offer reads it for (NGN,GHS) and gets 0.0067567 cedi per naira. Both
+         * rows say fiat_asset = NGN and a naira amount, so the data cannot tell them apart and this class
+         * had to guess. It guessed divide.
+         *
+         * N500,000 is then either C13.50 (wrong, divide) or C3,378.38 (right, multiply). The screen said
+         * C74,000,000, which is neither, because the real fixture quotes the rate from the other end.
+         */
+        $vendor = TradeFigures::forTrade((object) [
+            'id' => 6,
+            'fiat_amount' => '50000000',
+            'fiat_asset' => 'NGN',
+            'rate' => '0.006756756756756756',
+            'rate_quote_asset' => 'GHS',
+        ]);
+
+        $this->assertSame('3,378.38 GHS', $vendor['send'], 'a vendor rate counts cedi per naira, so multiply');
+        $this->assertSame('500,000.00 NGN', $vendor['receive']);
+
+        $platform = TradeFigures::forTrade((object) [
+            'id' => 7,
+            'fiat_amount' => '50000000',
+            'fiat_asset' => 'NGN',
+            'rate' => '148.2',
+            'rate_quote_asset' => 'NGN',
+        ]);
+
+        $this->assertSame('3,373.82 GHS', $platform['send'], 'a platform rate counts naira per cedi, so divide');
+
+        // The check that makes the pair meaningful: the same money, quoted from either end, is the same
+        // money. 500,000 naira is C3,378.38 by one route and C3,373.82 by the other -- the small gap is
+        // 148.2 against 1/0.0067567, and neither is a factor of twenty thousand.
+        $this->assertEqualsWithDelta(337838, $vendor['send_minor'], 600, 'both directions agree on one value');
+    }
+
+    public function test_a_rate_quoted_in_neither_leg_is_refused_rather_than_guessed(): void
+    {
+        // Same reasoning as a zero rate: an authoritative-looking wrong number on a money screen is worse
+        // than a refusal that says what is wrong with the data.
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('neither its fiat asset');
+
+        TradeFigures::forTrade((object) [
+            'id' => 8,
+            'fiat_amount' => '500000',
+            'fiat_asset' => 'NGN',
+            'rate' => '148.2',
+            'rate_quote_asset' => 'EUR',
+        ]);
+    }
+
     /** @return array{send: string, receive: string, send_minor: int, receive_minor: int} */
     private function figures(int $amount, string $asset, float $rate): array
     {

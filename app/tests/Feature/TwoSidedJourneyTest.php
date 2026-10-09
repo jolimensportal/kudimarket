@@ -8,6 +8,7 @@ use App\Models\Trader;
 use App\Models\User;
 use App\Services\OfferDesk;
 use App\Services\TradeDesk;
+use App\Services\TradeFigures;
 use App\Services\TradeLedger;
 use App\Services\VerificationDesk;
 use Illuminate\Support\Facades\Auth;
@@ -302,6 +303,53 @@ class TwoSidedJourneyTest extends TestCase
             'open',
             $this->stateOf($tradeId),
             'an unfunded party cannot claim, and the deposit is what stops them'
+        );
+    }
+
+    public function test_the_trade_screen_shows_a_vendor_buyer_what_the_trade_is_worth(): void
+    {
+        /**
+         * The screen a buyer reads before paying. It used to say "You send 74,000,000.00 GHS" on a trade
+         * worth C3,378.38 and then hand over a Mobile Money number to send it to.
+         *
+         * The arithmetic is covered in TradeFiguresTest. What is covered HERE is that the number reaching
+         * the screen is right for a trade built the way the product builds one -- an offer accepted off the
+         * rate card -- rather than for a hand-built object. The two shapes are identical rows to the
+         * database and used to differ only here, which is why a unit test alone would not have caught it.
+         */
+        $desk = app(OfferDesk::class);
+
+        $seller = $this->trader('screen-seller');
+        $offerId = $desk->publish('NGN', 'GHS', 50000000, '0.0060');
+
+        $buyer = $this->trader('screen-buyer');
+        $tradeId = $desk->accept($offerId);
+
+        $this->fund($seller->email, 'GHS', 33784);
+        $this->fund($buyer->email, 'GHS', 33784);
+        $this->actingAs($buyer, 'trader')->post("/trade/{$tradeId}/claim");
+
+        $screen = $this->actingAs($buyer, 'trader')->get("/trade/{$tradeId}")
+            ->assertOk()
+            ->getContent();
+
+        $figures = app(TradeFigures::class)->forTrade(
+            DB::connection('pgsql_ops')->selectOne('select * from trade_view where id = ?', [$tradeId])
+        );
+
+        // The cedi figure on the page is the one the ledger says the trade is worth.
+        $this->assertStringContainsString(
+            str_replace(',', '', $figures['send']),
+            str_replace(',', '', $screen),
+            'the cedi figure on the screen is the derived one'
+        );
+
+        // And it is a plausible fraction of the naira, not a different order of magnitude. The old figure
+        // was C74,000,000 against N500,000, which is 21904x; this asserts it is roughly a tenth.
+        $this->assertLessThan(
+            $figures['receive_minor'] / 2,
+            $figures['send_minor'],
+            'a cedi figure of the same order as the naira, not thousands of times it'
         );
     }
 

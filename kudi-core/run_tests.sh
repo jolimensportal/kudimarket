@@ -21,7 +21,7 @@ ops()  { sql "select ops_transition($1,'$2','$3','$4','$5'${6:+,'$6'});" >/dev/n
 
 
 dropdb --if-exists "$DB" >/dev/null 2>&1; createdb "$DB" || exit 1
-for f in 001_core.sql 002_trade_types.sql 003_fiat_leg.sql 004_state_chain.sql 005_creation_anchor.sql 006_rate_card.sql 007_trader_role.sql 008_traders.sql 009_offer_book.sql 010_verification.sql; do
+for f in 001_core.sql 002_trade_types.sql 003_fiat_leg.sql 004_state_chain.sql 005_creation_anchor.sql 006_rate_card.sql 007_trader_role.sql 008_traders.sql 009_offer_book.sql 010_verification.sql 011_rate_direction.sql; do
   psql -X -q -v ON_ERROR_STOP=1 -d "$DB" -f "$HERE/$f" >/dev/null || { echo "schema $f failed"; exit 1; }
 done
 sql "insert into asset values ('USDT',6),('GHS',2);" >/dev/null
@@ -817,6 +817,33 @@ expect_eq "success: both deposits come back" \
   "$(sql "select coalesce(sum(balance),0) from account where owner like 'trade:$DV:%';")" "0"
 expect_eq "success: nobody lost anything" \
   "$(sql "select balance from account where owner='dv1' and asset='GHS' and kind='available';")" "100000"
+
+echo "== a rate is only a number until you know which side of the pair it counts"
+# trade.rate was stored with two opposite meanings and nothing recorded which. openAgainstUs reads the card
+# for (GHS,NGN) and gets 148.2 NGN PER CEDI; accept_offer reads it for (NGN,GHS) and gets 0.0067567 CEDI PER
+# NAIRO. Both rows then read fiat_asset = NGN with fiat_amount in naira, so they are indistinguishable, and
+# anything deriving the cedi side has to GUESS. It guessed the platform way, which is 21904x wrong for vendor
+# trades -- the screen told a buyer to send C74,000,000 on a trade worth C3,378.38.
+sql "insert into asset values ('NGN',2);" >/dev/null
+DT=$(sql "select create_fiat_trade('dw2','dw3',null,null,'NGN',500000,0.006756756756756756,'vendor_vendor','GHS','GHS');")
+expect_eq "a rate-priced trade records the asset the rate counts in" \
+  "$(sql "select rate_quote_asset from trade where id=$DT;")" "GHS"
+expect_eq "and it is the quote asset of the pair the offer was priced from" \
+  "$(sql "select rate_quote_asset from trade where id=$DT and rate = 0.006756756756756756;")" "GHS"
+
+# The platform shape: rate quoted in the fiat asset itself.
+PT=$(sql "select create_fiat_trade('platform','dw5',null,null,'NGN',200000,148.2,'platform_inventory');")
+expect_eq "a trade that says nothing records its own fiat asset" \
+  "$(sql "select rate_quote_asset from trade where id=$PT;")" "NGN"
+
+expect_eq "the two shapes are now distinguishable from the row alone" \
+  "$(sql "select count(distinct rate_quote_asset) from trade where id in ($DT,$PT);")" "2"
+# The old nine-argument call still works, unchanged, and records its own fiat asset as the direction.
+OT=$(sql "select create_fiat_trade('dw6','dw7',null,null,'NGN',300000,1,'vendor_vendor');")
+expect_eq "a nine-argument caller is untouched and gets its fiat asset" \
+  "$(sql "select rate_quote_asset from trade where id=$OT;")" "NGN"
+expect_eq "and its deposit asset is still cedi, which 011 must not have cost it" \
+  "$(sql "select deposit_asset from trade where id=$OT;")" "GHS"
 
 echo "== integrity"
 expect_eq "cached balances equal sum of postings" "$(sql "select count(*) from check_balances();")" "0"
