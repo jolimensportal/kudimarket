@@ -22,9 +22,10 @@ final class TradeFigures
 {
     /**
      * @param  object  $trade  a trade_view row: needs fiat_amount, fiat_asset, rate and rate_quote_asset
+     * @param  string  $viewer  'buyer' or 'seller' -- which side of the trade is looking at this screen
      * @return array{send: string, receive: string, send_minor: int, receive_minor: int}
      */
-    public static function forTrade(object $trade): array
+    public static function forTrade(object $trade, string $viewer = 'seller'): array
     {
         $receiveMinor = (int) $trade->fiat_amount;
         $receiveDecimals = RateBoard::decimalsFor($trade->fiat_asset);
@@ -70,6 +71,42 @@ final class TradeFigures
         // What the trader actually types into their phone: the cedi figure, to the cedi's decimals.
         $sendDecimals = RateBoard::decimalsFor('GHS');
         $sendMinor = (int) round($sendMajor * (10 ** $sendDecimals));
+
+        // WHICH WAY ROUND, which depends on whose screen this is.
+        //
+        // kudi-core/003 states the vendor flow in one sentence: "A buyer in Accra pays 300,000 naira into
+        // a seller's Nigerian bank account; the seller owes cedis into the buyer's mobile money." So on a
+        // vendor trade the BUYER sends fiat_asset and receives the cedi, and the seller is the exact mirror.
+        //
+        // This class used to hand both of them the seller's view -- "You send GHS" -- because it was never
+        // told who was looking. The numbers were right and the labels were backwards, so the buyer was
+        // told to send cedi to a Nigerian bank account while holding the naira, and the instruction printed
+        // under the figures said "Send the cedi to MTN Mobile Money", which is the seller's instruction.
+        //
+        // Only vendor_vendor is role-aware, because it is the only shape whose direction is written down
+        // anywhere. platform_inventory keeps today's wording: what its fiat leg means is not documented,
+        // and inventing a rule for it here would be a guess with a real number attached. Flagged rather
+        // than fixed.
+        $isVendor = ($trade->trade_type ?? null) === 'vendor_vendor';
+
+        if ($isVendor && $viewer === 'seller') {
+            return [
+                'send' => RateBoard::formatMoney($sendMinor, 'GHS'),
+                'receive' => RateBoard::formatMoney($receiveMinor, $trade->fiat_asset),
+                'send_minor' => $sendMinor,
+                'receive_minor' => $receiveMinor,
+            ];
+        }
+
+        if ($isVendor) {
+            // The buyer, on a vendor trade: sends the naira, receives the cedi.
+            return [
+                'send' => RateBoard::formatMoney($receiveMinor, $trade->fiat_asset),
+                'receive' => RateBoard::formatMoney($sendMinor, 'GHS'),
+                'send_minor' => $receiveMinor,
+                'receive_minor' => $sendMinor,
+            ];
+        }
 
         return [
             'send' => RateBoard::formatMoney($sendMinor, 'GHS'),

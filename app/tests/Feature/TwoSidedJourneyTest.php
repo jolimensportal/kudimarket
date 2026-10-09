@@ -351,6 +351,58 @@ class TwoSidedJourneyTest extends TestCase
             $figures['send_minor'],
             'a cedi figure of the same order as the naira, not thousands of times it'
         );
+
+        // The two figures are read the RIGHT WAY ROUND for each party, which is the half that stayed wrong
+        // after the arithmetic was fixed. The buyer sends the naira; the seller owes the cedi. Asserted
+        // against the flattened text, because in the markup a tag sits between "You send" and the figure.
+        $sellerScreen = $this->flat($this->actingAs($seller, 'trader')->get("/trade/{$tradeId}")->getContent());
+
+        $this->assertStringContainsString('You send 500,000.00 NGN', $this->flat($screen), 'the buyer sends naira');
+        $this->assertStringContainsString('You receive 3,378.38 GHS', $this->flat($screen), 'and receives cedi');
+
+        $this->assertStringContainsString('You send 3,378.38 GHS', $sellerScreen, 'the seller owes cedi');
+        $this->assertStringContainsString('You receive 500,000.00 NGN', $sellerScreen, 'and receives the naira');
+
+        // And the instruction under the figures matches, which is what a person acts on.
+        $this->assertStringContainsString('Send the naira to', $this->flat($screen), 'the buyer sends naira');
+        $this->assertStringContainsString('Send the cedi to', $sellerScreen, 'the seller sends cedi');
+    }
+
+    public function test_the_seller_can_open_the_trade_they_are_part_of(): void
+    {
+        /**
+         * The seller was locked out of their own trade.
+         *
+         * TradeController::ownedTrade checked `$row->buyer === ...` and nothing else, so a seller got
+         * "That trade belongs to somebody else" on a trade they are named on. On a vendor trade the
+         * seller's entire job is to confirm the naira arrived -- they are the RECIPIENT, and the reason the
+         * Checked tier works is that nobody else can say "it reached me". The one screen telling them the
+         * buyer has claimed was the one screen they could not open.
+         *
+         * And the reverse still holds: a party may look, but only the buyer may say they have paid.
+         */
+        $desk = app(OfferDesk::class);
+
+        $seller = $this->trader('access-seller');
+        $offerId = $desk->publish('NGN', 'GHS', 50000000, '0.0060');
+
+        $buyer = $this->trader('access-buyer');
+        $tradeId = $desk->accept($offerId);
+
+        $this->fund($seller->email, 'GHS', 33784);
+        $this->fund($buyer->email, 'GHS', 33784);
+        $this->actingAs($buyer, 'trader')->post("/trade/{$tradeId}/claim");
+
+        $this->actingAs($seller, 'trader')->get("/trade/{$tradeId}")
+            ->assertOk();
+
+        // A third party is still refused, and the refusal still names a reason.
+        $stranger = $this->trader('access-stranger');
+        $this->actingAs($stranger, 'trader')->get("/trade/{$tradeId}")
+            ->assertForbidden();
+
+        // Being a party is not permission to do everything.
+        $this->actingAs($seller, 'trader')->post("/trade/{$tradeId}/claim")->assertForbidden();
     }
 
     public function test_the_vendor_deposit_is_a_share_of_the_value_of_the_trade(): void
@@ -514,6 +566,19 @@ class TwoSidedJourneyTest extends TestCase
      * confirmation, which the trader app has no way to produce on its own -- a gap worth naming rather
      * than papering over, since a trader cannot currently fund themselves from anywhere in this product.
      */
+    /**
+     * Markup flattened to one line of text. Assertions about what a person READS belong against the words
+     * on the page, not the tags between them, and a view that wraps a figure in a <span> should not break a
+     * test about the sentence around it.
+     */
+    private function flat(string $html): string
+    {
+        $text = preg_replace('#<(script|style)\b[^>]*>.*?</\1>#si', '', $html) ?? $html;
+        $text = html_entity_decode(strip_tags($text), ENT_QUOTES);
+
+        return trim(preg_replace('/\s+/', ' ', $text) ?? $text);
+    }
+
     private function fund(string $email, string $asset, int $minorUnits): void
     {
         DB::connection('pgsql_admin')->selectOne(

@@ -20,10 +20,11 @@ class TradeController extends Controller
     public function show(Request $request, int $trade, TradeLedger $ledger): View
     {
         $trade = $this->ownedTrade($request, $trade, $ledger);
+        $email = $request->user('trader')?->email;
 
         return view('trade.show', [
             'trade' => $trade,
-            'figures' => TradeFigures::forTrade($trade),
+            'figures' => TradeFigures::forTrade($trade, $trade->seller === $email ? 'seller' : 'buyer'),
             'events' => $ledger->events($trade->id),
         ]);
     }
@@ -43,6 +44,13 @@ class TradeController extends Controller
     public function claim(Request $request, int $trade, TradeLedger $ledger, TradeDesk $desk): RedirectResponse
     {
         $row = $this->ownedTrade($request, $trade, $ledger);
+
+        // A party may LOOK at the trade; only the buyer may say they have paid.
+        abort_unless(
+            $row->buyer === $request->user('trader')?->email,
+            403,
+            'Only the buyer sends the money, so only the buyer can say they have sent it.'
+        );
 
         try {
             $desk->claimPaid($row->id, $request->user('trader')->email);
@@ -70,12 +78,37 @@ class TradeController extends Controller
      * Ownership is checked here rather than as a query filter so the refusal has a cause instead of
      * being an empty page. The id in the URL is not a secret, so this is for clarity, not concealment.
      */
+    /**
+     * A trade the signed-in trader is one of the two sides of: theirs, and nobody else's.
+     *
+     * 404 for a trade that does not exist; 403 for one that belongs to somebody else. Deliberately
+     * different -- merging them would either leak which trade ids are real, or make a mistyped link
+     * look like an attack.
+     *
+     * Ownership is checked here rather than as a query filter so the refusal has a cause instead of
+     * being an empty page. The id in the URL is not a secret, so this is for clarity, not concealment.
+     *
+     * BOTH parties, not the buyer only. This said `$row->buyer === ...` and so refused the seller their
+     * own trade: on a vendor trade the seller's whole job is to confirm the naira arrived, and the screen
+     * telling them the buyer has claimed is what they act on. Ama published an offer, Kwesi took it, and
+     * the seller got "That trade belongs to somebody else" on the one page that concerns them. A party to
+     * a trade is a party to it.
+     *
+     * Being a party is not permission to do everything, so `claim` checks the side again for itself. The
+     * ledger already refuses a seller claiming, but this keeps the refusal here where the request has a
+     * reason attached rather than surfacing as a database error.
+     */
     private function ownedTrade(Request $request, int $trade, TradeLedger $ledger): object
     {
         $row = $ledger->trade($trade);
+        $email = $request->user('trader')?->email;
 
         abort_if($row === null, 404);
-        abort_unless($row->buyer === $request->user('trader')?->email, 403, 'That trade belongs to somebody else.');
+        abort_unless(
+            in_array($email, [$row->buyer, $row->seller], true),
+            403,
+            'That trade belongs to somebody else.'
+        );
 
         return $row;
     }

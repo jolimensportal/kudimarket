@@ -13,12 +13,14 @@
         disagreeing on screen. An earlier version printed the same number for both, which would have
         told a trader to send ₦2,000 when they owe ₦2,000 worth of cedi.
     --}}
-    @php
-        // Both figures come from the service, not from arithmetic in a template. The cedi leg is
-        // derived from the agreed rate rather than stored, because one stored amount plus one agreed
-        // rate is the whole record; two stored amounts would eventually disagree.
-        $figures = \App\Services\TradeFigures::forTrade($trade);
-    @endphp
+    {{--
+        The figures come from TradeController, which passes in whose screen this is. The comment here used
+        to be true and still is -- both figures come from the service, not from arithmetic in a template --
+        but the template was ALSO calling the service itself, with no viewer, which defaults to the seller's
+        side. So the view silently discarded the correct figures the controller had handed it and rendered
+        the wrong pair, and a fix that was demonstrably correct in the controller looked like it had done
+        nothing. One source of truth for money: the controller's.
+    --}}
 
     <div class="card">
         <dl>
@@ -53,12 +55,28 @@
         </p>
     </div>
 
-    <div class="card">
-        <div class="label">Send the cedi to</div>
-        <p class="num" style="margin-top:4px;color:var(--ink);font-weight:600">MTN Mobile Money &middot; 024 000 1122</p>
-        <p>KudiMarket Sim, Adwoa Serwaa. Use your own name as the reference. A payment from a number
-           that is not registered to you is a payment we cannot give you a receipt for.</p>
-    </div>
+    {{--
+        This card was one instruction to everybody. On a vendor trade the buyer sends NAIRA to the
+        seller's bank account and the seller sends CEDI to the buyer's mobile money -- kudi-core/003 says so
+        in one sentence -- so telling a buyer to send cedi to a Mobile Money number had them paying in the
+        wrong currency to the wrong party. The figures above this line already knew which side was looking;
+        this did not. Both cards are now written for whoever is reading.
+    --}}
+    @if ($trade->trade_type === 'vendor_vendor' && $trade->buyer === auth('trader')->user()?->email)
+        <div class="card">
+            <div class="label">Send the naira to</div>
+            <p class="num" style="margin-top:4px;color:var(--ink);font-weight:600">{{ $trade->seller }} &middot; bank account on file</p>
+            <p>Use the reference we gave you. {{ $trade->seller }} confirms the naira arrived, and then owes
+               the cedi into your own mobile money account.</p>
+        </div>
+    @else
+        <div class="card">
+            <div class="label">Send the cedi to</div>
+            <p class="num" style="margin-top:4px;color:var(--ink);font-weight:600">MTN Mobile Money &middot; 024 000 1122</p>
+            <p>KudiMarket Sim, Adwoa Serwaa. Use your own name as the reference. A payment from a number
+               that is not registered to you is a payment we cannot give you a receipt for.</p>
+        </div>
+    @endif
 
     {{--
         Both of these sentences were wrong, and were written before the rules behind them were checked.

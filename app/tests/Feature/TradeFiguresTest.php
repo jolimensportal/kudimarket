@@ -111,6 +111,59 @@ class TradeFiguresTest extends TestCase
         $this->assertEqualsWithDelta(337838, $vendor['send_minor'], 600, 'both directions agree on one value');
     }
 
+    public function test_a_vendor_buyer_is_told_they_send_naira_and_receive_cedi(): void
+    {
+        /**
+         * The two figures above were right and the LABELS were backwards.
+         *
+         * kudi-core/003, in one sentence: "A buyer in Accra pays 300,000 naira into a seller's Nigerian
+         * bank account; the seller owes cedis into the buyer's mobile money." So the buyer sends the fiat
+         * leg and receives the cedi; the seller is the mirror.
+         *
+         * forTrade was never told who was looking, so it handed both of them the seller's view. The buyer
+         * was told to send cedi while holding naira.
+         */
+        $trade = (object) [
+            'id' => 6,
+            'trade_type' => 'vendor_vendor',
+            'fiat_amount' => '50000000',
+            'fiat_asset' => 'NGN',
+            'rate' => '0.006756756756756756',
+            'rate_quote_asset' => 'GHS',
+        ];
+
+        $buyer = TradeFigures::forTrade($trade, 'buyer');
+        $this->assertSame('500,000.00 NGN', $buyer['send'], 'the buyer sends naira');
+        $this->assertSame('3,378.38 GHS', $buyer['receive'], 'and receives cedi into their own account');
+
+        $seller = TradeFigures::forTrade($trade, 'seller');
+        $this->assertSame('3,378.38 GHS', $seller['send'], 'the seller owes cedi');
+        $this->assertSame('500,000.00 NGN', $seller['receive'], 'and receives the naira');
+
+        // The same money, both ways round. A buyer and a seller who disagree about the amount is a
+        // dispute waiting to happen, so this is asserted rather than left to the eye.
+        $this->assertSame($buyer['send_minor'], $seller['receive_minor']);
+        $this->assertSame($buyer['receive_minor'], $seller['send_minor']);
+    }
+
+    public function test_a_platform_trade_keeps_its_existing_wording(): void
+    {
+        // platform_inventory is deliberately NOT role-aware. What its fiat leg means is not written down
+        // anywhere in the core, so inventing a direction here would be a guess with a real number on it.
+        // Pinned so the day someone does decide, this test says they changed it on purpose.
+        $trade = (object) [
+            'id' => 9,
+            'trade_type' => 'platform_inventory',
+            'fiat_amount' => '200000',
+            'fiat_asset' => 'NGN',
+            'rate' => '148.2',
+            'rate_quote_asset' => 'NGN',
+        ];
+
+        $this->assertSame('13.50 GHS', TradeFigures::forTrade($trade, 'buyer')['send']);
+        $this->assertSame('13.50 GHS', TradeFigures::forTrade($trade, 'seller')['send']);
+    }
+
     public function test_a_rate_quoted_in_neither_leg_is_refused_rather_than_guessed(): void
     {
         // Same reasoning as a zero rate: an authoritative-looking wrong number on a money screen is worse
