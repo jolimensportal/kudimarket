@@ -31,6 +31,7 @@ trait BuildsLedgerDatabase
         '007_trader_role.sql',
         '008_traders.sql',
         '009_offer_book.sql',
+        '010_verification.sql',
     ];
 
     protected function buildLedgerDatabase(): void

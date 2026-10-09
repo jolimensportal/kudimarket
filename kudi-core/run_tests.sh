@@ -21,7 +21,7 @@ ops()  { sql "select ops_transition($1,'$2','$3','$4','$5'${6:+,'$6'});" >/dev/n
 
 
 dropdb --if-exists "$DB" >/dev/null 2>&1; createdb "$DB" || exit 1
-for f in 001_core.sql 002_trade_types.sql 003_fiat_leg.sql 004_state_chain.sql 005_creation_anchor.sql 006_rate_card.sql 007_trader_role.sql 008_traders.sql 009_offer_book.sql; do
+for f in 001_core.sql 002_trade_types.sql 003_fiat_leg.sql 004_state_chain.sql 005_creation_anchor.sql 006_rate_card.sql 007_trader_role.sql 008_traders.sql 009_offer_book.sql 010_verification.sql; do
   psql -X -q -v ON_ERROR_STOP=1 -d "$DB" -f "$HERE/$f" >/dev/null || { echo "schema $f failed"; exit 1; }
 done
 sql "insert into asset values ('USDT',6),('GHS',2);" >/dev/null
@@ -550,16 +550,25 @@ expect_eq "trader table holds no balance column" "$(sql "select count(*) from in
 expect_eq "and the ledger still balances" "$(sql "select count(*) from check_balances();")" "0"
 
 echo "== the offer book"
-# Traders, and they are VERIFIED. publish_offer refuses an unverified counterparty -- that is where the
-# "Checked" tier is actually enforced -- so every offer case below needs one, and a seller that has not
-# been checked gets the refusal asserted separately rather than silently passing through as "publishing
-# failed". The password column is not nullable and nothing here logs in, so it carries a placeholder.
-sql "insert into trader(name,email,password,verified_at) values
-       ('Kwesi Boateng','kwesi@example.com','x',now()),
-       ('Ama Serwaa','ama@example.com','x',now()),
-       ('Adwoa Mensah','adwoa@example.com','x',now()),
-       ('Unchecked Person','unchecked@example.com','x',null)
-     on conflict (email) do update set verified_at = excluded.verified_at;" >/dev/null
+# Traders, and they are VERIFIED -- through the real path, not by setting a column.
+#
+# publish_offer reads the verification CHAIN rather than trader.verified_at, because the column is a cache
+# and a cache is what drifts. That means the offer cases below cannot simply UPDATE verified_at any more,
+# which is the point: the only way to be checked is to be checked.
+sql "insert into trader(name,email,password) values
+       ('Kwesi Boateng','kwesi@example.com','x'),
+       ('Ama Serwaa','ama@example.com','x'),
+       ('Adwoa Mensah','adwoa@example.com','x'),
+       ('Unchecked Person','unchecked@example.com','x')
+     on conflict (email) do nothing;" >/dev/null
+# astrader to apply, asops to decide: a TRADER applies and OPERATIONS decides. Seeding through asapp failed
+# with "permission denied for function apply_for_verification", which is the grant working -- kudi_app is
+# deliberately not allowed to apply on anybody's behalf, the same way it cannot mint or attest.
+for who in kwesi ama adwoa; do
+  astrader "select apply_for_verification('$who@example.com',
+      'Adwoa Serwaa, Ghana Card GHA-000000000-1-1, 12 Boundary Road Accra, own-name MTN 0240000001 at KudiMarket, funds from trading.');" >/dev/null
+  asops "select decide_verification('$who@example.com', true, 'checked against Ghana Card and own-name account', 'ops@kudimarket.com');" >/dev/null
+done
 # The supply side. Everything here is about a seller being unable to change what they said after a buyer
 # acted on it, and about an offer never being a price KudiMarket must honour.
 sql "select ledger_deposit('ama','NGN',5000000,'naira-for-ama');" >/dev/null
@@ -684,11 +693,21 @@ expect_eq "the trade sits where the tiers say it should" "$(sql "select state fr
 
 # An UNVERIFIED trader cannot list. Verification is what unlocks being a counterparty; without it the only
 # trade available is against our own book, where we are the counterparty and do guarantee.
-sql "update trader set verified_at = null where email = 'kwesi@example.com';" >/dev/null
-expect_fail "an unverified trader cannot publish an offer" \
-  "$(astrader "select publish_offer('kwesi@example.com','NGN','GHS',120000,0.0060);")" "not verified\|verified"
-sql "update trader set verified_at = now() where email = 'kwesi@example.com';" >/dev/null
-expect_eq "and can, once verified" "$(astrader "select publish_offer('kwesi@example.com','NGN','GHS',120000,0.0060);" | tail -1 | grep -cE '^[0-9]+$')" "1"
+# 'unchecked', the one trader the seed does NOT verify. kwesi and adwoa are both verified by the loop
+# above, and apply_for_verification refuses a verified trader -- correctly, so testing a refusal on either
+# proved nothing at all while looking like it tested something.
+astrader "select apply_for_verification('unchecked@example.com','Unchecked Person, Ghana Card, own-name MTN 0240000000, funds from trading.');" >/dev/null
+sql "select decide_verification('unchecked@example.com', false, 'Ghana Card number does not match the name on your account.', 'ops@kudimarket.com');" >/dev/null
+expect_fail "a REFUSED trader cannot publish an offer" \
+  "$(astrader "select publish_offer('unchecked@example.com','NGN','GHS',120000,0.0060);")" "not verified"
+# And the refusal carries its reason, which is the difference between a decision and a dead end.
+expect_eq "the refusal says what is missing" \
+  "$(sql "select narrative from verification_status where trader_email='unchecked@example.com';")" \
+  "Ghana Card number does not match the name on your account."
+# Re-applying and being checked again is how a trader comes back after fixing it.
+astrader "select apply_for_verification('unchecked@example.com','Unchecked Person, Ghana Card GHA-000000000-0-0, own-name MTN 0240000000, funds from trading.');" >/dev/null
+asops "select decide_verification('unchecked@example.com', true, 're-checked, card now matches', 'ops@kudimarket.com');" >/dev/null
+expect_eq "and can publish once checked" "$(astrader "select publish_offer('kwesi@example.com','NGN','GHS',120000,0.0060);" | tail -1 | grep -cE '^[0-9]+$')" "1"
 
 expect_eq "the trade chain verifies through all of it" "$(sql "select verify_trade_chain();")" "t"
 expect_fail "the same offer cannot be sold twice" \
@@ -711,6 +730,62 @@ expect_fail "a trader cannot publish somebody else''s rate card" \
   "$(astrader "select set_rate('NGN','GHS',9,'tr1');")" "permission denied"
 expect_eq "the offer book holds no balance column" \
   "$(sql "select count(*) from information_schema.columns where table_name='offer' and column_name like '%balance%';")" "0"
+expect_eq "and the ledger still balances" "$(sql "select count(*) from check_balances();")" "0"
+
+echo "== verification"
+# How a trader becomes somebody you can trade with. 009 gates publishing on this, and before 010 nothing
+# in the entire system could ever set it -- so the gate existed and the door did not.
+sql "insert into trader(name,email,password) values ('Solo Trader','solo@example.com','x') on conflict do nothing;" >/dev/null
+expect_fail "an unverified trader cannot publish an offer" \
+  "$(astrader "select publish_offer('solo@example.com','NGN','GHS',1000,0.006);")" "not verified"
+
+expect_fail "an application needs something to actually check" \
+  "$(astrader "select apply_for_verification('solo@example.com','too short');")" "details required"
+expect_fail "and it must be a real trader" \
+  "$(astrader "select apply_for_verification('nobody@example.com','a very long set of details that would pass the length check');")" "no such trader"
+
+EV=$(astrader "select apply_for_verification('solo@example.com','Solo Trader, Ghana Card GHA-111111111-1-1, 9 High Street Accra, own-name MTN 0245550111, funds from trading.');")
+expect_eq "a trader can apply to be checked" "$(sql "select event from verification_status where trader_email='solo@example.com';")" "applied"
+expect_eq "and it shows as pending" "$(sql "select is_pending from verification_status where trader_email='solo@example.com';")" "t"
+expect_eq "applied is not verified" "$(sql "select is_verified from verification_status where trader_email='solo@example.com';")" "f"
+expect_fail "a second application while one is open is refused" \
+  "$(astrader "select apply_for_verification('solo@example.com','another long set of details that passes the length check');")" "already applied"
+expect_fail "a trader cannot decide their own application" \
+  "$(astrader "select decide_verification('solo@example.com', true, null, 'solo@example.com');")" "permission denied\|nothing to decide"
+expect_fail "and cannot mark themselves verified in the table either" \
+  "$(astrader "update trader set verified_at = now() where email = 'solo@example.com';")" "permission denied"
+expect_fail "a refusal with no reason is refused" \
+  "$(asops "select decide_verification('solo@example.com', false, null, 'ops@kudimarket.com');")" "reason required"
+expect_fail "a refusal with a one-word reason is refused" \
+  "$(asops "select decide_verification('solo@example.com', false, 'no', 'ops@kudimarket.com');")" "reason required"
+expect_fail "a decision must name the person who made it" \
+  "$(asops "select decide_verification('solo@example.com', true, null, '');")" "actor required"
+
+asops "select decide_verification('solo@example.com', true, 'checked against Ghana Card and own-name account', 'ops@kudimarket.com');" >/dev/null
+expect_eq "operations can check a trader" "$(sql "select event from verification_status where trader_email='solo@example.com';")" "verified"
+expect_eq "recorded against the staff member" \
+  "$(sql "select actor from verification_status where trader_email='solo@example.com';")" "ops@kudimarket.com"
+expect_eq "and the column is written in the same statement" \
+  "$(sql "select verified_at is not null from trader where email='solo@example.com';")" "t"
+expect_eq "the trader can now publish" "$(astrader "select publish_offer('solo@example.com','NGN','GHS',1000,0.006);" | tail -1 | grep -cE '^[0-9]+$')" "1"
+expect_fail "there is nothing left to decide" \
+  "$(asops "select decide_verification('solo@example.com', true, 'again', 'ops@kudimarket.com');")" "nothing to decide"
+
+# The chain is the record, and the column is a cache that must never drift from it.
+expect_eq "the verification chain verifies" "$(sql "select verify_verification_chain();")" "t"
+expect_eq "and the report carries it" "$(sql "select verification_chain_ok from integrity_report;")" "t"
+expect_eq "the column and the chain agree" \
+  "$(sql "select count(*) from trader t where (t.verified_at is not null) is distinct from coalesce((select is_verified from verification_status v where v.trader_email = t.email), false);")" "0"
+# Scoped to the 'verified' row. Without "and event='verified'" this rewrote BOTH of the trader's events,
+# so the restore could only put one right and the chain stayed broken -- which looks like a bug in the
+# chain rather than in the test's own cleanup.
+sql "alter table verification_event disable trigger verification_event_append_only; update verification_event set narrative = 'we checked everything, trust us' where trader_email='solo@example.com' and event='verified';" >/dev/null
+expect_eq "rewriting what a trader wrote is detected" "$(sql "select verify_verification_chain();")" "f"
+expect_eq "and the report says so" "$(sql "select verification_chain_ok from integrity_report;")" "f"
+sql "update verification_event set narrative = 'checked against Ghana Card and own-name account' where trader_email='solo@example.com' and event='verified'; alter table verification_event enable trigger verification_event_append_only;" >/dev/null
+expect_eq "restoring the true words restores the chain" "$(sql "select verify_verification_chain();")" "t"
+expect_fail "an application cannot be edited away" \
+  "$(sql "delete from verification_event where trader_email='solo@example.com';")" "append.only\|immutable"
 expect_eq "and the ledger still balances" "$(sql "select count(*) from check_balances();")" "0"
 
 echo "== integrity"

@@ -1,5 +1,9 @@
 -- 009: the offer book — the supply side of the market.
 --
+-- NOTE: this file's publish_offer reads verification_status, which is defined in 010. Load 009 and 010
+-- together (run_tests.sh and the create_kudi_core migration both list them in order), or the function
+-- body will fail to compile.
+--
 -- WHY THIS FILE EXISTS
 -- Everything built so far is one side. KudiMarket sits in the middle as the seller, a trader buys, and
 -- that is the whole product. But KudiMarket does not hold every cedi and every naira that will change
@@ -179,7 +183,10 @@ begin
   --
   -- Without this the tiers were decorative: anyone could publish and be treated as a peer, and a
   -- "Checked" badge meant nothing because the verification was never consulted.
-  if not exists (select 1 from trader where email = p_seller and verified_at is not null) then
+  -- Reads the verification CHAIN, not trader.verified_at. The column is a cache written by
+  -- decide_verification in the same statement as the decision, and a cache is the thing that eventually
+  -- drifts. The chain is the record: who asked, who checked, when, and what was decided.
+  if not exists (select 1 from verification_status where trader_email = p_seller and is_verified) then
     raise exception 'not verified: % cannot be a counterparty until they are checked', p_seller;
   end if;
   if p_base = p_quote then raise exception 'a pair needs two different assets'; end if;
