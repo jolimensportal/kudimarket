@@ -25,19 +25,49 @@ final class TradeFigures
      * @param  string  $viewer  'buyer' or 'seller' -- which side of the trade is looking at this screen
      * @return array{send: string, receive: string, send_minor: int, receive_minor: int}
      */
-    public static function forTrade(object $trade, string $viewer = 'seller'): array
+    /**
+     * What the trade is worth in cedi, in minor units, with no opinion about who is looking.
+     *
+     * One place knows which way the rate points, because two places is how the same currency bug gets
+     * written twice. forTrade uses this for its arithmetic, and the operations console uses it to show an
+     * agreed value -- there is no buyer or seller to ask on that screen, so it is deliberately the neutral
+     * question rather than one of the two views.
+     *
+     * @throws \RuntimeException when the rate counts in neither cedi nor the fiat leg
+     */
+    public static function cediMinor(object $trade): int
     {
-        $receiveMinor = (int) $trade->fiat_amount;
-        $receiveDecimals = RateBoard::decimalsFor($trade->fiat_asset);
         $rate = (float) $trade->rate;
 
         if ($rate <= 0) {
-            // A trade with no rate is a data problem, not something to paper over with a zero. Guessing
-            // here would render a real amount to send as 0.00.
             throw new \RuntimeException("trade {$trade->id} has no usable rate");
         }
 
-        // WHICH WAY THE RATE POINTS, and this is the whole point of the rewrite.
+        $quoteAsset = $trade->rate_quote_asset ?? $trade->fiat_asset;
+        $fiatMajor = ((int) $trade->fiat_amount) / (10 ** RateBoard::decimalsFor($trade->fiat_asset));
+
+        $cediMajor = match ($quoteAsset) {
+            'GHS' => $fiatMajor * $rate,
+            $trade->fiat_asset => $fiatMajor / $rate,
+            default => throw new \RuntimeException(
+                "trade {$trade->id} has a rate quoted in {$quoteAsset}, which is neither its fiat asset "
+                ."({$trade->fiat_asset}) nor cedi, so the cedi side cannot be derived"
+            ),
+        };
+
+        return (int) round($cediMajor * (10 ** RateBoard::decimalsFor('GHS')));
+    }
+
+    public static function forTrade(object $trade, string $viewer = 'seller'): array
+    {
+        $receiveMinor = (int) $trade->fiat_amount;
+        // A trade with no usable rate is a data problem, not something to paper over with a zero, and
+        // cediMinor refuses it rather than returning a rate of zero.
+        //
+        // WHICH WAY THE RATE POINTS is decided once, in cediMinor(), and asked for here rather than
+        // reimplemented. Two implementations of the same currency rule is how one of them ends up stale:
+        // this file and the operations console both need it, and the bug that started all of it was
+        // exactly one rule living in one place and the rest of the app guessing.
         //
         // rate is "how many rate_quote_asset per one unit of the other asset in the pair". The core has
         // always stored two rates in this one column, quoted from opposite ends, and this class had to
@@ -47,30 +77,8 @@ final class TradeFigures
         //   vendor_vendor        0.0067567 GHS per NGN, fiat_asset NGN -> naira * 0.0067 = cedi. Multiply.
         //
         // Both rows read "fiat_amount 500000, fiat_asset NGN", so the wrong guess was invisible in the data
-        // and 21904x wrong on the screen: a buyer was told to send C74,000,000 on a C3,378.38 trade, and
-        // given a Mobile Money number to send it to. kudi-core/011 records the direction on the row, and
-        // every fixture before this used a single-cedi rate, where both conventions agree.
-        // Major units on both sides, because the rate compares majors to majors.
-        $receiveMajor = $receiveMinor / (10 ** $receiveDecimals);
-
-        $quoteAsset = $trade->rate_quote_asset ?? $trade->fiat_asset;
-
-        if ($quoteAsset === 'GHS') {
-            $sendMajor = $receiveMajor * $rate;
-        } elseif ($quoteAsset === $trade->fiat_asset) {
-            $sendMajor = $receiveMajor / $rate;
-        } else {
-            // The rate counts in neither leg of this trade, so no arithmetic here can be right. Say so
-            // instead of returning a number that looks authoritative.
-            throw new \RuntimeException(
-                "trade {$trade->id} has a rate quoted in {$quoteAsset}, which is neither its fiat asset "
-                ."({$trade->fiat_asset}) nor cedi, so the cedi side cannot be derived"
-            );
-        }
-
-        // What the trader actually types into their phone: the cedi figure, to the cedi's decimals.
-        $sendDecimals = RateBoard::decimalsFor('GHS');
-        $sendMinor = (int) round($sendMajor * (10 ** $sendDecimals));
+        // and 21904x wrong on the screen. kudi-core/011 records the direction on the row.
+        $sendMinor = self::cediMinor($trade);
 
         // WHICH WAY ROUND, which depends on whose screen this is.
         //

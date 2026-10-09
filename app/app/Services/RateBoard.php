@@ -117,8 +117,19 @@ final class RateBoard
         return $whole.'.'.$decimals;
     }
 
+    /** @var array<string, int> */
+    private static array $decimals = [];
+
     public static function decimalsFor(string $asset): int
     {
+        // The asset table is reference data: a currency's decimals do not change while the process runs.
+        // Cached because formatMoney calls this, and a list screen formats one amount per row -- without
+        // this, every table on the operations console would issue one query per row to learn what it
+        // already knew. Keyed by code, so it cannot serve one currency's decimals for another's.
+        if (isset(self::$decimals[$asset])) {
+            return self::$decimals[$asset];
+        }
+
         $row = DB::connection('pgsql_trader')->selectOne('select decimals from asset where code = ?', [$asset]);
 
         if ($row === null) {
@@ -127,7 +138,7 @@ final class RateBoard
             throw new \RuntimeException("unknown asset {$asset}: not in the asset table");
         }
 
-        return (int) $row->decimals;
+        return self::$decimals[$asset] = (int) $row->decimals;
     }
 
     /**

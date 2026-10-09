@@ -7,6 +7,8 @@ namespace App\Filament\Resources\Trades;
 use App\Filament\Resources\Trades\Pages\ListTrades;
 use App\Filament\Resources\Trades\Pages\ViewTrade;
 use App\Models\Trade;
+use App\Services\RateBoard;
+use App\Services\TradeFigures;
 use App\Services\TradeLedger;
 use Filament\Actions\Action;
 use Filament\Actions\ViewAction;
@@ -242,6 +244,34 @@ class TradeResource extends Resource
         if ($hasCryptoLeg) {
             $terms[] = TextEntry::make('rate')->label('Agreed rate')->formatStateUsing($rate);
             $terms[] = TextEntry::make('actual_rate')->label('Rate actually paid')->formatStateUsing($rate);
+        }
+
+        // A vendor trade has no crypto leg, and the rule below used to hide the rate entirely for that
+        // reason -- on the comment that a rate on a fiat-only trade "means nothing". It does mean
+        // something: it is the agreed cedi per naira, it is what both deposits were priced against, and
+        // it is the first thing anybody resolving a dispute asks for. Operations could not see the rate,
+        // or what the trade was worth, on exactly the trades that hold money and get disputed.
+        if (! $hasCryptoLeg && $quote !== null && $quote->fiat_amount !== null) {
+            $terms[] = TextEntry::make('rate')->label('Agreed rate')
+                ->helperText('quoted in '.($quote->rate_quote_asset ?? $quote->fiat_asset))
+                ->formatStateUsing($rate);
+
+            // cediMinor is the one place that knows which way this rate points, and there is no buyer or
+            // seller to ask on this screen, so it is deliberately the neutral question.
+            //
+            // The refusal is shown rather than thrown. cediMinor throws when a rate counts in neither
+            // cedi nor the fiat leg, and that is the right behaviour for a screen that is about to tell
+            // somebody an amount to pay. It is the wrong behaviour for an operations console: a page that
+            // 500s on one malformed row means nobody can resolve the dispute at all, which is worse than
+            // the malformed row. So the reason is put on the page instead of thrown from it.
+            $terms[] = TextEntry::make('cedi_value')->label('Agreed value in cedi')
+                ->state(static function () use ($quote): string {
+                    try {
+                        return RateBoard::formatMoney(TradeFigures::cediMinor($quote), 'GHS');
+                    } catch (RuntimeException $e) {
+                        return 'cannot be derived — '.$e->getMessage();
+                    }
+                });
         }
 
         return $schema->schema([

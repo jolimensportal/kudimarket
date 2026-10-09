@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Services\RateBoard;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -39,17 +40,27 @@ class Trade extends Model
 
     protected $guarded = [];
 
+    /**
+     * Both legs render through RateBoard::formatMoney, which reads the currency's own decimals from the
+     * asset table.
+     *
+     * These two used to divide by 100 and by 1,000,000 respectively. That is right for naira, cedi and
+     * USDT and wrong by a factor of a hundred for any currency that is not two decimals, which is the
+     * failure RateBoard::formatMoney's own comment warns about by name: "hardcoding 100 gets that wrong
+     * silently". On the operations console -- the screen a regulator or a dispute reads -- a wrong figure
+     * is not a cosmetic problem.
+     */
     public function getFiatDisplayAttribute(): string
     {
         return $this->fiat_amount === null
             ? '—'
-            : number_format((float) $this->fiat_amount / 100, 2).' '.$this->fiat_asset;
+            : RateBoard::formatMoney($this->fiat_amount, $this->fiat_asset);
     }
 
     public function getCryptoDisplayAttribute(): string
     {
         return $this->crypto_amount === null
             ? 'none'
-            : number_format((float) $this->crypto_amount / 1_000_000, 2).' '.$this->crypto_asset;
+            : RateBoard::formatMoney($this->crypto_amount, $this->crypto_asset);
     }
 }

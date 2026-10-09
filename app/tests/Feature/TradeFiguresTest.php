@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
+use App\Models\Trade;
+use App\Services\RateBoard;
 use App\Services\TradeFigures;
 use Tests\TestCase;
 
@@ -164,6 +166,33 @@ class TradeFiguresTest extends TestCase
         $this->assertSame('13.50 GHS', TradeFigures::forTrade($trade, 'seller')['send']);
     }
 
+    public function test_cedi_value_is_derived_the_same_way_for_everyone_who_asks(): void
+    {
+        /**
+         * One rule, asked for rather than reimplemented.
+         *
+         * The operations console needed the agreed value too, and the obvious way to get it was to copy
+         * the multiply-or-divide decision out of forTrade. That is precisely how one of two copies goes
+         * stale: the bug this whole file exists to prevent was a rule living in one place while the rest of
+         * the app guessed. So the neutral question is its own method and forTrade uses it.
+         */
+        $vendor = (object) [
+            'id' => 6, 'trade_type' => 'vendor_vendor', 'fiat_amount' => '50000000', 'fiat_asset' => 'NGN',
+            'rate' => '0.006756756756756756', 'rate_quote_asset' => 'GHS',
+        ];
+        $platform = (object) [
+            'id' => 7, 'trade_type' => 'platform_inventory', 'fiat_amount' => '50000000', 'fiat_asset' => 'NGN',
+            'rate' => '148.2', 'rate_quote_asset' => 'NGN',
+        ];
+
+        $this->assertSame(337838, TradeFigures::cediMinor($vendor));
+        $this->assertSame(337382, TradeFigures::cediMinor($platform));
+
+        // Whichever way the question is asked, the answer is the same one.
+        $this->assertSame(TradeFigures::cediMinor($vendor), TradeFigures::forTrade($vendor, 'seller')['send_minor']);
+        $this->assertSame(TradeFigures::cediMinor($vendor), TradeFigures::forTrade($vendor, 'buyer')['receive_minor']);
+    }
+
     public function test_a_rate_quoted_in_neither_leg_is_refused_rather_than_guessed(): void
     {
         // Same reasoning as a zero rate: an authoritative-looking wrong number on a money screen is worse
@@ -181,6 +210,38 @@ class TradeFiguresTest extends TestCase
     }
 
     /** @return array{send: string, receive: string, send_minor: int, receive_minor: int} */
+    public function test_an_amount_is_rendered_with_its_own_currency_decimals(): void
+    {
+        /**
+         * Trade::fiat_display divided by 100 and crypto_display by 1,000,000, both hardcoded.
+         *
+         * That is right for naira, cedi and USDT, and wrong by a factor of a hundred for anything that is
+         * not two decimals. RateBoard::formatMoney exists to render an amount in its own currency's
+         * decimals, and its comment names this exact trap: "hardcoding 100 gets that wrong silently". The
+         * model did the hardcoded thing on the operations console, which is the screen a dispute is read
+         * off, so this is not cosmetic.
+         */
+        // The same stored 200000 is 2,000.00 naira and 200,000.00 of a currency with no decimals.
+        $this->assertSame('2,000.00 NGN', RateBoard::formatMoney(200000, 'NGN'));
+
+        $trade = new Trade;
+        $trade->fiat_amount = 200000;
+        $trade->fiat_asset = 'NGN';
+        $this->assertSame('2,000.00 NGN', $trade->fiat_display);
+
+        // USDT has six decimals, so 200000 minor units is 0.200000 USDT -- and it is shown in full. The
+        // old hardcoded divide-by-a-million also got that magnitude right and then rounded it to "0.20",
+        // throwing away four of the six places the currency actually has.
+        $trade->crypto_amount = 200000;
+        $trade->crypto_asset = 'USDT';
+        $this->assertSame('0.200000 USDT', $trade->crypto_display);
+
+        // A null leg stays a dash rather than becoming a zero somebody might read as money.
+        $empty = new Trade;
+        $empty->fiat_amount = null;
+        $this->assertSame('—', $empty->fiat_display);
+    }
+
     private function figures(int $amount, string $asset, float $rate): array
     {
         return TradeFigures::forTrade((object) [

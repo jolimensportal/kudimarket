@@ -7,8 +7,10 @@ namespace Tests\Feature;
 use App\Filament\Resources\Trades\Pages\ListTrades;
 use App\Models\Trader;
 use App\Models\User;
+use App\Services\OfferDesk;
 use App\Services\TradeDesk;
 use App\Services\TradeLedger;
+use App\Services\VerificationDesk;
 use Filament\Http\Middleware\PreventRequestForgery;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Features\SupportTesting\Testable;
@@ -64,6 +66,38 @@ class OpsConsoleTest extends TestCase
         $this->actingAs($this->operator())
             ->get('/admin/ledger-integrity')
             ->assertOk();
+    }
+
+    public function test_a_vendor_trade_shows_operations_the_agreed_rate_and_what_it_is_worth(): void
+    {
+        /**
+         * Operations could not see the rate, or the value, on a vendor trade.
+         *
+         * The rule in the trade record page hid the rate whenever the trade had no crypto leg, on the
+         * comment that a rate on a fiat-only trade "means nothing". It means something: it is the agreed
+         * cedi per naira, it is what both deposits were priced against, and it is the first thing anybody
+         * resolving a dispute asks for. Those are the trades that hold money.
+         */
+        $desk = app(OfferDesk::class);
+        $seller = $this->trader('ops-rate-seller');
+        $offerId = $desk->publish('NGN', 'GHS', 50000000, '0.0060');
+        $buyer = $this->trader('ops-rate-buyer');
+        $tradeId = $desk->accept($offerId);
+
+        $this->actingAs($buyer, 'trader')->get("/trade/{$tradeId}")->assertOk();
+        $this->actingAs($buyer, 'trader')->post("/trade/{$tradeId}/claim");
+
+        $record = $this->actingAs($this->operator(), 'web')
+            ->get("/admin/trades/{$tradeId}")
+            ->assertOk()
+            ->getContent();
+
+        $flat = preg_replace('/\s+/', ' ', strip_tags(html_entity_decode($record, ENT_QUOTES)));
+
+        $this->assertStringContainsString('Agreed rate', $flat, 'operations sees the agreed rate');
+        $this->assertStringContainsString('quoted in GHS', $flat, 'and which currency it counts in');
+        $this->assertStringContainsString('Agreed value in cedi', $flat);
+        $this->assertStringContainsString('3,378.38 GHS', $flat, 'the value the ledger says the trade is worth');
     }
 
     public function test_a_trade_record_page_renders(): void
@@ -219,6 +253,31 @@ class OpsConsoleTest extends TestCase
      * reset script created every staff account that way, so the console had no usable operator and the
      * resulting 403 looks exactly like a permissions problem rather than a discarded column value.
      */
+    /**
+     * A trader who is checked, because a vendor offer cannot be published by an unchecked one.
+     * Applied through the real service rather than by writing verified_at, so the fixture cannot drift
+     * from what the gate actually reads.
+     */
+    private function trader(string $label): Trader
+    {
+        $trader = Trader::factory()->create([
+            'email' => sprintf('%s-%s@example.com', $label, bin2hex(random_bytes(4))),
+        ]);
+
+        Auth::guard('trader')->setUser($trader);
+        app(VerificationDesk::class)->apply(
+            'Ghana Card GHA-000000000-1-1. 12 Boundary Road, Accra. Own-name MTN 0240000001. Funds from trading.'
+        );
+
+        $staff = $this->operator();
+        $this->actingAs($staff, 'web');
+        app(VerificationDesk::class)->decide($trader->email, true, null);
+
+        Auth::guard('trader')->setUser($trader);
+
+        return $trader;
+    }
+
     private function operator(): User
     {
         $user = User::firstOrNew(['email' => 'ops-console-test@kudimarket.com']);
