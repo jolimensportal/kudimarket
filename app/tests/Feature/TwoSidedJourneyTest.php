@@ -62,8 +62,8 @@ class TwoSidedJourneyTest extends TestCase
         // ledger movement, so a trader with no balance cannot claim -- which is the product working, not
         // a test obstacle. Minted on the admin connection because that is the chain watcher's job and no
         // application role may do it. See the note on test_a_vendor_trade_cannot_be_claimed_without_balances.
-        $this->fund($seller->email, 'GHS', 6000000);
-        $this->fund($buyer->email, 'GHS', 6000000);
+        $this->fund($seller->email, 'GHS', 33784);
+        $this->fund($buyer->email, 'GHS', 33784);
 
         // actingAs, not just setUser: the claim below is an HTTP request and needs the client signed in,
         // not merely the guard holding a user. setUser satisfies a service call and nothing else.
@@ -119,8 +119,8 @@ class TwoSidedJourneyTest extends TestCase
         $buyer = $this->trader('dep-buyer');
         $tradeId = $desk->accept($offerId);
 
-        $this->fund($sellerEmail, 'GHS', 6000000);
-        $this->fund($buyer->email, 'GHS', 6000000);
+        $this->fund($sellerEmail, 'GHS', 33784);
+        $this->fund($buyer->email, 'GHS', 33784);
         $this->actingAs($buyer, 'trader')->post("/trade/{$tradeId}/claim");
 
         // As operations: kudi_trader has no grant on `account`, which is the whole point of it not having
@@ -305,54 +305,68 @@ class TwoSidedJourneyTest extends TestCase
         );
     }
 
-    public function test_the_vendor_deposit_is_about_fifteen_times_the_value_of_the_trade(): void
+    public function test_the_vendor_deposit_is_a_share_of_the_value_of_the_trade(): void
     {
         /**
-         * A KNOWN DEFECT, pinned so it cannot be forgotten. Not an expectation of correct behaviour.
+         * The defect this file used to pin, now a regression test for the fix.
          *
-         * In kudi-core/004, the deposit is computed as a share of the BASE leg:
+         * kudi-core/004 computed the deposit as a share of the BASE leg:
          *
          *     d := div(t.fiat_amount * pol.deposit_bps, 10000)
          *
-         * and then taken in the DEPOSIT asset. When those are the same currency -- which was true of every
-         * crypto-leg trade the core was built for -- that is a plain 10%. On a cedi-to-naira trade they
-         * are different currencies, so a 10% share of ₦500,000 is taken as ₵50,000, which for a trade
-         * worth ₵3,378 is roughly fifteen times the money involved. Both parties must be able to post it
-         * or the trade cannot be claimed at all, which is what stopped the happy path until the sellers
-         * in this file were funded ₵60,000 to move ₦500,000.
+         * and then took it in the DEPOSIT asset. A vendor trade has its two legs in two currencies -- the
+         * buyer sends naira, the seller owes cedi, and the deposit is taken in cedi -- so 10% of N500,000
+         * was charged as C50,000 to move a trade worth C3,378.38. That is fourteen times the money involved,
+         * in the very currency the seller is selling naira to raise, which is why the sellers in this file
+         * had to be funded C60,000 to move N500,000 before the buyer could claim at all.
          *
-         * It also lands in the currency the seller may not hold: the seller is selling naira and is asked
-         * for cedi.
+         * It survived 286 passing SQL tests because every deposit test used rate = 1 with deposit_asset =
+         * fiat_asset, where the conversion is a no-op and a share of the wrong number looks correct. The
+         * fix converts the value into the deposit asset first: base -> quote multiplies, because rate is
+         * quote per base.
          *
-         * The right fix is economic, not clerical: a deposit should be a share of the trade's VALUE in
-         * the asset it is posted in. That changes what traders are asked for, so it is a decision rather
-         * than a bugfix, and it is not made here. Until it is, no vendor-to-vendor trade is realistically
-         * usable.
+         * The exact figure below is the point. A deposit that drifts back to a share of the naira number
+         * fails here, and so does one that is merely too large -- the trade has to be movable on a
+         * proportionate sum, which is what makes it usable by anyone who is not a bank.
          */
         $desk = app(OfferDesk::class);
 
-        $seller = $this->trader('deposit-defect-seller');
+        $seller = $this->trader('deposit-value-seller');
         $offerId = $desk->publish('NGN', 'GHS', 50000000, '0.0060');
 
-        $buyer = $this->trader('deposit-defect-buyer');
+        $buyer = $this->trader('deposit-value-buyer');
         $tradeId = $desk->accept($offerId);
 
-        $this->fund($seller->email, 'GHS', 6000000);
-        $this->fund($buyer->email, 'GHS', 6000000);
-        $this->actingAs($buyer, 'trader')->post("/trade/{$tradeId}/claim");
+        // Enough to post the deposit and nothing more: C338 is 10% of the C3,378.38 the trade is worth. The
+        // old code needed C60,000 here, so funding only what is owed is itself part of the assertion.
+        $this->fund($seller->email, 'GHS', 33784);
+        $this->fund($buyer->email, 'GHS', 33784);
 
-        $this->assertSame('paid_claimed', $this->stateOf($tradeId));
+        $this->actingAs($buyer, 'trader')->post("/trade/{$tradeId}/claim");
+        $this->assertSame('paid_claimed', $this->stateOf($tradeId), 'the buyer could claim without C60,000');
 
         // Scoped to this trade, for the same reason: a global sum picks up every other test's deposits.
         $held = (int) DB::connection('pgsql_ops')->selectOne(
             "select coalesce(sum(balance), 0) as b from account
               where owner like ? and asset = 'GHS'",
-            ["trade:{$tradeId}%\_deposit"]
+            ["trade:{$tradeId}%\\_deposit"]
         )->b;
 
-        // ₵50,000.00 held, against a trade worth ₵3,378.38. Pinned exactly, so that fixing the defect
-        // makes this test fail and forces whoever fixes it to say so here.
-        $this->assertSame(10000000, $held, 'each side is holding a deposit of GHS 50,000.00');
+        // C337.83 from EACH side, C675.66 held in total, against a trade worth C3,378.38. It was C50,000.00
+        // from each side -- C100,000.00 held, 14.8x the trade.
+        $this->assertSame(67566, $held, 'the deposit is 10% of the value, taken in the currency of the leg');
+
+        // And both sides get it back on success, which is the other half of a deposit rather than a toll.
+        // There is no HTTP route for either of these steps -- they are services, and the two URLs I first
+        // guessed at (/confirm-received, /release) do not exist and 404 silently, leaving the trade stuck.
+        app(TradeDesk::class)->attestPaid($tradeId, $seller->email);
+        app(TradeLedger::class)->release($tradeId, 'ops@kudimarket.com');
+
+        $this->assertSame('released', $this->stateOf($tradeId));
+        $this->assertSame(0, (int) DB::connection('pgsql_ops')->selectOne(
+            'select coalesce(sum(balance), 0) as b from account where owner like ?',
+            ["trade:{$tradeId}%\\_deposit"]
+        )->b, 'the deposits came back');
     }
 
     public function test_only_the_recipient_confirms_a_vendor_payment(): void
@@ -384,8 +398,8 @@ class TwoSidedJourneyTest extends TestCase
         $buyer = $this->trader('tier-buyer');
         $tradeId = $desk->accept($offerId);
 
-        $this->fund($seller->email, 'GHS', 6000000);
-        $this->fund($buyer->email, 'GHS', 6000000);
+        $this->fund($seller->email, 'GHS', 33784);
+        $this->fund($buyer->email, 'GHS', 33784);
         $this->actingAs($buyer, 'trader')->post("/trade/{$tradeId}/claim");
 
         $this->assertSame('paid_claimed', $this->stateOf($tradeId), 'claimed');

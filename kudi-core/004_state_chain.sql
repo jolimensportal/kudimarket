@@ -233,8 +233,28 @@ begin
   if t.crypto_amount is not null then
     esc := get_account('trade:' || t.id, 'escrow', t.crypto_asset);
   end if;
-  if t.trade_type = 'vendor_vendor' then
-    d := div(t.fiat_amount * pol.deposit_bps, 10000);
+  if t.trade_type = 'vendor_vendor' and pol.deposit_bps > 0 then
+    -- The deposit is a SHARE OF WHAT THE TRADE IS WORTH, and "worth" is meaningless without a currency.
+    --
+    -- It used to be div(t.fiat_amount * pol.deposit_bps, 10000), posted into da. That is a share of the
+    -- BASE figure taken in the DEPOSIT asset, and on a rate-priced vendor trade those are two different
+    -- currencies: the buyer sends naira, the seller owes cedi, and the deposit is taken in cedi. So 10% of
+    -- N500,000 was charged as C500.00 to move a trade worth C33.78 -- fourteen times the money involved,
+    -- and in the very currency the seller is selling naira to raise.
+    --
+    -- Every deposit test until now used rate = 1 with deposit_asset = fiat_asset, where the conversion is
+    -- a no-op, so a share of the wrong number was indistinguishable from a correct one. 286 tests passed.
+    --
+    -- rate is quote per base, so base -> quote multiplies. When the deposit asset IS the fiat leg there is
+    -- nothing to convert. Anything else is refused rather than guessed at, on the grounds that a wrong
+    -- deposit is a real sum of money and a wrong deposit nobody can explain is worse.
+    if da = t.fiat_asset then
+      d := div(t.fiat_amount * pol.deposit_bps, 10000);
+    elsif t.crypto_amount is null and t.rate is not null then
+      d := div(t.fiat_amount * t.rate * pol.deposit_bps, 10000);
+    else
+      raise exception 'cannot price a deposit for trade % in %: it is neither leg of the trade', t.id, da;
+    end if;
     if d > 0 then
       sd := get_account('trade:' || t.id || ':seller_deposit', 'escrow', da);
       bd := get_account('trade:' || t.id || ':buyer_deposit',  'escrow', da);

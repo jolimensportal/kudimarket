@@ -788,6 +788,36 @@ expect_fail "an application cannot be edited away" \
   "$(sql "delete from verification_event where trader_email='solo@example.com';")" "append.only\|immutable"
 expect_eq "and the ledger still balances" "$(sql "select count(*) from check_balances();")" "0"
 
+echo "== the deposit is a share of the trade's VALUE, not of the base leg"
+# Every deposit test above this line uses rate = 1 with deposit_asset = fiat_asset, so the conversion is a
+# no-op and a deposit as a share of the wrong number looks identical to a correct one. That is how a
+# fourteen-fold overcharge sat in 004 through 286 passing tests: nothing ever priced a vendor trade off the
+# rate card and then asked for a deposit.
+#
+# A real vendor trade is priced from the card, so its two legs are in different currencies: the buyer sends
+# naira, the seller owes cedi, and the deposit is taken in cedi. The number the deposit is a share of has
+# to be the trade's value IN CEDI, not the naira figure.
+sql "insert into asset values ('NGN',2);" >/dev/null
+sql "select ledger_deposit('dv1','GHS',100000,'dep-dv1'); select ledger_deposit('dw1','GHS',100000,'dep-dw1');" >/dev/null
+# 500,000 minor naira at 0.0067567... cedi per naira is 3,378 minor cedi, so a 10% deposit is 337.
+DV=$(sql "select create_fiat_trade('dv1','dw1',null,null,'NGN',500000,0.006756756756756756,'vendor_vendor');")
+# The deposit is taken when the buyer claims, which is where a fiat-only trade first has both parties on
+# the hook. There is no crypto leg to escrow, so open -> escrowed is refused outright.
+tt $DV open paid_claimed dvc dw1
+expect_eq "deposit is 10% of the trade's value in the deposit asset" \
+  "$(sql "select balance from account where owner='trade:$DV:seller_deposit' and asset='GHS';")" "337"
+expect_eq "and it is taken from the seller in cedi" \
+  "$(sql "select balance from account where owner='dv1' and asset='GHS' and kind='available';")" "99663"
+expect_eq "and from the buyer in cedi too" \
+  "$(sql "select balance from account where owner='dw1' and asset='GHS' and kind='available';")" "99663"
+# The exact figure above is the whole defence: 50,000 here is 14.8x the entire trade, so any drift back to
+# a share of the naira figure shows up as a wrong number rather than needing a second assertion.
+tt $DV paid_claimed paid_attested dva dv1; tt $DV paid_attested released dvr system
+expect_eq "success: both deposits come back" \
+  "$(sql "select coalesce(sum(balance),0) from account where owner like 'trade:$DV:%';")" "0"
+expect_eq "success: nobody lost anything" \
+  "$(sql "select balance from account where owner='dv1' and asset='GHS' and kind='available';")" "100000"
+
 echo "== integrity"
 expect_eq "cached balances equal sum of postings" "$(sql "select count(*) from check_balances();")" "0"
 expect_eq "value is conserved (sum of all balances per asset = 0)" "$(sql "select count(*) from (select asset from account group by asset having sum(balance)<>0) x;")" "0"
