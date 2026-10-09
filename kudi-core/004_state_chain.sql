@@ -142,27 +142,20 @@ begin
     if p_ops then
       v_ok := (r.actor = 'seller' and t.seller = 'platform')
            or (r.actor = 'buyer'  and t.buyer  = 'platform')
-           or (r.actor = 'either' and 'platform' in (t.seller, t.buyer))
-           -- THE VENDOR ATTESTATION EXCEPTION, and it is deliberately one step wide.
+           or (r.actor = 'either' and 'platform' in (t.seller, t.buyer));
+           -- NO VENDOR ATTESTATION EXCEPTION, and one was briefly added here and then removed.
            --
-           -- paid_claimed -> paid_attested has actor 'seller'. On our own book the seller IS KudiMarket,
-           -- so operations may confirm the money arrived. On a vendor-to-vendor trade the seller is the
-           -- other trader, and this check refused operations -- while the counterparty could not attest
-           -- either, because attestation exists precisely so that whoever is owed the money is not the
-           -- person confirming they sent it. So a vendor trade could be opened, funded and claimed, and
-           -- then stopped for good holding both deposits. Found by building the seller side, not by
-           -- reading: the SQL suite had always tested this transition through ops on a platform trade.
+           -- On a vendor-to-vendor trade the seller is the RECIPIENT of the buyer's payment, so 'it
+           -- arrived' is the seller's to say -- which is exactly right for a "Checked" trade, where the
+           -- buyer is relying on our verification of the seller and NOT on a guarantee from us. That is
+           -- the tier brand/product.html describes: "Two labels let us sell the strong promise on the
+           -- trades we control and be factual on the rest."
            --
-           -- The decision: KudiMarket operations confirms vendor payments. Somebody neutral to the trade
-           -- looks at the payment, which is the whole point of having an attestation step at all.
-           --
-           -- This grants EXACTLY this move, on this trade type, and only where we are neither party. It
-           -- does NOT let operations release a vendor trade (still a system step behind the claim window),
-           -- adjudicate a dispute (already ops-only, and correctly so), or act for a counterparty at any
-           -- other step. One exception, not a widening of the operations role.
-           or (r.actor = 'seller' and p_to = 'paid_attested'
-               and t.trade_type = 'vendor_vendor'
-               and 'platform' not in (t.seller, t.buyer));
+           -- Letting operations attest every vendor trade would have made KudiMarket the guarantor of
+           -- every peer-to-peer trade -- collapsing both tiers into the one we have explicitly not
+           -- priced, and taking the other side on customer funds, which is the thing that puts the Bank
+           -- of Ghana first rather than the SEC. Operations attesting is correct when WE are the
+           -- counterparty, and only then.
     else
       v_ok := p_actor <> 'platform' and case r.actor
                 when 'seller' then p_actor = t.seller

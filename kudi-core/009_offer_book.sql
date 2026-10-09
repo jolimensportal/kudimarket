@@ -168,6 +168,20 @@ begin
   if p_seller is null or trim(p_seller) = '' then
     raise exception 'seller required: an offer with nobody''s name on it cannot be defended later';
   end if;
+  -- Only a verified trader may be a counterparty to another trader.
+  --
+  -- This is where the two assurance tiers from brand/product.html are actually enforced, and it belongs
+  -- HERE rather than in the application because it is the whole of what the "Checked" badge means. A
+  -- trader who is not verified can still trade against KudiMarket's own book -- where we are the
+  -- counterparty and do guarantee, which is the "KudiMarket handled" tier -- but may not stand on the
+  -- other side of somebody else's money. Publishing an offer makes you a counterparty, so publishing
+  -- requires the verification.
+  --
+  -- Without this the tiers were decorative: anyone could publish and be treated as a peer, and a
+  -- "Checked" badge meant nothing because the verification was never consulted.
+  if not exists (select 1 from trader where email = p_seller and verified_at is not null) then
+    raise exception 'not verified: % cannot be a counterparty until they are checked', p_seller;
+  end if;
   if p_base = p_quote then raise exception 'a pair needs two different assets'; end if;
   if not exists (select 1 from asset where code = p_base) then raise exception 'unknown base %', p_base; end if;
   if not exists (select 1 from asset where code = p_quote) then raise exception 'unknown quote %', p_quote; end if;

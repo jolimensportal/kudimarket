@@ -335,11 +335,46 @@ class OfferDeskTest extends TestCase
         $this->assertTrue($refused, 'a trader must not be able to move the board rate');
     }
 
+    public function test_an_unverified_trader_cannot_list_an_offer(): void
+    {
+        // Where the "Checked" tier is actually enforced. An unchecked trader may still trade against
+        // KudiMarket's own book -- where we are the counterparty and do guarantee -- but may not be a
+        // counterparty to another trader. Without this the badge was decoration: anyone could publish and
+        // be treated as a peer, and "Checked" meant nothing because verified_at was never consulted.
+        $this->signIn(verified: false);
+
+        $refused = '';
+        try {
+            app(OfferDesk::class)->publish('NGN', 'GHS', 50000000, '0.0060');
+        } catch (\RuntimeException $e) {
+            $refused = $e->getMessage();
+        }
+
+        // The words the trader reads, not the database's. The service maps the refusal onto something
+        // that says what they CAN still do, because a trader who is told only "no" asks support instead.
+        $this->assertStringContainsString('need to be checked', $refused);
+        $this->assertStringContainsString('You can still buy from us today', $refused);
+    }
+
     // ---------------------------------------------------------------- helpers
 
-    private function signIn(): Trader
+    /**
+     * A VERIFIED trader, which is what publishing requires.
+     *
+     * brand/product.html's two tiers are enforced in the database: only a checked trader may stand on the
+     * other side of somebody else's money. Verification is assigned explicitly because email_verified_at
+     * is not fillable and mass assignment drops it without a word -- which is how every staff account in
+     * this project once ended up unverified.
+     */
+    private function signIn(bool $verified = true): Trader
     {
         $trader = Trader::factory()->create();
+
+        if ($verified) {
+            $trader->verified_at = now();
+            $trader->save();
+        }
+
         Auth::guard('trader')->setUser($trader);
 
         return $trader;
@@ -357,6 +392,8 @@ class OfferDeskTest extends TestCase
         $trader = Trader::factory()->create([
             'email' => sprintf('%s-%s@example.com', $label, bin2hex(random_bytes(4))),
         ]);
+        $trader->verified_at = now();
+        $trader->save();
 
         Auth::guard('trader')->setUser($trader);
 

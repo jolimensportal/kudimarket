@@ -219,6 +219,7 @@ final class OfferDesk
             str_contains($message, 'own offer') => 'You cannot take your own offer.',
             str_contains($message, 'expired') => 'This offer ran out. Publish a new one when you are ready.',
             str_contains($message, 'may not withdraw') => 'That offer is not yours to withdraw.',
+            str_contains($message, 'cannot be a counterparty') => 'You need to be checked before you can trade with other people. You can still buy from us today.',
             str_contains($message, 'two different assets') => 'An offer needs two different currencies.',
             str_contains($message, 'must be positive') => 'Check the amount and the rate you entered.',
             str_contains($message, 'an offer needs a lifetime') => 'An offer has to say how long it stands.',

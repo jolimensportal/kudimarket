@@ -104,6 +104,30 @@ final class TradeDesk
     }
 
     /**
+     * The RECIPIENT confirms the money arrived.
+     *
+     * I deleted this in Task 8 as a method that "could only ever fail", because it called ops_transition on
+     * the trader connection and the trader role is correctly not granted that. That was true of the
+     * OPERATIONS attestation and wrong about this one: the seller on a vendor-to-vendor trade is the
+     * recipient of the buyer's payment, and saying "it arrived" is theirs to say.
+     *
+     * This is the "Checked" tier working as brand/product.html describes it -- "Two labels let us sell the
+     * strong promise on the trades we control and be factual on the rest." The buyer relies on our
+     * verification of the seller, not on a guarantee from us, so the payer is refused by the database and
+     * the recipient is not. Operations attesting on a vendor trade would make KudiMarket the guarantor of
+     * every peer-to-peer trade: the tier we have explicitly not priced, and the one that would put the
+     * Bank of Ghana first rather than the SEC.
+     */
+    public function attestPaid(int $tradeId, string $recipient): void
+    {
+        $this->call(
+            'select transition_trade(?, ?, ?, ?, ?) as ok',
+            [$tradeId, 'paid_claimed', 'paid_attested', $this->key($tradeId, 'attest'), $recipient],
+            'The ledger refused that confirmation.'
+        );
+    }
+
+    /**
      * One key per decision, so a double tap settles once.
      *
      * Keyed on the trade and the step, not on the row count, because the step is what makes it the

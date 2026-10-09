@@ -78,12 +78,18 @@ class TwoSidedJourneyTest extends TestCase
             'the trade is priced by our rate card, not by the walk-away the seller typed'
         );
 
-        // It settles the whole way, the same as a trade against our own book: the buyer claims, KudiMarket
-        // operations confirms the money arrived, the window elapses, and it releases.
+        // It settles the whole way: the buyer claims, the SELLER -- the recipient of the buyer's payment --
+        // confirms it arrived, the window elapses, and it releases.
+        //
+        // NOT operations. On a "Checked" vendor trade the buyer is relying on our verification of the
+        // seller, not on a guarantee from us: "Two labels let us sell the strong promise on the trades we
+        // control and be factual on the rest." Operations confirming here would make KudiMarket the
+        // guarantor of every peer-to-peer trade -- the tier we have not priced, and the one that would put
+        // the Bank of Ghana first rather than the SEC.
         $this->post("/trade/{$tradeId}/claim");
         $this->assertSame('paid_claimed', $this->stateOf($tradeId));
 
-        app(TradeLedger::class)->attest($tradeId, 'ops@kudimarket.com');
+        app(TradeDesk::class)->attestPaid($tradeId, $seller->email);
         $this->assertSame('paid_attested', $this->stateOf($tradeId));
 
         $this->withClaimWindow('0 seconds', function () use ($tradeId): void {
@@ -347,47 +353,59 @@ class TwoSidedJourneyTest extends TestCase
         $this->assertSame(10000000, $held, 'each side is holding a deposit of GHS 50,000.00');
     }
 
-    public function test_operations_confirms_a_vendor_payment_and_the_payer_still_cannot(): void
+    public function test_only_the_recipient_confirms_a_vendor_payment(): void
     {
-        // The rule that replaced a dead end. paid_claimed -> paid_attested has actor 'seller', so on our own
-        // book operations could confirm because the seller IS us. On a vendor trade the seller is the other
-        // trader and operations was refused -- and the payer cannot attest either, because attestation
-        // exists so that whoever is owed the money is not the one confirming they sent it. A vendor trade
-        // could be opened, funded, claimed, and then stopped for good holding both deposits.
-        //
-        // KudiMarket operations confirms vendor payments: somebody neutral to the trade looks at the
-        // payment. Narrowly -- one step, and only where we are neither party.
+        /**
+         * The two assurance tiers, enforced.
+         *
+         * brand/product.html: "Two levels: checked, and KudiMarket handled. One badge that reads 'safe to
+         * send money to' is a guarantee we have not priced. Two labels let us sell the strong promise on the
+         * trades we control and be factual on the rest."
+         *
+         * So on a vendor trade the buyer is relying on our verification of the seller, NOT on a guarantee
+         * from us. Three refusals and one permission:
+         *
+         *   - operations may NOT confirm it, because we are not the counterparty. An exception allowing
+         *     exactly this was written into kudi-core/004 and then removed: it made KudiMarket the guarantor
+         *     of every peer-to-peer trade, which is the tier we have not priced and the reason the Bank of
+         *     Ghana rather than the SEC is the first regulator.
+         *   - the PAYER may not confirm it, because whoever is owed the money is never the person who says
+         *     they sent it. That is the whole reason the step exists.
+         *   - the RECIPIENT -- the seller, who is being paid the naira -- may. That is the tier working, not
+         *     a hole in it.
+         */
         $desk = app(OfferDesk::class);
 
-        $seller = $this->trader('confirm-seller');
+        $seller = $this->trader('tier-seller');
         $offerId = $desk->publish('NGN', 'GHS', 50000000, '0.0060');
 
-        $buyer = $this->trader('confirm-buyer');
+        $buyer = $this->trader('tier-buyer');
         $tradeId = $desk->accept($offerId);
 
         $this->fund($seller->email, 'GHS', 6000000);
         $this->fund($buyer->email, 'GHS', 6000000);
         $this->actingAs($buyer, 'trader')->post("/trade/{$tradeId}/claim");
-        $this->assertSame('paid_claimed', $this->stateOf($tradeId));
 
-        // The payer cannot confirm its own payment, on a vendor trade or any other.
+        $this->assertSame('paid_claimed', $this->stateOf($tradeId), 'claimed');
+
+        $opsRefused = false;
+        try {
+            app(TradeLedger::class)->attest($tradeId, 'ops@kudimarket.com');
+        } catch (\RuntimeException) {
+            $opsRefused = true;
+        }
+        $this->assertTrue($opsRefused, 'operations may not confirm a trade we are not the counterparty for');
+
         $payerRefused = false;
         try {
             app(TradeDesk::class)->attestPaid($tradeId, $buyer->email);
-        } catch (\Throwable) {
+        } catch (\RuntimeException) {
             $payerRefused = true;
         }
-        $this->assertTrue($payerRefused, 'the party that owes the money may not confirm it arrived');
+        $this->assertTrue($payerRefused, 'the payer may not confirm the payment it owes');
 
-        // Operations may, and it is recorded against the staff member.
-        app(TradeLedger::class)->attest($tradeId, 'ops@kudimarket.com');
-        $this->assertSame('paid_attested', $this->stateOf($tradeId));
-
-        $actor = DB::connection('pgsql_ops')->selectOne(
-            'select actor from trade_event where trade_id = ? and to_state = ?',
-            [$tradeId, 'paid_attested']
-        )->actor;
-        $this->assertSame('ops@kudimarket.com', $actor, 'recorded against the person who actually looked');
+        app(TradeDesk::class)->attestPaid($tradeId, $seller->email);
+        $this->assertSame('paid_attested', $this->stateOf($tradeId), 'the recipient confirms');
 
         $this->assertEveryChainVerifies();
     }
@@ -410,11 +428,24 @@ class TwoSidedJourneyTest extends TestCase
         );
     }
 
-    private function trader(string $label): Trader
+    /**
+     * A VERIFIED trader -- which is what publishing an offer requires.
+     *
+     * brand/product.html's two tiers are enforced in the database: only a verified trader may be a
+     * counterparty to another trader, so an unverified one can only trade against KudiMarket's own book,
+     * where we are the counterparty and do guarantee. Verification is set here explicitly because
+     * email_verified_at is not fillable, and mass assignment drops it without a word.
+     */
+    private function trader(string $label, bool $verified = true): Trader
     {
         $trader = Trader::factory()->create([
             'email' => sprintf('%s-%s@example.com', $label, bin2hex(random_bytes(4))),
         ]);
+
+        if ($verified) {
+            $trader->verified_at = now();
+            $trader->save();
+        }
 
         Auth::guard('trader')->setUser($trader);
 
