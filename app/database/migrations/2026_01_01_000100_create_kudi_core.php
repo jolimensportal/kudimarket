@@ -33,7 +33,7 @@ return new class extends Migration
         // on this machine only because the files had been applied by hand earlier, which is exactly the
         // kind of gap a fresh checkout turns into a silent failure -- and the first sign of 009's absence
         // was a trader told "We could not publish that offer" with no way to find out why.
-        foreach (['001_core.sql', '002_trade_types.sql', '003_fiat_leg.sql', '004_state_chain.sql', '005_creation_anchor.sql', '006_rate_card.sql', '007_trader_role.sql', '008_traders.sql', '009_offer_book.sql', '010_verification.sql', '011_rate_direction.sql', '012_trade_pair.sql'] as $file) {
+        foreach (['001_core.sql', '002_trade_types.sql', '003_fiat_leg.sql', '004_state_chain.sql', '005_creation_anchor.sql', '006_rate_card.sql', '007_trader_role.sql', '008_traders.sql', '009_offer_book.sql', '010_verification.sql', '011_rate_direction.sql', '012_trade_pair.sql', '013_release_sweeper.sql'] as $file) {
             DB::unprepared($this->sql($file));
         }
     }

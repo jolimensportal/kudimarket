@@ -21,7 +21,7 @@ ops()  { sql "select ops_transition($1,'$2','$3','$4','$5'${6:+,'$6'});" >/dev/n
 
 
 dropdb --if-exists "$DB" >/dev/null 2>&1; createdb "$DB" || exit 1
-for f in 001_core.sql 002_trade_types.sql 003_fiat_leg.sql 004_state_chain.sql 005_creation_anchor.sql 006_rate_card.sql 007_trader_role.sql 008_traders.sql 009_offer_book.sql 010_verification.sql 011_rate_direction.sql 012_trade_pair.sql; do
+for f in 001_core.sql 002_trade_types.sql 003_fiat_leg.sql 004_state_chain.sql 005_creation_anchor.sql 006_rate_card.sql 007_trader_role.sql 008_traders.sql 009_offer_book.sql 010_verification.sql 011_rate_direction.sql 012_trade_pair.sql 013_release_sweeper.sql; do
   psql -X -q -v ON_ERROR_STOP=1 -d "$DB" -f "$HERE/$f" >/dev/null || { echo "schema $f failed"; exit 1; }
 done
 sql "insert into asset values ('USDT',6),('GHS',2);" >/dev/null
@@ -902,6 +902,81 @@ EX1=$(sql "select create_fiat_trade('platform','pair-buyer@e.com',null,null,'NGN
 expect_eq "a single-unit rate is exempt, being a placeholder rather than a conversion" \
   "$(sql "select rate::text from trade where id=$EX1;")" "1.000000000000000000"
 
+
+echo "== something has to settle the trade, or it sits here for ever"
+# paid_attested -> released has actor 'system' and NOTHING performed it. No scheduler, no command, no
+# function. The copy was softened once to stop promising automatic settlement, which was honest and also
+# hid a missing mechanism instead of adding one.
+#
+# The claim window is why this is not instant: our book receives fiat by mobile money and is exposed to
+# reversals, so a buyer needs time to say it never arrived.
+sql "insert into asset values ('NGN',2);" >/dev/null
+# One statement per call, so this returns ONE id. The first version ran two and captured both, so every
+# caller got a two-line string where a trade id was expected -- and the failures read as the sweeper being
+# broken rather than as a broken fixture.
+setup_claim() { sql "select create_trade('platform','sw$1','USDT',1000,'platform_inventory');"; }
+# The float belongs to PLATFORM, not the buyer. On our own book we are the seller, so it is our balance
+# that is reserved on escrow -- funding the buyer instead fails with "insufficient funds on account 5",
+# which is a confusing way to learn whose money moves first.
+fund_claim() { sql "select ledger_deposit('platform','USDT',20000,'swplat-$1');" >/dev/null; }
+
+# Three attested trades. The window is 15 minutes for our own book, so all three start outside it.
+sql "update trade_policy set claim_window = '15 minutes' where trade_type = 'platform_inventory';" >/dev/null
+for n in 1 2 3; do
+  fund_claim $n
+  T=$(setup_claim $n)
+  tt $T open escrowed "swe$n" "sw$n"
+  tt $T escrowed paid_claimed "swc$n" "sw$n"
+  asops "select ops_transition($T,'paid_claimed','paid_attested','swa$n','ops-1');" >/dev/null
+done
+# Scoped to this block's own trades. The sweeper is global and does its job on everything due, so a
+# global count here would be reporting on other tests' fixtures rather than on this one -- and it did,
+# releasing two of them, which looked like the window had been ignored.
+expect_eq "an attested trade is not released while the claim window is open" \
+  "$(sql "select count(*) from trade where state = 'paid_attested' and buyer like 'sw%';")" "3"
+expect_eq "and the sweeper leaves it there rather than forcing it" \
+  "$(sql "select count(*) from release_due_trades() r, trade t where t.buyer like 'sw%' and t.state = 'released' and r.released >= 0;")" "0"
+expect_eq "so they are all still attested" \
+  "$(sql "select count(*) from trade where state = 'paid_attested' and buyer like 'sw%';")" "3"
+
+# Open the window, which is the only thing that should change anything.
+sql "update trade_policy set claim_window = '0 seconds';" >/dev/null
+# The returned count is GLOBAL -- the sweeper settles whatever is due, including fixtures earlier in this
+# suite left over -- so asserting on it would be asserting on other tests. What is being checked here is
+# that these three got settled, which the next line asks directly.
+sql "select released from release_due_trades();" >/dev/null
+expect_eq "the sweeper settles every attested trade whose window has closed" \
+  "$(sql "select count(*) from trade where buyer like 'sw%' and state = 'released';")" "3"
+expect_eq "and they are all released" "$(sql "select count(*) from trade where state = 'paid_attested' and buyer like 'sw%';")" "0"
+expect_eq "and they are green" "$(sql "select count(*) from trade_view where state='released' and colour='green' and buyer like 'sw%';")" "3"
+
+expect_eq "running it again settles nothing new, because nothing is left to settle" \
+  "$(sql "select released from release_due_trades();")" "0"
+expect_eq "and no trade event was appended by the empty run" \
+  "$(sql "select count(*) from trade_event where to_state='released' and trade_id in (select id from trade where buyer like 'sw%');")" "3"
+expect_eq "the ledger still balances after moving three escrows" \
+  "$(sql "select count(*) from check_balances();")" "0"
+expect_eq "and every buyer's crypto arrived rather than being left in escrow" \
+  "$(sql "select coalesce(sum(balance),0) from account where owner like 'sw%' and kind='available' and asset='USDT';")" "3000"
+
+# A disputed-and-re-attested trade: only the LAST attest starts the window, so measuring from an older
+# row would settle money the window was never open for.
+sql "update trade_policy set claim_window = '15 minutes';" >/dev/null
+fund_claim 4
+T4=$(setup_claim 4)
+tt $T4 open escrowed swe4 sw4
+tt $T4 escrowed paid_claimed swc4 sw4
+asops "select ops_transition($T4,'paid_claimed','paid_attested','swa4a','ops-1');" >/dev/null
+sql "select transition_trade($T4,'paid_attested','disputed','swd4','sw4');" >/dev/null
+asops "select ops_transition($T4,'disputed','resolved_release','swr4','ops-1');" >/dev/null
+expect_eq "a resolved dispute is released by the resolution, not by the sweeper" \
+  "$(sql "select state from trade where id=$T4;")" "resolved_release"
+sql "select released from release_due_trades();" >/dev/null
+expect_eq "and the sweeper does not touch it, because it is not paid_attested" \
+  "$(sql "select state from trade where id=$T4;")" "resolved_release"
+
+expect_fail "a trader cannot run the sweeper, because it moves money" \
+  "$(astrader "select release_due_trades();")" "permission denied"
 
 echo "== integrity"
 expect_eq "cached balances equal sum of postings" "$(sql "select count(*) from check_balances();")" "0"

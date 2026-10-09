@@ -34,6 +34,7 @@ trait BuildsLedgerDatabase
         '010_verification.sql',
         '011_rate_direction.sql',
         '012_trade_pair.sql',
+        '013_release_sweeper.sql',
     ];
 
     protected function buildLedgerDatabase(): void
