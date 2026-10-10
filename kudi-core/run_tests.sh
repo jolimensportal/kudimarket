@@ -21,7 +21,7 @@ ops()  { sql "select ops_transition($1,'$2','$3','$4','$5'${6:+,'$6'});" >/dev/n
 
 
 dropdb --if-exists "$DB" >/dev/null 2>&1; createdb "$DB" || exit 1
-for f in 001_core.sql 002_trade_types.sql 003_fiat_leg.sql 004_state_chain.sql 005_creation_anchor.sql 006_rate_card.sql 007_trader_role.sql 008_traders.sql 009_offer_book.sql 010_verification.sql 011_rate_direction.sql 012_trade_pair.sql 013_release_sweeper.sql; do
+for f in 001_core.sql 002_trade_types.sql 003_fiat_leg.sql 004_state_chain.sql 005_creation_anchor.sql 006_rate_card.sql 007_trader_role.sql 008_traders.sql 009_offer_book.sql 010_verification.sql 011_rate_direction.sql 012_trade_pair.sql 013_release_sweeper.sql 014_segregation.sql; do
   psql -X -q -v ON_ERROR_STOP=1 -d "$DB" -f "$HERE/$f" >/dev/null || { echo "schema $f failed"; exit 1; }
 done
 sql "insert into asset values ('USDT',6),('GHS',2);" >/dev/null
@@ -197,8 +197,21 @@ F=$(sql "select create_trade('platform','w3','USDT',100,'platform_inventory');")
 tt $P open escrowed w1 w1; tt $P escrowed paid_claimed w2 w2; tt $P paid_claimed paid_attested w3 w1
 tt $V open escrowed wv1 wv1; tt $V escrowed paid_claimed wv2 wv2; tt $V paid_claimed paid_attested wv3 wv1
 tt $F open escrowed wf1 w3; tt $F escrowed paid_claimed wf2 w3; ops $F paid_claimed paid_attested wf3 ops-1
+# WIDENED FIRST, ON PURPOSE. These two assert that a window is STILL OPEN, which used to be a race: if the
+# four setup lines above took longer than the two-second p2p window on a loaded machine, the window closed,
+# the release SUCCEEDED, and the test failed for a reason that had nothing to do with the code. It failed
+# twice in a row here before anybody read why, which is exactly what a flaky test costs.
+#
+# Setting the window to something that cannot have elapsed turns "immediate" into a fact instead of a hope.
+sql "update trade_policy set claim_window = '2 minutes' where trade_type = 'p2p';" >/dev/null
 expect_fail "p2p: immediate release is refused"      "$(sql "select transition_trade($P,'paid_attested','released','wr1','system');")" "claim window open"
+sql "update trade_policy set claim_window = '2 minutes' where trade_type = 'vendor_vendor';" >/dev/null
 expect_fail "vendor: immediate release is refused"   "$(sql "select transition_trade($V,'paid_attested','released','wr2','system');")" "claim window open"
+
+# Back to the real windows for the timed half. These still sleep, which is the right way to test elapsed
+# time -- a sleep guarantees it; a fast machine does not.
+sql "update trade_policy set claim_window = '2 seconds' where trade_type = 'p2p';" >/dev/null
+sql "update trade_policy set claim_window = '5 seconds' where trade_type = 'vendor_vendor';" >/dev/null
 expect_eq   "platform: zero window releases at once" "$(sql "select transition_trade($F,'paid_attested','released','wr3','system'); select state from trade where id=$F;" | tail -1)" "released"
 sleep 2.6
 expect_eq   "p2p: releases after its 2s window"      "$(sql "select transition_trade($P,'paid_attested','released','wr4','system'); select state from trade where id=$P;" | tail -1)" "released"
@@ -977,6 +990,91 @@ expect_eq "and the sweeper does not touch it, because it is not paid_attested" \
 
 expect_fail "a trader cannot run the sweeper, because it moves money" \
   "$(astrader "select release_due_trades();")" "permission denied"
+
+echo "== what a regulator asks first: is customer money kept apart from ours"
+# brand/product.html says the first regulator is the Bank of Ghana BECAUSE customer funds must be
+# segregated from our own. Until now nothing in the product could answer that. check_balances() proves the
+# ledger adds up; it says nothing about WHOSE money it is holding.
+#
+# There is exactly one question worth asking of the ledger, and it is answerable: does value ever move
+# between us and a customer without passing through a trade escrow? If every movement goes through
+# trade:<id>:*_deposit, then a customer's deposits are ring-fenced by construction and not by policy.
+# Every assertion here is a DELTA. This database is shared and survives between runs, so a bare count of
+# customer escrow or of our float is reporting on whatever the last hundred tests left behind -- which is
+# exactly what the first draft of this block did, and it produced numbers that were confidently wrong.
+ESC_BEFORE=$(sql "select coalesce(customer_escrow,0) from segregation_report() where asset='GHS';")
+FLOAT_BEFORE=$(sql "select coalesce(our_float,0) from segregation_report() where asset='GHS';")
+
+# Both sides need cedi to post a vendor deposit. Without it the claim is refused for want of funds and the
+# escrow never appears -- which is how the first draft of this block reported a deposit of zero and looked
+# like a broken report rather than an underfunded fixture.
+sql "select ledger_deposit('sg1','GHS',50000,'sg1-fund'); select ledger_deposit('sg2','GHS',50000,'sg2-fund');" >/dev/null
+DT2=$(sql "select create_fiat_trade('sg1','sg2',null,null,'NGN',500000,0.006756756756756756,'vendor_vendor','GHS','GHS','NGN');")
+expect_eq "a fresh trade holds no customer money yet" \
+  "$(sql "select coalesce(customer_escrow,0) from segregation_report() where asset='GHS';")" "$ESC_BEFORE"
+
+sql "select transition_trade($DT2,'open','paid_claimed','sg-claim','sg2');" >/dev/null
+# 500,000 naira at 0.0067567 cedi per naira is 3,378 cedi, and a 10% deposit is 337 each side.
+expect_eq "and the deposits are counted as customer escrow, ring-fenced from our float" \
+  "$(sql "select coalesce(customer_escrow,0) from segregation_report() where asset='GHS';")" "$((ESC_BEFORE + 674))"
+expect_eq "our own float is counted separately, and did not move" \
+  "$(sql "select coalesce(our_float,0) from segregation_report() where asset='GHS';")" "$FLOAT_BEFORE"
+
+expect_eq "no value has moved between us and a customer without passing through a trade escrow" \
+  "$(sql "select coalesce(sum(commingled_transfers),0) from segregation_report();")" "0"
+
+# The check has to be able to FAIL, or it is decoration. Move value straight from our float to a customer
+# account, through the sanctioned ledger path rather than by forging rows, and the report must notice --
+# because that is exactly what commingling looks like.
+sql "insert into trader(email,name,phone,password) values ('sg-victim@e.com','Victim','0240000000','x') on conflict (email) do nothing;" >/dev/null
+sql "select ledger_deposit('platform','GHS',50000,'sg-float');" >/dev/null
+P=$(sql "select get_account('platform','available','GHS');"); V=$(sql "select get_account('sg-victim@e.com','available','GHS');")
+sql "select post_tx('sg-commingle','commingled',null,jsonb_build_array(
+       jsonb_build_object('account',$P,'asset','GHS','amount',-500),
+       jsonb_build_object('account',$V,'asset','GHS','amount', 500)));" >/dev/null
+expect_eq "and a commingled movement IS detected when one exists" \
+  "$(sql "select coalesce(sum(commingled_transfers),0) from segregation_report();")" "1"
+
+# Undoing it is ALSO commingling, and the ledger cannot know that one undoes the other. So this is an
+# EVER-HAPPENED count, not a live alarm -- which is the right shape for an auditor's figure and the wrong
+# shape for an alert. Asserting it "goes quiet again" is asserting something untrue, and the first draft of
+# this block did exactly that.
+sql "select post_tx('sg-uncommingle','commingled',null,jsonb_build_array(
+       jsonb_build_object('account',$V,'asset','GHS','amount',-500),
+       jsonb_build_object('account',$P,'asset','GHS','amount', 500)));" >/dev/null
+expect_eq "and reversing it is counted too, because the ledger cannot tell a reversal from a fresh leak" \
+  "$(sql "select coalesce(sum(commingled_transfers),0) from segregation_report();")" "2"
+
+# Our own float meeting the outside world is NOT commingling, and counting it would have made the number
+# meaningless: funding the float is platform <-> chain, and a bureau's float is supposed to do that. The
+# first version of this query counted it and came back at 7 -- every float funding in the suite.
+expect_eq "funding our own float from the bank is not counted as commingling" \
+  "$(sql "select coalesce(sum(commingled_transfers),0) from segregation_report() where asset = 'GHS';")" "2"
+
+# The honest part: what this CANNOT prove. The fiat leg is not posted to the ledger at all -- there is no
+# crypto leg to post, and the deposit is the only thing escrowed -- so a trader's cedi and naira arrive
+# off-system and are attested by operations. That is a gap in what we can show a regulator, and the report
+# says so rather than leaving a reader to assume the question was fully answered.
+expect_eq "the report counts the trades whose settlement the ledger cannot evidence" \
+  "$(sql "select fiat_legs_unposted from segregation_report() limit 1;")" \
+  "$(sql "select count(*) from trade where crypto_amount is null;")"
+expect_eq "and it is every FIAT trade, which is the whole product as it stands" \
+  "$(sql "select fiat_legs_unposted from segregation_report() limit 1;")" \
+  "$(sql "select count(*) from trade where trade_type in ('vendor_vendor','platform_inventory') and crypto_amount is null;")"
+expect_eq "while a trade WITH a crypto leg is not in that count, because the ledger does see it" \
+  "$(sql "select count(*) from trade where crypto_amount is not null and trade_type = 'vendor_vendor';")" \
+  "$(sql "select count(*) from trade where trade_type = 'vendor_vendor' and crypto_amount is not null;")"
+
+expect_eq "the integrity page carries the segregation COUNTS" \
+  "$(sql "select commingled_transfers is not null and fiat_legs_unposted is not null from integrity_report;")" "t"
+
+# The MONEY must not be on there as a single figure. Summing minor units across currencies gave 228,838
+# -- 199,838 pesewas plus 29,000 satoshi-scale units -- which is an amount in a currency nobody has.
+expect_fail "no cross-currency total of customer money is offered as one number" \
+  "$(sql "select customer_funds from integrity_report;")" "column.*does not exist"
+expect_eq "because segregation is asked per currency, and this answers it" \
+  "$(sql "select count(*) from segregation_report();")" \
+  "$(sql "select count(distinct asset) from account where owner <> 'chain';")"
 
 echo "== integrity"
 expect_eq "cached balances equal sum of postings" "$(sql "select count(*) from check_balances();")" "0"
