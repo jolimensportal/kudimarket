@@ -73,10 +73,11 @@ class RateResource extends Resource
             ->headerActions([
                 Actions\CreateAction::make()
                     ->label('Publish a rate')
-                    // Filament's default is "Create". A pricing desk publishing a price is not creating
-                    // an object, and the button is the last thing said before the price changes, so it is
-                    // named for what it does.
-                    ->submitButtonLabel('Publish it')
+                    // Filament's default is "Create". A pricing desk publishing a price is not creating an
+                    // object, and the button is the last thing said before the price changes, so it is
+                    // named for what it does. The method is modalSubmitActionLabel(); there is no
+                    // submitButtonLabel() -- added, committed, and caught only by running the tests.
+                    ->modalSubmitActionLabel('Publish it')
                     ->modalHeading('Publish a rate')
                     ->modalDescription('This does not change any trade already made. It changes what the next one is filled at, and it is recorded against your name permanently.')
                     ->mutateFormDataUsing(function (array $data): array {
