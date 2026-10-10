@@ -16,6 +16,8 @@ return new class extends Migration
     private array $appTables = [
         'users', 'password_reset_tokens', 'sessions', 'cache', 'cache_locks',
         'jobs', 'job_batches', 'failed_jobs',
+        // pricing_staff is NOT here. 000400 runs before that table exists and grants only what it can see,
+        // so listing it here would be a comment pretending to be a grant. 000500 creates it and grants it.
     ];
 
     public function up(): void

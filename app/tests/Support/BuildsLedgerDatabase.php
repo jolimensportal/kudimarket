@@ -115,6 +115,10 @@ trait BuildsLedgerDatabase
         // produces "permission denied for sequence", which is a confusing way to learn nothing.
         $this->psql($admin, $database, 'grant usage, select on sequence trader_id_seq to kudi_app, kudi_ops');
 
+        // pricing_staff's sequence is granted by the migration that creates the table, not here: this runs
+        // before that migration, and a grant for a relation that does not exist yet is an error rather than
+        // a no-op.
+
         $this->buildApplicationTables($admin, $database);
 
         self::$built = true;
