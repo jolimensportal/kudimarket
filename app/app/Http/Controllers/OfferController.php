@@ -30,6 +30,7 @@ class OfferController extends Controller
     {
         return view('offer.position', [
             'position' => $desk->position(),
+            'balances' => $desk->balances(),
             'mine' => $desk->mine($this->email()),
             'rates' => $this->boardRates(),
         ]);

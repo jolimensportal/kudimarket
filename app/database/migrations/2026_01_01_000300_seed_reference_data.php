@@ -22,11 +22,21 @@ return new class extends Migration
         // Deposits are held in cedi, per the decision that they are a cedi instrument.
         DB::select("select ledger_deposit('ops-1','USDT',25000,'seed-ops-usdt')");
         DB::select("select ledger_deposit('platform','GHS',120000,'seed-platform-ghs')");
-        DB::select("select ledger_deposit('ama','USDT',4000,'seed-ama-usdt')");
+
+        // TRADERS BY EMAIL, which the application always uses.
+        //
+        // This file funded 'ama', 'kwesi' and 'adwoa' -- first names, while every trade and every
+        // verification names 'ama@example.com'. So the same person existed under two identities, and the
+        // dev database ended up with `ama` AND `ama@example.com` as parties to different trades. It also
+        // meant the balance screen found nothing for a signed-in trader: their money was held under a name
+        // the database had no way to connect to the one they signed in with.
+        //
+        // Fixture data that disagrees with the application's convention is not harmless fixture data.
+        DB::select("select ledger_deposit('ama@example.com','USDT',4000,'seed-ama-usdt')");
         // Vendor deposits are taken in cedi, so every party needs a cedi balance to post one.
-        DB::select("select ledger_deposit('ama','GHS',50000,'seed-ama-ghs')");
-        DB::select("select ledger_deposit('kwesi','GHS',90000,'seed-kwesi-ghs')");
-        DB::select("select ledger_deposit('adwoa','GHS',60000,'seed-adwoa-ghs')");
+        DB::select("select ledger_deposit('ama@example.com','GHS',50000,'seed-ama-ghs')");
+        DB::select("select ledger_deposit('kwesi@example.com','GHS',90000,'seed-kwesi-ghs')");
+        DB::select("select ledger_deposit('adwoa@example.com','GHS',60000,'seed-adwoa-ghs')");
 
         // One trade settled, one waiting on its window, one disputed, one open.
         //
@@ -40,28 +50,28 @@ return new class extends Migration
         DB::select("select set_rate('GHS','NGN',148.2,'pricing@kudimarket.com')");
         DB::select("select set_rate('NGN','GHS',0.006756756756756756,'pricing@kudimarket.com')");
 
-        DB::select("select create_fiat_trade('platform','ama',null,null,'NGN',200000,148.2,'platform_inventory','GHS','NGN','GHS')");
-        DB::select("select create_fiat_trade('platform','kwesi',null,null,'NGN',85000,148.2,'platform_inventory','GHS','NGN','GHS')");
-        DB::select("select create_fiat_trade('adwoa','ama',null,null,'NGN',120000,0.006756756756756756,'vendor_vendor','GHS','GHS','NGN')");
+        DB::select("select create_fiat_trade('platform','ama@example.com',null,null,'NGN',200000,148.2,'platform_inventory','GHS','NGN','GHS')");
+        DB::select("select create_fiat_trade('platform','kwesi@example.com',null,null,'NGN',85000,148.2,'platform_inventory','GHS','NGN','GHS')");
+        DB::select("select create_fiat_trade('adwoa@example.com','ama@example.com',null,null,'NGN',120000,0.006756756756756756,'vendor_vendor','GHS','GHS','NGN')");
         // A same-currency vendor pair, at rate 1. It is the one exemption: 1 is the placeholder for "no
         // conversion here" rather than a conversion between a currency and itself.
-        DB::select("select create_fiat_trade('kwesi','adwoa',null,null,'GHS',150000,1,'vendor_vendor','GHS','GHS','GHS')");
+        DB::select("select create_fiat_trade('kwesi@example.com','adwoa@example.com',null,null,'GHS',150000,1,'vendor_vendor','GHS','GHS','GHS')");
 
         // Settle the first one so the console shows a completed trade as well as open ones.
-        $t = DB::select("select id from trade where buyer='ama' and state='open'")[0]->id;
-        DB::select("select transition_trade({$t},'open','paid_claimed','s1','ama')");
+        $t = DB::select("select id from trade where buyer='ama@example.com' and state='open'")[0]->id;
+        DB::select("select transition_trade({$t},'open','paid_claimed','s1','ama@example.com')");
         DB::select("select ops_transition({$t},'paid_claimed','paid_attested','s2','ops@kudimarket.com')");
         DB::select("select transition_trade({$t},'paid_attested','released','s3','system')");
 
         // Second one stops at attested, so the release guard is visibly pending.
-        $t2 = DB::select("select id from trade where buyer='kwesi' and state='open'")[0]->id;
-        DB::select("select transition_trade({$t2},'open','paid_claimed','v1','kwesi')");
+        $t2 = DB::select("select id from trade where buyer='kwesi@example.com' and state='open'")[0]->id;
+        DB::select("select transition_trade({$t2},'open','paid_claimed','v1','kwesi@example.com')");
         DB::select("select ops_transition({$t2},'paid_claimed','paid_attested','v2','ops@kudimarket.com')");
 
         // Dispute the vendor-to-vendor trade so the console shows a red state and a case to read.
         $t3 = DB::select("select id from trade where trade_type='vendor_vendor' and state='open' order by id limit 1")[0]->id;
-        DB::select("select transition_trade({$t3},'open','paid_claimed','d1','ama')");
-        DB::select("select transition_trade({$t3},'paid_claimed','disputed','d2','adwoa')");
+        DB::select("select transition_trade({$t3},'open','paid_claimed','d1','ama@example.com')");
+        DB::select("select transition_trade({$t3},'paid_claimed','disputed','d2','adwoa@example.com')");
 
         // Close the window again: from now on our own book settles only after the window.
         DB::table('trade_policy')->where('trade_type', 'platform_inventory')->update([

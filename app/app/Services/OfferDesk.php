@@ -138,33 +138,58 @@ final class OfferDesk
      */
     public function position(): array
     {
+        // From the DATABASE's idea of who this is, not from an email passed in.
+        //
+        // This used to pass the signed-in trader's address to every query. That works right up until
+        // somebody reads the query: any trader with a kudi_trader connection could send the same statement
+        // with a different address and be answered about somebody else's trades. kudi-core/015 makes the
+        // identity the session's, set once per request, and these functions take no argument about whose
+        // money to show.
+        $counts = DB::connection('pgsql_trader')->selectOne('select * from my_trade_counts()');
         $db = DB::connection('pgsql_trader');
         $me = $this->signedInTrader();
 
         return [
-            'settled' => (int) $db->selectOne(
-                "select count(*) as n from trade
-                  where buyer = ? and state in ('released', 'resolved_release')",
-                [$me]
-            )->n,
-            'disputed' => (int) $db->selectOne(
-                "select count(*) as n from trade where buyer = ? and state = 'disputed'",
-                [$me]
-            )->n,
-            'open' => (int) $db->selectOne(
-                "select count(*) as n from trade
-                  where buyer = ? and state in ('open', 'paid_claimed', 'paid_attested')",
-                [$me]
-            )->n,
+            'settled' => (int) ($counts->settled ?? 0),
+            'disputed' => (int) ($counts->disputed ?? 0),
+            // "Still open" means still in flight, which is what this always counted: open, claimed and
+            // attested are all trades where money is expected to move and has not finished doing so.
+            'open' => (int) ($counts->in_flight ?? 0),
+            'trades' => (int) ($counts->total ?? 0),
+            // Offers are on the public board and readable by every trader anyway, so counting them by name
+            // discloses nothing the board does not. Left as it was rather than moved for show.
             'selling' => (int) $db->selectOne(
                 'select count(*) as n from open_offer where seller = ?',
                 [$me]
             )->n,
-            'trades' => (int) $db->selectOne(
-                'select count(*) as n from trade where buyer = ? or seller = ?',
-                [$me, $me]
-            )->n,
         ];
+    }
+
+    /**
+     * What the signed-in trader holds, and what we are holding for them.
+     *
+     * THE SCREEN THIS MAKES POSSIBLE. Until now there was deliberately no "you hold" figure anywhere, and
+     * the comment on the view said why: every trader shared one database login, so the database could not
+     * tell them apart, and any way of reading one balance would either expose everybody's or depend on the
+     * application never passing the wrong name.
+     *
+     * That reason is gone. my_balances() reads the session identity, so there is no name in this method to
+     * get wrong, and kudi_trader still has no grant on account -- there is no table here to select from.
+     */
+    public function balances(): array
+    {
+        $rows = DB::connection('pgsql_trader')->select('select * from my_balances()');
+
+        $held = [];
+        foreach ($rows as $row) {
+            $held[$row->asset] ??= ['asset' => $row->asset, 'available' => 0, 'escrow' => 0];
+            $held[$row->asset]['available'] += (int) $row->available;
+            $held[$row->asset]['escrow'] += (int) $row->escrow;
+        }
+
+        ksort($held);
+
+        return array_values($held);
     }
 
     /**

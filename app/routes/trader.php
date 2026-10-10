@@ -20,7 +20,10 @@ use Illuminate\Support\Facades\Route;
  * This file grows one route group at a time as the plan lands. Nothing is stubbed: a route that exists
  * is a route that has been built and tested, because a 200 from a stub is a screen nobody can finish.
  */
-Route::middleware('auth:trader')->prefix('trade')->name('trade.')->group(function (): void {
+// auth:trader first, so the identity is set from a session that already exists. The other order would ask
+// the database who is signed in before anybody has signed in.
+Route::middleware(['auth:trader', \App\Http\Middleware\SignInAsTrader::class])
+    ->prefix('trade')->name('trade.')->group(function (): void {
     Route::get('/board', BoardController::class)->name('board');
 
     // The seller's side. /sell/new rather than /new so the buy path and the sell path stay legible in the

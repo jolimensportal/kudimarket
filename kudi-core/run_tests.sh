@@ -21,7 +21,7 @@ ops()  { sql "select ops_transition($1,'$2','$3','$4','$5'${6:+,'$6'});" >/dev/n
 
 
 dropdb --if-exists "$DB" >/dev/null 2>&1; createdb "$DB" || exit 1
-for f in 001_core.sql 002_trade_types.sql 003_fiat_leg.sql 004_state_chain.sql 005_creation_anchor.sql 006_rate_card.sql 007_trader_role.sql 008_traders.sql 009_offer_book.sql 010_verification.sql 011_rate_direction.sql 012_trade_pair.sql 013_release_sweeper.sql 014_segregation.sql; do
+for f in 001_core.sql 002_trade_types.sql 003_fiat_leg.sql 004_state_chain.sql 005_creation_anchor.sql 006_rate_card.sql 007_trader_role.sql 008_traders.sql 009_offer_book.sql 010_verification.sql 011_rate_direction.sql 012_trade_pair.sql 013_release_sweeper.sql 014_segregation.sql 015_trader_identity.sql; do
   psql -X -q -v ON_ERROR_STOP=1 -d "$DB" -f "$HERE/$f" >/dev/null || { echo "schema $f failed"; exit 1; }
 done
 sql "insert into asset values ('USDT',6),('GHS',2);" >/dev/null
@@ -1075,6 +1075,80 @@ expect_fail "no cross-currency total of customer money is offered as one number"
 expect_eq "because segregation is asked per currency, and this answers it" \
   "$(sql "select count(*) from segregation_report();")" \
   "$(sql "select count(distinct asset) from account where owner <> 'chain';")"
+
+echo "== who am I, said by the database rather than by the caller"
+# Every trader connects as the SAME login role, so the database cannot tell them apart. Everything a
+# trader can see is therefore decided by an email the APPLICATION passes in -- and a trader holding a
+# kudi_trader connection can simply pass somebody else's. That is not a theoretical worry: it is why the
+# balance screen does not exist and why "Where you stand" deliberately shows no figures.
+#
+# 015 gives the database the identity instead. The application sets it once per request from the signed-in
+# session; the functions below read it and take NO trader argument, because an argument would be the whole
+# problem again.
+# Asserted, not assumed. These two were failing silently into /dev/null, so every later line in this
+# block was testing an identity that had never been created and reporting it as a problem with 015.
+#
+# The phone numbers are in their own high range because trader_phone is UNIQUE and the obvious choices are
+# already taken by earlier tests -- which is what made the insert fail in the first place.
+expect_eq "the two traders exist" \
+  "$(sql "insert into trader(email,name,phone,password) values ('me@e.com','Me','02490000901','x') on conflict (email) do nothing;
+          insert into trader(email,name,phone,password) values ('them@e.com','Them','02490000902','x') on conflict (email) do nothing;
+          select count(*) from trader where email in ('me@e.com','them@e.com');")" "2"
+expect_eq "and both are funded, differently, so one cannot stand in for the other" \
+  "$(sql "select ledger_deposit('me@e.com','GHS',50000,'me-fund'); select ledger_deposit('them@e.com','GHS',90000,'them-fund');
+          select (select balance from account where owner='me@e.com' and asset='GHS')
+               || '|' || (select balance from account where owner='them@e.com' and asset='GHS');" | tail -1)" "50000|90000"
+
+expect_eq "with no identity set, the database cannot answer" \
+  "$(astrader "select coalesce(current_trader(),'<none>');")" "<none>"
+
+# One request is ONE connection, so each of these runs in a single psql session. Running them as separate
+# invocations looked like the identity was not working -- set_config is session-scoped, so it correctly
+# disappears when the connection closes, and a real request never closes it half way through.
+# tail -1 because kudi_sign_in returns void, so psql prints a blank line before the answer. Comparing the
+# whole output to "me@e.com" fails on that blank line and looks like a broken identity.
+expect_eq "after the application sets it, the database knows who this is" \
+  "$(astrader "select kudi_sign_in('me@e.com'); select current_trader();" | tail -1)" "me@e.com"
+
+# The point of the whole file: one trader's connection cannot ask about another, because there is no
+# argument to ask with. Inventing one is the mistake, so these are refusals.
+expect_fail "a balance function will not take a trader's name as an argument" \
+  "$(astrader "select my_balances('them@e.com');")" "does not exist"
+expect_fail "nor will the counts" \
+  "$(astrader "select my_trade_counts('them@e.com');")" "does not exist"
+
+expect_eq "and the balance it will answer with is its own" \
+  "$(astrader "select kudi_sign_in('me@e.com'); select available from my_balances() where asset='GHS';" | tail -1)" "50000"
+expect_eq "with nobody else's in it" \
+  "$(astrader "select kudi_sign_in('me@e.com'); select count(*) from my_balances();" | tail -1)" "1"
+
+# THE SAME CONNECTION AS SOMEBODY ELSE. If the identity were not being consulted, this would return the
+# other trader's balance. It is the assertion that the mechanism works rather than merely being present.
+expect_eq "and the same connection signed in as somebody else sees that somebody else" \
+  "$(astrader "select kudi_sign_in('them@e.com'); select available from my_balances() where asset='GHS';" | tail -1)" "90000"
+
+# Switching identity is the application switching sessions, which it must be able to do -- but the address
+# is checked against the trader table, so an invented one gets nothing and leaves the previous in place.
+expect_fail "an invented identity is refused" \
+  "$(astrader "select kudi_sign_in('nobody@e.com');")" "no such trader"
+# A refused sign-in raises and aborts the statement, so psql prints an error plus CONTEXT lines and the
+# identity afterwards is best asserted on its own connection rather than salvaged from that output.
+expect_eq "and a refused sign-in leaves a fresh connection signed out, not silently signed in" \
+  "$(astrader "select coalesce(current_trader(),'<none>');")" "<none>"
+
+expect_eq "signing out leaves nobody" \
+  "$(astrader "select kudi_sign_in('me@e.com'); select kudi_sign_out(); select coalesce(current_trader(),'<none>');" | tail -1)" "<none>"
+
+expect_fail "a trader still has no direct access to the account table" \
+  "$(astrader "select balance from account;")" "permission denied"
+expect_fail "nor may it read the ledger" \
+  "$(astrader "select count(*) from ledger_tx;")" "permission denied"
+
+expect_eq "and the counts behind 'Where you stand' are readable the same way" \
+  "$(astrader "select kudi_sign_in('me@e.com'); select settled from my_trade_counts();" | tail -1)" "0"
+expect_eq "and they count BOTH sides, because a trader can be the seller of one of these" \
+  "$(astrader "select kudi_sign_in('them@e.com'); select total from my_trade_counts();" | tail -1)" \
+  "$(sql "select count(*) from trade where buyer='them@e.com' or seller='them@e.com';")"
 
 echo "== integrity"
 expect_eq "cached balances equal sum of postings" "$(sql "select count(*) from check_balances();")" "0"
