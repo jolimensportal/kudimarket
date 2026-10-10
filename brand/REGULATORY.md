@@ -7,6 +7,67 @@ brief now answers more accurately — see §5.
 
 ---
 
+## 0. What KudiMarket actually does today
+
+Written first because it is what counsel will ask for, and because everything below is an argument about
+these six rows. Every line is drawn from the shipped code, not from the product description — where the
+two differ, that is noted, because a difference is usually the interesting part.
+
+| # | What the product does | Enforced at | Tier |
+|---|---|---|---|
+| 1 | A trader publishes a **sell offer**: "Naira, at not less than *x* cedi per naira" | `009` `publish_offer` | — |
+| 2 | A **checked** trader takes that offer, opening a trade with a checked trader as counterparty | `009` `accept_offer` | **Checked** — we are *not* a party |
+| 3 | Both sides post a **10% deposit in cedi**, escrowed to that trade | `004` `_apply_transition` | Checked |
+| 4 | The buyer says they paid the naira; **the seller** confirms the naira arrived; deposits return | `004` `paid_claimed → paid_attested → released` | Checked |
+| 5 | A trader **buys currency from KudiMarket's own book**, cedi against naira, **both directions** | `TradeDesk::openAgainstUs` | **KudiMarket handled** — we *are* the counterparty |
+| 6 | Operations may resolve a dispute and decide where the money goes | `TradeLedger::resolve` | Both |
+
+**Two facts that decide how this is read, and both are deliberate:**
+
+- **Row 5 is us buying and selling currency out of our own float.** That is Act 723 s.3(4)(a),
+  "purchase and sale of foreign currency", in plain words.
+- **Row 2 is us not being a party.** The Checked tier exists precisely so that a peer-to-peer trade is
+  not one we guarantee. `009` refuses to let an unchecked trader stand on the vendor board, and
+  `004` refuses to let operations attest a trade we are not party to.
+
+### What we do *not* do, as built
+
+- **We do not touch virtual assets in the shipped market.** The USDT leg exists in the core and in the
+  test suite, and no trader-facing screen reaches it. `brand/product.html` records the position itself:
+  *"nothing exotic is in our book"*, cedi and naira both move by mobile money, and *"Dollars, pounds,
+  euros, the CFA franc and the Chinese yuan are all vendor supply from day one, and we never hold
+  them."* `brand/BRAND.md` builds the name's recall on *"Zero crypto vocabulary."*
+- **We do not take deposits from the public.** No trader funds an account with us in the manner of a
+  deposit-taking institution. `ledger_deposit()` is a test and float-seeding function, granted to
+  `kudi_chain` alone — the suite asserts that *operations cannot mint deposits* and that a trader cannot.
+- **We hold no client wallet.** `brand/product.html` answers the crypto question *"Our wallets, a fresh
+  address per trade"* — and that is the line this brief cannot verify, because it describes a capability
+  the shipped code does not have.
+
+### The activity map counsel needs
+
+| Statutory activity | Where KudiMarket sits | Rows |
+|---|---|---|
+| Act 723 s.3(4)(a) purchase and sale of foreign currency | **Our own book, both directions** | 5 |
+| Act 723 s.3(4)(b) receipt or payment of foreign currency | **Escrowed cedi deposits; off-system cedi/naira legs** | 3, 4 |
+| Act 723 s.3(4)(c) importation / exportation of FX | Not engaged — both currencies are our own book | — |
+| Act 723 s.3(4)(d) lending or borrowing of foreign currency | Not engaged | — |
+| Act 930 s.18(1)(h) FX trading for own account | **Would apply if we were a bank** | 5 |
+| Act 930 s.18(2) SDI bar on FX | **Closes the GH¢15m route** | — |
+| Act 1154 VASP service | **Not engaged by the shipped market** | — |
+
+**The single question this map exists to put to counsel:**
+
+> Rows 1–4 (a venue for checked traders to trade with each other, with escrowed deposits and an
+> operations-resolved dispute process) and row 5 (our own book, both directions). Which of these
+> requires a licence under Act 723, and which are the rest?
+
+Because the answer is almost certainly **"row 5"** — and because if it is, the product already draws
+its own line. The Checked tier is the part that is arguably a venue, and it is the part that is already
+built to guarantee nothing.
+
+---
+
 ## 1. The statute that binds us is not the one we have been thinking about
 
 `brand/product.html` carries the open question:
@@ -138,12 +199,24 @@ None of that satisfies a regulator. It is evidence that the control exists.
 3. **Which licence category and fee schedule applies to a non-bank under Act 723?** The Act says the
    Bank *"shall prescribe"* the competent bodies and the fees. We have not located a current schedule.
    BoG's regulatory framework page lists forex bureaux under its supervision without figures.
-4. **Is the crypto leg worth keeping?** Act 1154 adds a second regulator, a marketing consent, a
-   registration obligation, and a trust/segregation duty we do not yet meet for the fiat leg.
-   `brand/product.html` already says *"nothing exotic is in our book"* and that cedi and naira move by
-   mobile money. **If the USDT leg is removed, Act 1154 falls away entirely** and the product is a
-   single-regulator FX business. This may be the cheapest compliance decision available and nobody has
-   costed it.
+4. **Does the shipped market engage Act 1154 at all?** §0 shows it does not: no trader-facing screen
+   reaches the crypto leg, and `brand/product.html` already says nothing exotic is in our book. So
+   Act 1154 is very probably *inert for the product as built* — it would bite only on the line
+   *"Our wallets, a fresh address per trade."*
+
+   An earlier draft of this brief recommended removing the crypto leg as "the cheapest compliance
+   decision available". **On the activity map, that recommendation does not survive its own logic**, for
+   two reasons worth stating rather than quietly dropping:
+
+   - **It does not unblock anything.** Act 723 binds rows 1–5 regardless of whether USDT exists. A
+     large refactor behind a blocker that is still standing is a large refactor for a second-order gain.
+   - **It rests on law this brief could not verify.** §6 says the gazetted text of Act 1154 was not
+     located. Deleting a product capability on an unverified reading is the wrong trade.
+
+   The right question is not "should we delete the crypto leg". It is **"should we delete the sentence
+   about our wallets"** — because that sentence, and only that sentence, is what puts Act 1154 in scope.
+   Deleting a line of brand copy is cheap and reversible. Deleting a trade type, an escrow path and a
+   large part of the test suite is neither.
 5. **Do we need the VASP Act at all before we hold a wallet?** `brand/product.html` says *"Our wallets,
    a fresh address per trade."* Custody is the most heavily regulated thing on that page.
 
