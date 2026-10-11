@@ -272,21 +272,26 @@ economy in Ghana"* — is one we would have to evidence on request.
 
 This is the largest single gap between what KudiMarket is and what the law requires, and it is worse than
 the licensing question because it is not a question at all. It is a list of duties that attach to Foreign
-Exchange Bureaux under the **Anti-Money Laundering Act, 2020 (Act 1044) s.52(e)(i)** and the BoG's
-**AML/CFT/CPF Guidelines for Foreign Exchange Bureaux** (Notice BG/GOV/SEC/2025/04). BoG is the designated
-supervisory body. L.I. 1987, the AML Regulations 2011, also applies.
+Exchange Bureaux under the **Anti-Money Laundering Act, 2020 (Act 1044) s.52(e)(i)** and the BoG/FIC
+**AML/CFT/CPF Guideline for Foreign Exchange Bureaux, September 2025 revision** — in force on issue and
+**replacing** Notice BG/GOV/SEC/2025/04 (the 2024 guidelines). BoG is the designated supervisory body and
+**must approve the appointed AMLRO**. L.I. 1987, the AML Regulations 2011, also applies. (The 2025 revision
+is what is cited here, verified against the published PDF on bog.gov.gh; an earlier draft cited the
+superseded 2024 notice and has been corrected.)
 
 What the Guidelines actually require:
 
 | Duty | Detail | State at KudiMarket |
 |---|---|---|
 | **Ghana Card, every transaction** | Collect the customer's Ghana Card and verify through NIA's Identity Verification System Platform (IVSP) | **absent** |
+| **Biometric at USD 10,000+** | Single transaction at or above **USD 10,000** (or equivalent): must capture Ghana Card details **and biometrically verify** the customer | **absent** |
 | **Source of funds and purpose** | Enquire purpose, occupation/business activity, source of funds | **absent** |
 | **CTR** | File with the FIC for every sale or purchase at or above **GHS 20,000** or foreign equivalent | **absent** |
 | **STR** | File with the FIC where CDD fails through customer non-cooperation — **within 24 hours** | **absent** |
-| **STR, any amount** | All suspicious transactions reported regardless of value; staff may never tell a customer a report was filed | **absent** |
+| **STR, any amount** | All suspicious transactions reported regardless of value; staff may never tell a customer a report was filed (tipping-off is prohibited) | **absent** |
 | **Records, 5 years** | Customer and transaction records, readily available to BoG or FIC on request | hash chain exists; **no retention policy or regulator export** |
-| **AMLRO** | A designated officer reporting to directors, filing STRs/CTRs, running training | **absent** |
+| **AMLRO** | A designated officer approved by BoG, reporting to directors, filing STRs/CTRs, running training. No outsourcing of the AML function without prior BoG approval | **absent** |
+| **Independent annual audit** | The AML/CFT programme tested by an internal or external auditor; report submitted to BoG/FIC **by 15 January** each year | **absent** |
 | **Electronic receipt** | Mandatory for customers | **absent** |
 | **Sanctions screening** | Screen every customer against sanctions lists | **absent** |
 | **Training** | Mandatory, with evidence submitted to BoG and FIC by **31 December** each year | **absent** |

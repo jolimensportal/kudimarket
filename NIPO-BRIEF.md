@@ -1,7 +1,12 @@
 # Trademark Clearance Brief — KudiMarket
 
-**Send this to a Nigerian trademark agent accredited with NIPO.**
+**Send this to a trademark agent accredited with NIPO.**
 Prepared 6 Oct 2026. Do this before any launch spend.
+
+> **Market order changed 11 Oct 2026.** Drafted when Nigeria was contemplated first. Ghana is now the
+> confirmed first market (see `brand/REGULATORY.md`, the operative brief). This document therefore covers
+> the *second* market for now; a Ghana mark must be cleared before this Nigeria filing is the priority.
+> The rest of the brief's diligence stands.
 
 ---
 
