@@ -21,7 +21,7 @@ ops()  { sql "select ops_transition($1,'$2','$3','$4','$5'${6:+,'$6'});" >/dev/n
 
 
 dropdb --if-exists "$DB" >/dev/null 2>&1; createdb "$DB" || exit 1
-for f in 001_core.sql 002_trade_types.sql 003_fiat_leg.sql 004_state_chain.sql 005_creation_anchor.sql 006_rate_card.sql 007_trader_role.sql 008_traders.sql 009_offer_book.sql 010_verification.sql 011_rate_direction.sql 012_trade_pair.sql 013_release_sweeper.sql 014_segregation.sql 015_trader_identity.sql 016_cdd.sql; do
+for f in 001_core.sql 002_trade_types.sql 003_fiat_leg.sql 004_state_chain.sql 005_creation_anchor.sql 006_rate_card.sql 007_trader_role.sql 008_traders.sql 009_offer_book.sql 010_verification.sql 011_rate_direction.sql 012_trade_pair.sql 013_release_sweeper.sql 014_segregation.sql 015_trader_identity.sql 016_cdd.sql 017_commission.sql; do
   psql -X -q -v ON_ERROR_STOP=1 -d "$DB" -f "$HERE/$f" >/dev/null || { echo "schema $f failed"; exit 1; }
 done
 sql "insert into asset values ('USDT',6),('GHS',2);" >/dev/null
@@ -1305,6 +1305,121 @@ expect_fail "and still may NOT publish an offer, because 'Checked' is a separate
 
 sql "alter table cdd_event disable trigger cdd_event_append_only; update cdd_event set source_of_funds = 'tampered' where id = (select min(id) from cdd_event);" >/dev/null 2>&1
 expect_eq "tampering with a CDD fact is detected by the chain" "$(sql "select verify_cdd_chain();")" "f"
+
+
+# ================================================================= the commission
+#
+# Every number below is derived from ONE fixture: a buyer receives 300000 minor units of NGN at 148.2
+# NGN per GHS, so the base leg -- what the buyer SENDS us -- is div(300000, 148.2) = 2024 minor units
+# of GHS. A commission of 100 bps is 1% of 2024 = 20. div() truncates, and these tests are written so
+# that the truncation is visible rather than hidden by a round number.
+#
+# Nothing here is a new mechanic. The only claim is that a number, frozen at creation and shown to the
+# trader, becomes exactly that many minor units in exactly the right accounts at exactly one moment --
+# and that the ledger still balances afterwards.
+echo "== the commission is frozen at creation, and it is ours to see"
+# The window is set HERE, by this block, and restored at the end of it. An earlier test at 1029 sets
+# every type to 15 minutes for the sweeper, so a block that assumed the window it found would be
+# measuring the order the tests happen to run in. tt() discards its output, so a release refused by
+# the claim-window guard looks exactly like a release that charged nothing -- which is precisely what
+# happened the first time this block ran.
+sql "update trade_policy set claim_window = '0 seconds';
+     update trade_policy set fee_bps=100 where trade_type='platform_inventory';" >/dev/null
+T=$(sql "select create_fiat_trade('platform','qz1',null,null,'NGN',300000,148.2,'platform_inventory','GHS','NGN','GHS');")
+expect_eq "the fee is frozen onto the trade the moment it is opened, not looked up later" \
+  "$(sql "select fee_minor_units from trade where id=$T;")" "20"
+expect_eq "1% of the 2024 the buyer sends is 20; the truncation is in the send leg, not the fee" \
+  "$(sql "select div(div(300000::numeric,148.2)*100,10000) from trade where id=$T;")" "20"
+expect_eq "the fee is in the currency the buyer actually PAYS, not the one they receive" \
+  "$(sql "select fee_asset from trade where id=$T;")" "GHS"
+expect_eq "the rate is frozen too, so a later policy change cannot move a fee already agreed" \
+  "$(sql "update trade_policy set fee_bps=9999 where trade_type='platform_inventory'; select fee_bps from trade where id=$T;")" "100"
+sql "update trade_policy set fee_bps=100 where trade_type='platform_inventory';" >/dev/null
+
+echo "== the fee is charged once, at settlement, and only on our own book"
+bq1=$(sql "select coalesce(sum(balance),0) from account where owner='chain' and asset='GHS' and kind='external';")
+bn2=$(sql "select coalesce(sum(balance),0) from account where owner='platform' and asset='NGN' and kind='external';")
+bp1=$(sql "select coalesce(sum(balance),0) from account where owner='platform' and asset='GHS' and kind='external';")
+bf1=$(sql "select coalesce(sum(balance),0) from account where owner='platform' and asset='GHS' and kind='fee';")
+tt $T open paid_claimed qc-$T qz1
+expect_eq "nothing is charged while the trade is merely claimed" \
+  "$(sql "select coalesce(sum(balance),0) from account where owner='platform' and asset='GHS' and kind='fee';")" "$bf1"
+asops "select ops_transition($T,'paid_claimed','paid_attested','qa-$T','ops-9');" >/dev/null
+expect_eq "and nothing is charged when the payment is confirmed but the window is still open" \
+  "$(sql "select coalesce(sum(balance),0) from account where owner='platform' and asset='GHS' and kind='fee';")" "$bf1"
+tt $T paid_attested released qr-$T system
+expect_eq "when the buyer pays the fee, we receive the whole send leg including the commission" \
+  "$(sql "select coalesce(sum(balance),0) from account where owner='platform' and asset='GHS' and kind='external';")" "$((bp1+2024))"
+expect_eq "and the commission itself is booked separately, so it can be reported as revenue" \
+  "$(sql "select coalesce(sum(balance),0) from account where owner='platform' and asset='GHS' and kind='fee';")" "$((bf1+20))"
+expect_eq "the outside world is short the fee as well as the goods, because the buyer sent both" \
+  "$(sql "select coalesce(sum(balance),0) from account where owner='chain' and asset='GHS' and kind='external';")" "$((bq1-2044))"
+expect_eq "the currency we delivered is unchanged: a fee never changes what the buyer receives" \
+  "$(sql "select coalesce(sum(balance),0) from account where owner='platform' and asset='NGN' and kind='external';")" "$((bn2-300000))"
+expect_eq "the commission is in the ledger transaction with the settlement, not a transfer of its own" \
+  "$(sql "select count(distinct x.id) from posting p join account a on a.id=p.account_id
+          join ledger_tx x on x.id=p.tx_id where x.trade_id=$T and a.kind='fee';")" "1"
+
+echo "== KudiMarket can absorb the commission out of its own margin instead"
+sql "update trade_policy set fee_bps=100, fee_bearer='kudimarket' where trade_type='platform_inventory';" >/dev/null
+T2=$(sql "select create_fiat_trade('platform','qz2',null,null,'NGN',300000,148.2,'platform_inventory','GHS','NGN','GHS');")
+expect_eq "the frozen fee records who pays it, so the screen cannot guess" \
+  "$(sql "select fee_bearer from trade where id=$T2;")" "kudimarket"
+bp2=$(sql "select coalesce(sum(balance),0) from account where owner='platform' and asset='GHS' and kind='external';")
+bf2=$(sql "select coalesce(sum(balance),0) from account where owner='platform' and asset='GHS' and kind='fee';")
+bq3=$(sql "select coalesce(sum(balance),0) from account where owner='chain' and asset='GHS' and kind='external';")
+tt $T2 open paid_claimed q2c-$T2 qz2
+asops "select ops_transition($T2,'paid_claimed','paid_attested','q2a-$T2','ops-9');" >/dev/null
+tt $T2 paid_attested released q2r-$T2 system
+expect_eq "absorbed, we keep the send leg MINUS the commission: this is margin, not a price rise" \
+  "$(sql "select coalesce(sum(balance),0) from account where owner='platform' and asset='GHS' and kind='external';")" "$((bp2+2004))"
+expect_eq "and the commission is still booked, because we earned it either way" \
+  "$(sql "select coalesce(sum(balance),0) from account where owner='platform' and asset='GHS' and kind='fee';")" "$((bf2+20))"
+expect_eq "the buyer sends exactly the quoted amount: the chain is short 2024, not 2044" \
+  "$(sql "select coalesce(sum(balance),0) from account where owner='chain' and asset='GHS' and kind='external';")" "$((bq3-2024))"
+
+echo "== a commission we cannot take is refused rather than rounded into someone's favour"
+sql "update trade_policy set fee_bps=0 where trade_type='platform_inventory';" >/dev/null
+expect_fail "a commission over 10000 bps is not a commission" \
+  "$(sql "select set_config('kudi.fee_bps','10001',false); select create_fiat_trade('platform','qz3',null,null,'NGN',300000,148.2,'platform_inventory','GHS','NGN','GHS');")" "out of range"
+sql "select set_config('kudi.fee_bps','',false);" >/dev/null
+expect_fail "and neither is a bearer nobody can pay" \
+  "$(sql "select set_config('kudi.fee_bearer','seller',false); select create_fiat_trade('platform','qz4',null,null,'NGN',300000,148.2,'platform_inventory','GHS','NGN','GHS');")" "not buyer or kudimarket"
+sql "select set_config('kudi.fee_bearer','',false);" >/dev/null
+TZ0=$(sql "select create_fiat_trade('platform','qz5',null,null,'NGN',300000,148.2,'platform_inventory','GHS','NGN','GHS');")
+expect_eq "a zero commission is no commission: no fee amount and no fee currency, on the trade itself" \
+  "$(sql "select coalesce(fee_minor_units::text,'none')||'/'||coalesce(fee_asset,'none') from trade where id=$TZ0;")" "none/none"
+
+echo "== a Checked trade is never charged, because there is no leg of ours to charge it on"
+sql "update trade_policy set fee_bps=100, fee_bearer='buyer' where trade_type='platform_inventory';" >/dev/null
+vb3=$(sql "select coalesce(sum(balance),0) from account where owner='platform' and asset='GHS' and kind='fee';")
+T3=$(sql "select create_fiat_trade('vz3','vz4',null,null,'NGN',300000,148.2,'vendor_vendor','GHS','NGN','GHS');")
+expect_eq "even with a commission configured, a vendor trade carries none" \
+  "$(sql "select coalesce(fee_minor_units,0) from trade where id=$T3;")" "0"
+tt $T3 open paid_claimed q3c-$T3 vz4
+tt $T3 paid_claimed paid_attested q3a-$T3 vz3
+tt $T3 paid_attested released q3r-$T3 vz3
+expect_eq "and settles without touching a single fee account" \
+  "$(sql "select coalesce(sum(balance),0) from account where owner='platform' and asset='GHS' and kind='fee';")" "$vb3"
+expect_eq "the buyer is never quoted a fee they cannot pay us for" \
+  "$(sql "select count(*) from trade where trade_type='vendor_vendor' and fee_minor_units is not null;")" "0"
+
+echo "== a commission is a movement of money, so it is evidenced like one"
+# Two trades were charged above (buyer-paid, and absorbed) and the Checked trade was not, so the total
+# commission booked for the whole suite is exactly 40 minor units. Asserting the AMOUNT rather than a
+# count of postings: a count of three would break the day somebody adds a fourth fixture, and would have
+# passed even if one of them booked the wrong number.
+expect_eq "the whole suite has charged exactly the two commissions it should have" \
+  "$(sql "select coalesce(sum(p.amount),0) from posting p join account a on a.id=p.account_id where a.kind='fee';")" "40"
+expect_eq "and every one of them sits in a ledger transaction that belongs to a real trade" \
+  "$(sql "select count(*) from posting p join account a on a.id=p.account_id
+          join ledger_tx x on x.id=p.tx_id where a.kind='fee' and x.trade_id is null;")" "0"
+
+# Put the ledger back the way this block found it. The sweeper test above set every window to 15 minutes
+# and later tests read those, so leaving a zero window behind would silently make the next block's
+# releases instant.
+sql "update trade_policy set fee_bps=0, fee_bearer='buyer';
+     update trade_policy set claim_window = '15 minutes';" >/dev/null
 
 echo "== integrity"
 expect_eq "cached balances equal sum of postings" "$(sql "select count(*) from check_balances();")" "0"

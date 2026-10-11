@@ -38,6 +38,7 @@ trait BuildsLedgerDatabase
         '014_segregation.sql',
         '015_trader_identity.sql',
         '016_cdd.sql',
+        '017_commission.sql',
     ];
 
     /**
