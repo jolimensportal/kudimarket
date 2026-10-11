@@ -76,6 +76,10 @@
         <a href="{{ route('trade.offer.board') }}"><button type="button" class="ghost">What others are selling</button></a>
     </div>
 
+    {{-- Identity details are a separate, mandatory thing from being checked to sell, so they get their
+         own quiet line here rather than being folded into the selling flow. --}}
+    <p class="note"><a href="{{ route('trade.cdd.show') }}">Your identity details</a></p>
+
     @if (count($mine) > 0)
         <h2>Your offers</h2>
         <div class="card">
