@@ -220,6 +220,57 @@
             dl { grid-template-columns: 1fr; gap: 10px 0; }
         }
 
+        /* ---------------------------------------------------------- the assurance boundary
+         * The two tiers, side by side, in the same colours the locked product reference already uses
+         * (.badge.handled = plum, .badge.checked = ink-soft, per product-preview/index.html). No new
+         * colour is invented here, which is the point: plum already means "we are on the hook" and
+         * ink-soft already means "somebody else is".
+         *
+         * The left border names --plum-300, which is a real token. It was briefly written against
+           --line-mid, which is NOT declared anywhere; an undeclared var() resolves to transparent and
+           would have taken the colour signal with it. Same class of bug as the --plum-100 notice
+           background that shipped once already.
+         *
+         * The card is tinted differently on each side on purpose. A trader scanning a screen should be
+         * able to tell "is this mine or theirs" before reading a word -- but the words carry the same
+         * meaning, so the colour is never the only thing saying it.
+         */
+        .assurance {
+            border: 1px solid var(--line);
+            border-left: 3px solid var(--plum-300);
+            border-radius: 10px;
+            padding: 12px 14px;
+            margin: 10px 0;
+            background: var(--paper);
+        }
+        .assurance.is-handled {
+            border-left-color: var(--plum-600);
+            background: color-mix(in oklch, var(--plum-600) 5%, var(--paper));
+        }
+        .assurance.is-checked {
+            border-left-color: var(--plum-300);
+            background: var(--paper);
+        }
+
+        .assurance-tier {
+            display: flex; align-items: center; gap: 9px; flex-wrap: wrap;
+            margin: 0 0 6px;
+        }
+        .assurance-what {
+            font-size: 14px; font-weight: 600; color: var(--ink);
+        }
+
+        /* The promise line is the one that must be read. Same size as body copy, not smaller -- a
+           caveat set in fine print is a caveat nobody reads, and this is the whole product promise. */
+        .assurance-promise {
+            font-size: 15px; color: var(--ink-mid); margin: 0; text-wrap: pretty;
+        }
+        .assurance-promise strong { color: var(--ink); font-weight: 600; }
+
+        .assurance-detail {
+            font-size: 14px; color: var(--ink-soft); margin: 6px 0 0; text-wrap: pretty;
+        }
+
         @media (prefers-color-scheme: dark) {
             /* Not a dark theme. A dimmed inversion of a light page would put the plum at a contrast
                we have not measured. If we want dark, it gets measured tokens like every other

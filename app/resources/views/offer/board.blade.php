@@ -66,8 +66,16 @@
                     @csrf
                     <button type="submit">Take this</button>
                 </form>
-                <p class="note">Taking it opens a trade between you and {{ $offer->seller }}. Both deposits
-                   apply, because this is vendor to vendor and nobody here is KudiMarket.</p>
+
+                {{-- The boundary, at the moment of decision, on the side of the product where it
+                     matters most. This card used to say only "opens a trade between you and X" -- naming
+                     WHO, and never saying that nobody stands behind them. That omission is the whole
+                     consumer-protection risk, on the screen with the most money at stake. --}}
+                @include('partials.assurance', [
+                    'handled' => false,
+                    'counterparty' => $offer->seller,
+                    'compact' => true,
+                ])
             @endif
         </div>
     @empty

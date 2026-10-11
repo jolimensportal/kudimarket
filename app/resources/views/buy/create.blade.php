@@ -7,14 +7,15 @@
 
     <h1>Buy currency from us</h1>
 
-    {{-- The two tiers, said plainly, because this screen and the vendor board are different promises and
-         somebody has to be able to tell them apart. brand/product.html: "Two levels: checked, and
-         KudiMarket handled... One badge that reads 'safe to send money to' is a guarantee we have not
-         priced." Here WE are the counterparty, so delivery is ours and our money is at risk. --}}
+    {{-- The boundary, stated here as the tier it is rather than as a paragraph comparing tiers. This
+         screen is unambiguously HANDLED, so it says so plainly and points at the other screen for the
+         other case. The old note carried both explanations and split the reader's attention across a
+         distinction they do not need on this page. --}}
+    @include('partials.assurance', ['handled' => true])
+
     <p class="note" style="margin:-4px 0 14px">
-        This is <strong>KudiMarket handled</strong>. We are the other side of this trade, our money is at
-        risk and delivery is ours. A trade you take from another trader is only <strong>checked</strong>,
-        and we do not promise delivery on those.
+        Buying a trade from another trader is <strong>checked</strong>, which is a different promise:
+        <a href="{{ route('trade.offer.board') }}">see what other traders are selling</a>.
     </p>
 
     @if ($notice)

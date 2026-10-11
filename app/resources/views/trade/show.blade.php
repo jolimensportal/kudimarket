@@ -45,14 +45,10 @@
 
     <div class="card">
         <div class="label">The other side</div>
-        <p style="margin-top:4px">
-            @if ($trade->seller === 'platform')
-                <strong>KudiMarket</strong> &mdash; we are the counterparty. If the money does not
-                arrive, it comes back to you and it is our loss.
-            @else
-                {{ $trade->seller }} &mdash; checked, not handled.
-            @endif
-        </p>
+        @include('partials.assurance', [
+            'handled' => $trade->seller === 'platform',
+            'counterparty' => $trade->seller === 'platform' ? null : $trade->seller,
+        ])
     </div>
 
     {{--

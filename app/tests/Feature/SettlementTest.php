@@ -213,11 +213,16 @@ class SettlementTest extends TestCase
     {
         // The claim is a statement, not a settlement. The screen must not imply otherwise: "release" is
         // operations' word, and a trader reading it would think their money had moved.
+        //
+        // The assertion below moved from the literal phrase "we are the counterparty" to the MEANING
+        // ("our loss") when the guarantee sentence moved into partials/assurance.blade.php. Asserting a
+        // fixed string across a refactor is how a wording test quietly stops testing the thing it was
+        // written for -- "our loss" is the part that carries the promise, and it is what must survive.
         $trader = $this->traderWithTrade();
 
         $this->get("/trade/{$trader->trade_id}")
             ->assertOk()
-            ->assertSee('we are the counterparty')
+            ->assertSee('our loss')
             ->assertDontSee('release');
     }
 
