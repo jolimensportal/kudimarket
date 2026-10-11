@@ -7,6 +7,20 @@ brief now answers more accurately — see §5.
 
 ---
 
+## Sequencing decision (11 Oct 2026)
+
+- **Ghana is the confirmed first market.** Nigeria, Kenya and wider expansion follow. `NIPO-BRIEF.md`
+  was drafted on the opposite order and has been annotated to match.
+- **Paperwork (Bucket 1) is deferred**, not cancelled: incorporation, the dealer-vs-broker decision with
+  counsel, and the Act 723 fee/capital schedule. These block *launch*, not *building*.
+- **We build while the paperwork is outstanding.** The AML duties in §5c are published and do not need
+  counsel to start implementing — identity capture, source of funds, purpose, the CTR/STR data model and
+  the biometric branch can all be built now, behind a seam, so that whichever licence path is chosen the
+  compliance machinery is already there.
+- **The order principle:** do not take real customer money until identity checks and AML reporting exist.
+
+---
+
 ## 0. What KudiMarket actually does today
 
 Written first because it is what counsel will ask for, and because everything below is an argument about
