@@ -6,6 +6,7 @@ namespace Tests\Feature;
 
 use App\Models\Trader;
 use App\Services\TradeDesk;
+use App\Services\TradeLedger;
 use Illuminate\Support\Facades\RateLimiter;
 use Tests\TestCase;
 
@@ -96,6 +97,79 @@ class TradeScreenTest extends TestCase
         $this->get("/trade/{$id}")
             ->assertOk()
             ->assertDontSee('settles on its own');
+    }
+
+    public function test_a_claimed_trade_says_the_money_is_being_checked_not_that_it_arrived(): void
+    {
+        // The window between "I have sent the cedi" and somebody confirming it. The screen used to say only
+        // "We have your claim and are checking for the payment" as a bare sentence under the button, and
+        // the mockup's step 7 -- the one this trader is now staring at -- names both legs. It must NOT say
+        // the cedi has arrived: at paid_claimed nobody has seen it.
+        $trader = Trader::factory()->create();
+        $this->actingAs($trader, 'trader');
+        $id = app(TradeDesk::class)->openAgainstUs($trader->email, 200000, 'NGN');
+        $this->post("/trade/{$id}/claim");
+
+        $body = $this->get("/trade/{$id}")->assertOk()->getContent();
+
+        $this->assertStringContainsString('Your money', $body, 'the two legs are named');
+        $this->assertStringContainsString('Checking', $body, 'the paid leg is not confirmed yet');
+        $this->assertStringContainsString('Waiting on the window', $body, 'the receive leg is pending the window');
+        $this->assertStringContainsString('a person is checking for the payment', $body);
+        $this->assertStringNotContainsString('Received', $body, 'nothing has been confirmed at paid_claimed');
+    }
+
+    public function test_an_attested_trade_names_who_confirmed_the_payment(): void
+    {
+        // paid_attested on our own book: a member of operations confirmed money they could SEE reach
+        // KudiMarket, recorded against a staff identity. The card has to say a human confirmed it, and it
+        // has to say it is released on the window closing with nobody pressing anything -- the sweep
+        // (kudi-core/013, every minute) makes that true.
+        $trader = Trader::factory()->create();
+        $this->actingAs($trader, 'trader');
+        $id = app(TradeDesk::class)->openAgainstUs($trader->email, 200000, 'NGN');
+        $this->post("/trade/{$id}/claim");
+        app(TradeLedger::class)->attest($id, 'ops@kudimarket.com');
+
+        $this->get("/trade/{$id}")
+            ->assertOk()
+            ->assertSee('Your money')
+            ->assertSee('a human confirmed it')
+            ->assertSee('Waiting on the window')
+            ->assertSee('released once the claim window closes');
+    }
+
+    public function test_a_claimed_trade_does_not_name_a_release_instant(): void
+    {
+        // The mockup shows "15:52 / Left to dispute" -- a ticking number to an instant, and a label that
+        // is wrong twice over. The window gates RELEASE, not disputes (paid_claimed -> disputed carries no
+        // time limit), and the sweep runs on a one-minute boundary so it cannot promise a clock time. The
+        // card states the fact in words instead, and must never print a countdown.
+        $trader = Trader::factory()->create();
+        $this->actingAs($trader, 'trader');
+        $id = app(TradeDesk::class)->openAgainstUs($trader->email, 200000, 'NGN');
+        $this->post("/trade/{$id}/claim");
+        app(TradeLedger::class)->attest($id, 'ops@kudimarket.com');
+
+        $body = $this->get("/trade/{$id}")->assertOk()->getContent();
+
+        $this->assertStringNotContainsString('Left to dispute', $body, 'the window gates release, not disputes');
+        $this->assertStringNotContainsString('settles on its own', $body);
+    }
+
+    public function test_the_held_card_only_appears_once_there_is_something_held(): void
+    {
+        // At `open` nothing has been sent, so there are no legs in flight and the card would be a lie by
+        // omission. The status card is a statement about held money, so it belongs only in the two waiting
+        // states.
+        $trader = Trader::factory()->create();
+        $this->actingAs($trader, 'trader');
+        $id = app(TradeDesk::class)->openAgainstUs($trader->email, 200000, 'NGN');
+
+        $this->get("/trade/{$id}")
+            ->assertOk()
+            ->assertDontSee('Your money')
+            ->assertDontSee('Waiting on the window');
     }
 
     public function test_it_shows_the_write_once_event_record(): void

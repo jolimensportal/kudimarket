@@ -103,6 +103,63 @@ class TwoSidedJourneyTest extends TestCase
         $this->assertEveryChainVerifies();
     }
 
+    public function test_a_vendor_trade_names_the_seller_as_the_one_who_confirms(): void
+    {
+        // On a Checked trade the SELLER is the recipient of the buyer's payment, so the seller's attestation
+        // -- not KudiMarket's -- is what "arrived" means. The held card has to name that party: writing
+        // "a human confirmed it" here would put KudiMarket behind every peer-to-peer trade, which is the tier
+        // we have deliberately not priced.
+        $desk = app(OfferDesk::class);
+
+        $seller = $this->trader('held-seller');
+        $offerId = $desk->publish('NGN', 'GHS', 50000000, '0.0060');
+
+        $buyer = $this->trader('held-buyer');
+        $tradeId = $desk->accept($offerId);
+        $this->fund($seller->email, 'GHS', 33784);
+        $this->fund($buyer->email, 'GHS', 33784);
+
+        $this->actingAs($buyer, 'trader');
+        $this->post("/trade/{$tradeId}/claim");
+        app(TradeDesk::class)->attestPaid($tradeId, $seller->email);
+        $this->assertSame('paid_attested', $this->stateOf($tradeId));
+
+        $body = $this->actingAs($buyer, 'trader')->get("/trade/{$tradeId}")->assertOk()->getContent();
+
+        $this->assertStringContainsString('Your money', $body);
+        $this->assertStringContainsString('the seller confirmed it', $body,
+            'the recipient, not KudiMarket, is who confirms a Checked trade');
+        $this->assertStringNotContainsString('a human confirmed it', $body,
+            'we must not claim the confirmation on a trade that is not ours');
+        $this->assertStringContainsString('Waiting on the window', $body);
+    }
+
+    public function test_a_vendor_buyer_at_claimed_time_is_asked_to_wait_not_told_it_arrived(): void
+    {
+        // The window before the seller confirms. The buyer has paid but nobody has confirmed; the card must
+        // keep the same plain "we are checking" posture as the handled tier rather than implying arrival.
+        $desk = app(OfferDesk::class);
+
+        $seller = $this->trader('wait-seller');
+        $offerId = $desk->publish('NGN', 'GHS', 50000000, '0.0060');
+
+        $buyer = $this->trader('wait-buyer');
+        $tradeId = $desk->accept($offerId);
+        $this->fund($seller->email, 'GHS', 33784);
+        $this->fund($buyer->email, 'GHS', 33784);
+
+        $this->actingAs($buyer, 'trader');
+        $this->post("/trade/{$tradeId}/claim");
+        $this->assertSame('paid_claimed', $this->stateOf($tradeId));
+
+        $body = $this->get("/trade/{$tradeId}")->assertOk()->getContent();
+
+        $this->assertStringContainsString('Checking', $body);
+        $this->assertStringContainsString('Waiting on the window', $body);
+        $this->assertStringNotContainsString('Received', $body,
+            'at paid_claimed nothing is confirmed on either tier');
+    }
+
     public function test_a_vendor_to_vendor_trade_takes_deposits_from_both_sides(): void
     {
         // The one thing that makes cheating more expensive than honesty on a trade where neither side is

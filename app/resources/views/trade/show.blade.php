@@ -73,6 +73,13 @@
         $sendName = ['GHS' => 'cedi', 'NGN' => 'naira'][$figures['send_asset']] ?? $figures['send_asset'];
         $receiveName = ['GHS' => 'cedi', 'NGN' => 'naira'][$figures['receive_asset']] ?? $figures['receive_asset'];
         $isBuyer = $role === 'buyer';
+        $isHandled = $trade->seller === 'platform';
+
+        // The two states in which money is in flight and somebody is waiting. Not `open` (nothing has been
+        // sent), not `disputed` (release is not pending on a window while a dispute is open), not after
+        // release. The card is a statement about held money, so it belongs only where there is held money.
+        $awaitingWindow = in_array($trade->state, ['paid_claimed', 'paid_attested'], true);
+        $confirmed = $trade->state === 'paid_attested';
     @endphp
 
     <div class="card">
@@ -97,6 +104,76 @@
     </div>
 
     {{--
+        WHAT THE MONEY IS DOING. This is the screen the mockup draws as "Held, and waiting on the window",
+        and it is the one that replaces the phone call: a trader who has just sent money and is staring at
+        this page wants to know whether it arrived, when they get paid, and whether any of it is real.
+
+        All three answers are here, and all three are drawn from a stored fact rather than written out:
+
+          - Has my money arrived? Only somebody who did NOT pay can say so. At paid_claimed nobody has said
+            yet; at paid_attested they have, and the card names who. Naming the confirmer is the whole
+            difference between the tiers -- on our own book it is a member of operations who saw the money
+            reach KudiMarket, on a Checked trade it is the SELLER, because the seller is the recipient and
+            the attestation is theirs to make. Writing "a human confirmed it" on a vendor trade would put
+            KudiMarket behind every peer-to-peer trade: the tier we have deliberately not priced.
+
+          - When do I get paid? Once the claim window closes, and then without anybody pressing anything --
+            kudi-core/013's release_due_trades() runs on a one-minute schedule and settles it. Stated in
+            words, deliberately without a ticking number: a countdown names an instant the sweep cannot keep,
+            and it goes stale the moment a metered connection drops.
+
+          - Is any of it real? The leg we can see is real to the extent one person's confirmation is real.
+            The leg in somebody else's account is not, and cannot be, until it moves. That sentence is the
+            product, and it is why the card never colours the whole thing green.
+    --}}
+    @if ($awaitingWindow)
+        <div class="card">
+            <div class="label">Your money</div>
+            <dl class="stack" style="margin-top:8px">
+                <div>
+                    <dt>You pay &mdash; {{ $figures['send'] }}</dt>
+                    <dd>@if ($confirmed)
+                            <span class="badge ok">Received</span> @if ($isHandled)
+                                A human confirmed it.
+                            @elseif ($isBuyer)
+                                The seller confirmed it.
+                            @else
+                                You confirmed it.
+                            @endif
+                        @else
+                            <span class="badge checked">Checking</span> Nobody has confirmed it yet.
+                        @endif
+                    </dd>
+                </div>
+                <div>
+                    <dt>You receive &mdash; {{ $figures['receive'] }}</dt>
+                    <dd>Waiting on the window.</dd>
+                </div>
+            </dl>
+            @if ($confirmed)
+                <p class="note">The {{ $receiveName }} is released once the claim window closes. Nobody has to
+                   press anything &mdash; a sweep releases it on the way past.</p>
+            @endif
+        </div>
+
+        <div class="card">
+            <div class="label">Straight answer</div>
+            @if (! $confirmed)
+                <p>We have your claim and a person is checking for the payment. We will only call it received
+                   when somebody has seen it. Nothing is needed from you while that happens.</p>
+            @elseif ($isHandled)
+                <p>We can tell you the {{ $sendName }} arrived and that a human confirmed it, because our money
+                   is at risk until it is delivered. We cannot tell you anything about the {{ $receiveName }}
+                   we have not yet received.</p>
+            @else
+                <p>We can tell you the {{ $sendName }} arrived and the seller confirmed it. We cannot tell you
+                   anything about the {{ $receiveName }} until it reaches you &mdash; that is the trade we
+                   have checked the seller for, not one we have put our name to.</p>
+            @endif
+        </div>
+    @endif
+
+    {{--
         Both of these sentences were wrong, and were written before the rules behind them were checked.
 
         "You can dispute until the claim window closes" is not true: the claim window gates RELEASE, not
@@ -104,10 +181,17 @@
         being held while a trade sits in that state, so a counterparty who has not been paid yet is exactly
         who needs to be able to complain.
 
-        "After that the trade settles on its own" is worse. paid_attested -> released has actor 'system',
-        and there is no scheduler registered, so nothing settles on its own. Anything else would tell a
-        trader their money is on its way when it is sitting in an escrow row nobody has touched. It only
-        becomes true when the release job exists.
+        "After that the trade settles on its own" is true NOW, but was written when it was not. The comment
+        this replaced said "paid_attested -> released has actor 'system', and there is no scheduler
+        registered, so nothing settles on its own." That was already false when it was committed: 4c6ed04
+        added kudi-core/013's release_due_trades(), the trades:release-due command and the everyMinute
+        schedule on 9 Oct, and that commit is an ancestor of the one that added the sentence. The refusal
+        was right, then it stopped being revisited once the release job landed.
+
+        What survived the correction is the honesty rule underneath it: the copy still does not name an
+        instant. The sweep runs on a one-minute boundary and a countdown would name a clock time it cannot
+        keep, so "Your money" states the window in words and never prints one. TradeScreenTest keeps failing
+        on "settles on its own" for exactly this reason.
     --}}
     {{--
         Whether a problem can be reported is a fact about the trade's STATE, and the ledger is the only

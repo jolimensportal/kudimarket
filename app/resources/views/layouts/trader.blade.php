@@ -109,6 +109,12 @@
             border: 1px solid currentColor; color: var(--plum-600);
         }
         .badge.checked { color: var(--ink-soft); }
+        /* The green confirmation the locked product reference already uses (.badge.ok = --green,
+           product-preview/index.html). It is a CONFIRMATION state -- money a person has seen arrive --
+           and never anything else: green on a pending payment would say the money had moved when it had
+           not, which is the same mistake the .notice rule below was written to avoid. --green is a
+           declared token; an earlier badge here named colours that were not, and rendered with none. */
+        .badge.ok { color: var(--green); }
 
         form.pair {
             display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
