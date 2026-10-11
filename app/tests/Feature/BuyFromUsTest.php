@@ -177,6 +177,42 @@ final class BuyFromUsTest extends TestCase
         $this->assertSame('released', app(TradeLedger::class)->trade($tradeId)->state);
     }
 
+    public function test_a_buyer_on_our_book_is_told_the_reference_and_the_receipt_rule(): void
+    {
+        /**
+         * Buying from us is the KudiMarket handled tier, and the locked reference for that screen
+         * ("Use your own name as the reference. A payment from a number that is not registered to you is a
+         * payment we cannot give you a receipt for.") is the whole point of it: the payer-name check is
+         * how we match the payment, so the trader has to KNOW their name is the reference before they make
+         * it. The seller branch of this same screen has had that rule; the handled-buyer branch dropped it.
+         */
+        $trader = $this->trader('handled-ref');
+        $this->post('/trade/buy', [
+            'receive_asset' => 'NGN',
+            'receive_amount' => '5000',
+        ]);
+
+        $tradeId = (int) DB::connection('pgsql_trader')->selectOne(
+            "select id from trade where buyer = ? and state = 'open' order by id desc limit 1",
+            [$trader->email]
+        )->id;
+
+        $screen = $this->flat(
+            $this->actingAs($trader, 'trader')->get("/trade/{$tradeId}")->assertOk()->getContent()
+        );
+
+        $this->assertStringContainsString(
+            'Use your own name as the reference',
+            $screen,
+            'the buyer is told their own name is the reference'
+        );
+        $this->assertStringContainsString(
+            'A payment from a number that is not registered to you is a payment we cannot give you a receipt for',
+            $screen,
+            'the handled-buyer branch carries the mockup\'s receipt rule, like the seller branch does'
+        );
+    }
+
     private function flat(string $html): string
     {
         $text = preg_replace('#<(script|style)\b[^>]*>.*?</\1>#si', '', $html) ?? $html;

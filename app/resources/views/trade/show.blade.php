@@ -80,12 +80,13 @@
             <div class="label">Send the {{ $sendName }} to us</div>
             <p class="num" style="margin-top:4px;color:var(--ink);font-weight:600">MTN Mobile Money &middot; 024 000 1122</p>
             <p>KudiMarket Sim, Adwoa Serwaa. We are the counterparty here, so this {{ $receiveName }} is ours
-               to deliver and our money is at risk until it is. Use your own name as the reference, then tell
-               us it has gone.</p>
+               to deliver and our money is at risk until it is. Use your own name as the reference. A payment
+               from a number that is not registered to you is a payment we cannot give you a receipt for.
+               When it has gone, tell us.</p>
         @elseif ($isBuyer)
             <div class="label">Send the {{ $sendName }} to</div>
             <p class="num" style="margin-top:4px;color:var(--ink);font-weight:600">{{ $trade->seller }} &middot; bank account on file</p>
-            <p>Use the reference we gave you. {{ $trade->seller }} confirms the {{ $sendName }} arrived, and
+            <p>Use Trade #{{ $trade->id }} as the reference. {{ $trade->seller }} confirms the {{ $sendName }} arrived, and
                then owes the {{ $receiveName }} into your own mobile money account.</p>
         @else
             <div class="label">Send the {{ $sendName }} to</div>

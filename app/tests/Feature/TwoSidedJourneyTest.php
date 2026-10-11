@@ -375,6 +375,36 @@ class TwoSidedJourneyTest extends TestCase
         $this->assertStringContainsString('Send the cedi to', $sellerScreen, 'the seller sends cedi');
     }
 
+    public function test_a_vendor_buyer_is_given_a_reference_to_quote(): void
+    {
+        /**
+         * The payment card used to say "Use the reference we gave you" -- but nothing in the product ever
+         * gave one. That sentence is a phone call to operations waiting to happen: the buyer has no way to
+         * learn the reference except asking. The reference already exists on both sides of this screen: the
+         * trade number. Pinned so it cannot drift back to a promise with nothing behind it.
+         */
+        $seller = $this->trader('ref-seller');
+        $offerId = app(OfferDesk::class)->publish('NGN', 'GHS', 50000000, '0.0060');
+
+        $buyer = $this->trader('ref-buyer');
+        $tradeId = app(OfferDesk::class)->accept($offerId);
+
+        $screen = $this->flat(
+            $this->actingAs($buyer, 'trader')->get("/trade/{$tradeId}")->assertOk()->getContent()
+        );
+
+        $this->assertStringContainsString(
+            "Use Trade #{$tradeId} as the reference",
+            $screen,
+            'the reference the buyer must quote is the trade number, which the seller sees too'
+        );
+        $this->assertStringNotContainsString(
+            'the reference we gave you',
+            $screen,
+            'a reference that was never given must not be promised'
+        );
+    }
+
     public function test_the_seller_can_open_the_trade_they_are_part_of(): void
     {
         /**
