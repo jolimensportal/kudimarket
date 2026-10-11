@@ -21,7 +21,7 @@ ops()  { sql "select ops_transition($1,'$2','$3','$4','$5'${6:+,'$6'});" >/dev/n
 
 
 dropdb --if-exists "$DB" >/dev/null 2>&1; createdb "$DB" || exit 1
-for f in 001_core.sql 002_trade_types.sql 003_fiat_leg.sql 004_state_chain.sql 005_creation_anchor.sql 006_rate_card.sql 007_trader_role.sql 008_traders.sql 009_offer_book.sql 010_verification.sql 011_rate_direction.sql 012_trade_pair.sql 013_release_sweeper.sql 014_segregation.sql 015_trader_identity.sql; do
+for f in 001_core.sql 002_trade_types.sql 003_fiat_leg.sql 004_state_chain.sql 005_creation_anchor.sql 006_rate_card.sql 007_trader_role.sql 008_traders.sql 009_offer_book.sql 010_verification.sql 011_rate_direction.sql 012_trade_pair.sql 013_release_sweeper.sql 014_segregation.sql 015_trader_identity.sql 016_cdd.sql; do
   psql -X -q -v ON_ERROR_STOP=1 -d "$DB" -f "$HERE/$f" >/dev/null || { echo "schema $f failed"; exit 1; }
 done
 sql "insert into asset values ('USDT',6),('GHS',2);" >/dev/null
@@ -1201,6 +1201,110 @@ expect_eq "and the counts behind 'Where you stand' are readable the same way" \
 expect_eq "and they count BOTH sides, because a trader can be the seller of one of these" \
   "$(astrader "select kudi_sign_in('them@e.com'); select total from my_trade_counts();" | tail -1)" \
   "$(sql "select count(*) from trade where buyer='them@e.com' or seller='them@e.com';")"
+
+# ============================================================ customer due diligence (016)
+echo "== CDD is not 'Checked', and is built as its own thing"
+sql "insert into asset values ('NGN',2) on conflict do nothing;" >/dev/null
+
+expect_eq "with no CDD on file a trader has no CDD status at all, not a default 'fine'" \
+  "$(sql "select count(*) from cdd_status where trader_email='me@e.com';")" "0"
+
+# The trader half: submit CDD facts. Runs as kudi_trader because that is the role in production.
+astrader "select submit_cdd('me@e.com','ghana_card','GHA-0001',date '2024-01-01',date '2030-01-01','12 Independence Ave','business',null,'mobile money trading');" >/dev/null
+expect_eq "a trader submitting CDD lands in pending" \
+  "$(sql "select is_cdd_pending from cdd_status where trader_email='me@e.com';")" "t"
+expect_eq "and is NOT yet verified" \
+  "$(sql "select is_cdd_verified from cdd_status where trader_email='me@e.com';")" "f"
+
+expect_fail "and CDD cannot be submitted without a source of funds -- the AML rule, enforced" \
+  "$(astrader "select submit_cdd('them@e.com','ghana_card','GHA-0002',null,null,'1 Oxford St','salary',null,'');")" "source of funds required"
+expect_fail "nor without an address" \
+  "$(astrader "select submit_cdd('them@e.com','ghana_card','GHA-0002',null,null,' ','salary',null,'wages');")" "residential address required"
+
+# A trader must not decide their own CDD any more than they decide their own Checked application.
+expect_fail "a trader cannot verify their own identity" \
+  "$(astrader "select decide_cdd('me@e.com',true,false,'me@e.com','trust me');")" "permission denied"
+expect_fail "a trader cannot record their own biometric check" \
+  "$(astrader "select record_biometric('me@e.com','me@e.com','I checked myself');")" "permission denied"
+expect_fail "a trader cannot set the USD reference rate" \
+  "$(astrader "select set_usd_reference('GHS',0.13,'me@e.com','free money');")" "permission denied"
+
+# Operations decides; the structured facts ride onto the decision so 'verified' is a full record.
+asops "select decide_cdd('me@e.com',true,false,'ops@kudimarket.com','Ghana Card matched the NIA record');" >/dev/null
+expect_eq "operations verifying CDD moves the trader to verified" \
+  "$(sql "select is_cdd_verified from cdd_status where trader_email='me@e.com';")" "t"
+expect_eq "and the verified record carries the document number forward" \
+  "$(sql "select doc_number from cdd_status where trader_email='me@e.com';")" "GHA-0001"
+
+expect_fail "a refusal with no reason is refused, because a decision with no explanation is a dead end" \
+  "$(asops "select decide_cdd('me@e.com',false,false,'ops@kudimarket.com','   ');")" "must explain itself"
+
+echo "== the biometric threshold degrades SAFELY, never silently 'passes'"
+# No USD reference rate is set yet: the threshold cannot be computed.
+expect_eq "with no USD rate on file a large transaction is 'unknown', NOT 'not_required'" \
+  "$(sql "select requires_biometric('GHS', 20000000);")" "unknown"
+expect_eq "but CTR is judged on its face for GHS, which needs no rate: GHS 200,000 is reportable" \
+  "$(sql "select requires_ctr('GHS', 20000000);")" "reportable"
+expect_eq "a GHS figure below the threshold is judged on its face, with no rate needed" \
+  "$(sql "select requires_ctr('GHS', 100000);")" "not_reportable"
+
+# Now Finance sets the reference rate. 1 GHS = 0.13 USD; USD 10,000 is therefore ~76,923 GHS = ~7.69M minor.
+asops "select set_usd_reference('GHS',0.13,'finance@kudimarket.com','BoG mid');" >/dev/null
+expect_eq "with a rate on file, GHS 80,000 (~USD 10,400) is above the USD 10,000 biometric threshold" \
+  "$(sql "select requires_biometric('GHS', 8000000);")" "required"
+expect_eq "and a small GHS amount is not" \
+  "$(sql "select requires_biometric('GHS', 100000);")" "not_required"
+expect_eq "GHS 20,000 is exactly the CTR threshold, so it is reportable" \
+  "$(sql "select requires_ctr('GHS', 2000000);")" "reportable"
+expect_eq "just under it is not" \
+  "$(sql "select requires_ctr('GHS', 1999000);")" "not_reportable"
+
+# A foreign leg is assessed through the rate.
+expect_eq "NGN 2,000,000 (~USD 2,600 at 0.0013) is under the CTR threshold" \
+  "$(asops "select set_usd_reference('NGN',0.0013,'finance@kudimarket.com','BoG mid'); select requires_ctr('NGN',2000000);" | tail -1)" "not_reportable"
+
+# Recording the biometric event is evidence, not a state change.
+asops "select record_biometric('me@e.com','ops@kudimarket.com','liveness + Ghana Card at the counter');" >/dev/null
+expect_eq "recording a biometric check leaves the trader verified (it is evidence, not a re-decision)" \
+  "$(sql "select is_cdd_verified from cdd_status where trader_email='me@e.com';")" "t"
+expect_eq "but the event itself is recorded on the chain" \
+  "$(sql "select count(*) from cdd_event where trader_email='me@e.com' and event='biometric';")" "1"
+expect_eq "and it shows as evidence on the status WITHOUT overwriting the verified state" \
+  "$(sql "select is_cdd_verified || '/' || biometric_on_record from cdd_status where trader_email='me@e.com';")" "true/true"
+
+echo "== CDD keeps its own chain, separate from Checked"
+expect_eq "the CDD chain verifies" "$(sql "select verify_cdd_chain();")" "t"
+expect_eq "and the machine-checkable separation holds: CDD is not Checked" "$(sql "select cdd_is_not_checked();")" "t"
+expect_eq "CDD exposes no is_verified/is_pending column that a Checked screen could read by accident" \
+  "$(sql "select count(*) from information_schema.columns where table_name='cdd_status' and column_name in ('is_verified','is_pending');")" "0"
+expect_eq "the integrity report carries the new CDD chain flag" \
+  "$(sql "select cdd_chain_ok from integrity_report;")" "t"
+
+# The independence test needs a trader who has BOTH states, which is the whole point. A fresh trader is
+# used rather than reusing one from the verification section: those are decided, refused and finally
+# TAMPERED with above, so asserting against them would make this test depend on ordering for no reason.
+sql "insert into trader (name,email,password) values ('Both','both@e.com','x');" >/dev/null
+astrader "select apply_for_verification('both@e.com','Both Systems, Ghana Card GHA-222222222-2-2, 1 High Street Accra, own-name MTN 0245550222, funds from trading.');" >/dev/null
+asops "select decide_verification('both@e.com', true, 'checked for the trust tier', 'ops@kudimarket.com');" >/dev/null
+astrader "select submit_cdd('both@e.com','ghana_card','GHA-BOTH-1',null,null,'1 High Street Accra','business',null,'mobile money trading');" >/dev/null
+asops "select decide_cdd('both@e.com',true,false,'ops@kudimarket.com','Ghana Card matched against the NIA record');" >/dev/null
+
+expect_eq "one trader, two independent systems: CDD verified AND Checked verified" \
+  "$(sql "select c.is_cdd_verified || '/' || v.is_verified from cdd_status c join verification_status v on v.trader_email=c.trader_email where c.trader_email='both@e.com';")" "true/true"
+expect_eq "but the two are separate facts with separate records, not one flag read twice" \
+  "$(sql "select (select count(*) from cdd_event where trader_email='both@e.com') || '/' || (select count(*) from verification_event where trader_email='both@e.com');")" "2/2"
+
+# The converse, which is the claim that actually matters: CDD on its own does NOT buy Checked rights.
+sql "insert into trader (name,email,password) values ('CDDOnly','cddonly@e.com','x');" >/dev/null
+astrader "select submit_cdd('cddonly@e.com','ghana_card','GHA-CDDONLY-1',null,null,'5 Station Rd','salary',null,'wages');" >/dev/null
+asops "select decide_cdd('cddonly@e.com',true,false,'ops@kudimarket.com','Ghana Card matched');" >/dev/null
+expect_eq "a trader can be fully CDD-verified" \
+  "$(sql "select is_cdd_verified from cdd_status where trader_email='cddonly@e.com';")" "t"
+expect_fail "and still may NOT publish an offer, because 'Checked' is a separate decision" \
+  "$(astrader "select publish_offer('cddonly@e.com','NGN','GHS',1000,0.006);")" "checked"
+
+sql "alter table cdd_event disable trigger cdd_event_append_only; update cdd_event set source_of_funds = 'tampered' where id = (select min(id) from cdd_event);" >/dev/null 2>&1
+expect_eq "tampering with a CDD fact is detected by the chain" "$(sql "select verify_cdd_chain();")" "f"
 
 echo "== integrity"
 expect_eq "cached balances equal sum of postings" "$(sql "select count(*) from check_balances();")" "0"
