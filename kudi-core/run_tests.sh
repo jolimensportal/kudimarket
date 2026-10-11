@@ -281,10 +281,62 @@ expect_fail "only ops may attest on a platform trade" \
 asops "select ops_transition($T,'paid_claimed','paid_attested','fx2','ops-9');" >/dev/null
 tt $T paid_attested released fr-$T system
 expect_eq "fiat trade settles green" "$(sql "select colour from trade_view where id=$T;")" "green"
-expect_eq "no posting was made for a fiat-only trade" \
-  "$(sql "select count(*) from posting p join ledger_tx x on x.id=p.tx_id where x.trade_id=$T;")" "0"
+-- This assertion used to read "no posting was made for a fiat-only trade". It passed for 346 tests and
+-- it was wrong: it was asserting the absence of the one posting that should have been there. KudiMarket is
+-- the counterparty on a platform trade, so the money really does change hands through us, and our_float in
+-- segregation_report was a function of the seed rather than of the business. Now there is a settlement.
+--
+-- This particular trade is NGN against NGN at rate 1, so the four legs net to nothing on both accounts.
+-- The two-currency case below is the one that proves the direction.
+expect_eq "a platform fiat trade posts a settlement" \
+  "$(sql "select count(*) from posting p join ledger_tx x on x.id=p.tx_id where x.trade_id=$T;")" "4"
+expect_eq "the settlement nets to nothing when both legs are the same currency" \
+  "$(sql "select coalesce(sum(amount),0) from posting p join account a on a.id=p.account_id
+          join ledger_tx x on x.id=p.tx_id where x.trade_id=$T and a.owner='platform';")" "0"
 expect_eq "ledger is still balanced after fiat settlements" "$(sql "select count(*) from check_balances();")" "0"
 
+
+echo "== KudiMarket's own position moves when it is the counterparty (no pre-funded float)"
+# Under no-float the position accounts are booked 'external' so they may go negative: being short the
+# currency we just sold is the normal state of a bureau that does not pre-fund, not a fault. Booking them
+# 'available' instead would mean inventing a float we do not hold; allowing CUSTOMER available accounts to
+# go negative would have destroyed the ring-fence the escrow depends on. This is the assertion that the
+# compromise did not quietly weaken the customer invariant.
+bg=$(sql "select coalesce(sum(balance),0) from account where owner='platform' and asset='GHS' and kind='external';")
+bn=$(sql "select coalesce(sum(balance),0) from account where owner='platform' and asset='NGN' and kind='external';")
+cu=$(sql "select coalesce((select sum(balance) from account where owner='pz1'),0);")
+# The buyer RECEIVES 300000 minor units of NGN at 148.2 NGN per GHS, so we are paid 2024 minor units of
+# GHS -- div() truncates, because a posting cannot be fractional.
+T=$(sql "select create_fiat_trade('platform','pz1',null,null,'NGN',300000,148.2,'platform_inventory','GHS','NGN','GHS');")
+tt $T open paid_claimed pzc-$T pz1
+asops "select ops_transition($T,'paid_claimed','paid_attested','pza-$T','ops-9');" >/dev/null
+tt $T paid_attested released pzr-$T system
+expect_eq "our position in the currency we were PAID rises" \
+  "$(sql "select coalesce(sum(balance),0) from account where owner='platform' and asset='GHS' and kind='external';")" "$((bg+2024))"
+expect_eq "our position in the currency we SOLD goes short, because we hold no float" \
+  "$(sql "select coalesce(sum(balance),0) from account where owner='platform' and asset='NGN' and kind='external';")" "$((bn-300000))"
+expect_eq "the buyer holds no ledger balance: the goods left the ledger entirely" \
+  "$(sql "select coalesce((select sum(balance) from account where owner='pz1'),0);")" "$cu"
+expect_eq "no customer escrow was disturbed by the settlement" \
+  "$(sql "select coalesce(sum(balance) filter (where kind='escrow'),0) from account
+          where owner like 'trade:' || $T || '%';")" "0"
+
+echo "== a Checked (vendor) trade must move nothing of ours -- it is the one posting that would be a lie"
+bg2=$(sql "select coalesce(sum(balance),0) from account where owner='platform' and asset='GHS' and kind='external';")
+bn2=$(sql "select coalesce(sum(balance),0) from account where owner='platform' and asset='NGN' and kind='external';")
+sql "update trade_policy set deposit_bps=0 where trade_type='vendor_vendor';" >/dev/null
+T=$(sql "select create_fiat_trade('vz1','vz2',null,null,'NGN',300000,148.2,'vendor_vendor','GHS','NGN','GHS');")
+tt $T open paid_claimed vzc-$T vz2
+tt $T paid_claimed paid_attested vza-$T vz1
+tt $T paid_attested released vzr-$T vz1
+expect_eq "a vendor trade leaves our position untouched in the currency we were paid" \
+  "$(sql "select coalesce(sum(balance),0) from account where owner='platform' and asset='GHS' and kind='external';")" "$bg2"
+expect_eq "a vendor trade leaves our position untouched in the currency that changed hands" \
+  "$(sql "select coalesce(sum(balance),0) from account where owner='platform' and asset='NGN' and kind='external';")" "$bn2"
+expect_eq "a vendor trade posts no settlement at all" \
+  "$(sql "select count(*) from posting p join ledger_tx x on x.id=p.tx_id
+          where x.trade_id=$T and exists (select 1 from account a where a.id=p.account_id and a.owner='platform');")" "0"
+sql "update trade_policy set deposit_bps=1000 where trade_type='vendor_vendor';" >/dev/null
 
 echo "== fiat leg: vendor deposits are taken in cedi, not in the escrowed asset"
 sql "update trade_policy set deposit_bps=1000 where trade_type='vendor_vendor';" >/dev/null

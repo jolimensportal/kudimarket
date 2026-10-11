@@ -119,6 +119,8 @@ declare
   v_ok boolean; v_fault text := coalesce(p_fault, 'none'); v_attested timestamptz;
   s_av bigint; b_av bigint; esc bigint; sd bigint; bd bigint;
   d numeric := 0; v_post jsonb := '[]'::jsonb;
+  v_pos_base bigint; v_pos_quote bigint; v_chain_base bigint; v_chain_quote bigint;
+  v_base_minor numeric;
   da text;
   v_seq int; v_prev bytea; v_ev bytea; v_now timestamptz := clock_timestamp();
 begin
@@ -261,6 +263,40 @@ begin
     end if;
   end if;
 
+
+  -- KudiMarket books no pre-funded float, so a platform trade is a real change in our position in
+  -- BOTH currencies: we are given the base leg and we give up the quote leg. Until this posting
+  -- existed the ledger recorded neither, and segregation_report()'s our_float was a function of the
+  -- seed and never of the business -- which is the one number a bureau de change's regulator reads first.
+  --
+  -- It is booked against 'chain', which is the outside world: the buyer's payment arrives from there
+  -- and our delivery leaves by there. commingled_transfers already excludes platform<->chain for
+  -- exactly this reason, so this posting is the case that rule was written to permit.
+  --
+  -- The position accounts are 'external' kind, so they may go negative. Under no-float that is the
+  -- NORMAL state, not a fault: it means we are short the currency we just sold. Booking it as
+  -- 'available' instead would have forced us to invent a float we do not hold, and allowing customer
+  -- 'available' accounts to go negative would have destroyed the ring-fence that escrow depends on.
+  --
+  -- A VENDOR trade posts NOTHING here and must never: on a Checked trade the money goes trader to
+  -- trader without touching us, and posting it would invent a debt between two people we do not owe.
+  if t.crypto_amount is null
+     and t.trade_type = 'platform_inventory'
+     and t.rate_base_asset is not null
+     and p_to in ('released','resolved_release') then
+    v_pos_base := get_account('platform', 'external', t.rate_base_asset);
+    v_pos_quote := get_account('platform', 'external', t.fiat_asset);
+    v_chain_base := get_account('chain', 'external', t.rate_base_asset);
+    v_chain_quote := get_account('chain', 'external', t.fiat_asset);
+    -- rate is quote per base, and fiat_amount is what the buyer RECEIVES, so the base leg divides.
+    v_base_minor := div(t.fiat_amount, t.rate);
+    if v_base_minor > 0 then
+      v_post := v_post || _p(v_chain_base,  t.rate_base_asset, -v_base_minor)
+                       || _p(v_pos_base,    t.rate_base_asset,  v_base_minor)
+                       || _p(v_pos_quote,   t.fiat_asset,     -t.fiat_amount)
+                       || _p(v_chain_quote, t.fiat_asset,      t.fiat_amount);
+    end if;
+  end if;
 
   if p_to = 'escrowed' and t.crypto_amount is not null then
     v_post := _p(s_av, t.crypto_asset, -t.crypto_amount) || _p(esc, t.crypto_asset, t.crypto_amount);

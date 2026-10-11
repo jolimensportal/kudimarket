@@ -61,7 +61,7 @@ class FullJourneyTest extends TestCase
         $this->assertLedgerIntact();
     }
 
-    public function test_releasing_a_fiat_only_trade_posts_nothing_and_that_is_correct(): void
+    public function test_releasing_a_fiat_only_trade_moves_kudimarkets_position_and_nothing_else(): void
     {
         // The first version of this test asserted that release posts something, and failed -- correctly.
         // Every posting branch in _apply_transition is gated on crypto_amount being set, and a GHS<->NGN
@@ -80,8 +80,32 @@ class FullJourneyTest extends TestCase
         $this->withClaimWindow('0 seconds', function () use ($ledger, $trader, $before): void {
             $ledger->release($trader->trade_id, 'ops@kudimarket.com');
 
-            $this->assertSame([], $ledger->postings($trader->trade_id), 'a fiat-only trade escrows nothing, so release posts nothing');
-            $this->assertSame($before, $this->platformBalance(), 'no fiat liability was taken or discharged');
+            // This used to assert that release posts NOTHING, and the test was named for that claim, so the
+            // gap passed 174 PHP tests and 346 SQL ones as though it were a design decision. It was not: on a
+            // platform trade KudiMarket is the counterparty, so the money really does change hands through us,
+            // and our position in BOTH currencies moves. It now does.
+            $postings = $ledger->postings($trader->trade_id);
+            $byAsset = [];
+            foreach ($postings as $posting) {
+                $byAsset[$posting->asset] = ($byAsset[$posting->asset] ?? 0) + (int) $posting->amount;
+            }
+            $this->assertCount(4, $postings, 'the settlement is four legs: chain and platform in each currency');
+
+            // The buyer paid us one currency and we delivered the other. Net, our position in the currency
+            // we received is UP by the base leg, and in the currency we sold is DOWN by the whole amount --
+            // short, because KudiMarket holds no pre-funded float. That is a real position, not an error.
+            // Only the PLATFORM's legs. Netting both owners gives zero in each currency by construction,
+            // which reads as "nothing happened" and proves nothing.
+            $platformLeg = fn (string $asset) => array_sum(array_map(
+                fn ($p) => (int) $p->amount,
+                array_filter($postings, fn ($p) => $p->asset === $asset && $p->owner === 'platform')
+            ));
+            $base = $platformLeg('GHS');
+            $quote = $platformLeg('NGN');
+            $this->assertGreaterThan(0, $base, 'we are up the currency we were paid');
+            $this->assertSame(-200000, $quote, 'we are short the currency we sold, by the whole amount');
+            // platformBalance() returns a string, so the comparison is made as a string too.
+            $this->assertSame((string) ($before + $quote), $this->platformBalance(), 'our position moved by exactly the amount we delivered');
             $this->assertSame('released', $this->stateOf($trader->trade_id));
         });
 
@@ -302,7 +326,10 @@ class FullJourneyTest extends TestCase
     private function platformBalance(): string
     {
         return \DB::connection('pgsql_ops')->selectOne(
-            "select coalesce(sum(balance), 0) as b from account where owner = 'platform' and asset = 'NGN'"
+            // The position is booked 'external' so it may go negative under no-float. The seeded 'available'
+            // row is a separate account and would make this sum ambiguous.
+            "select coalesce(sum(balance), 0) as b from account
+               where owner = 'platform' and asset = 'NGN' and kind = 'external'"
         )->b;
     }
 }
