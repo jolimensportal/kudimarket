@@ -1415,6 +1415,41 @@ expect_eq "and every one of them sits in a ledger transaction that belongs to a 
   "$(sql "select count(*) from posting p join account a on a.id=p.account_id
           join ledger_tx x on x.id=p.tx_id where a.kind='fee' and x.trade_id is null;")" "0"
 
+echo "== the commission is a setting, and who changed it is recorded"
+sql "update trade_policy set claim_window = '0 seconds';" >/dev/null
+asprice "select set_commission('platform_inventory',100,'buyer','pricing@kudimarket.com','launch pricing');" >/dev/null
+expect_eq "the setting lands on the policy" \
+  "$(sql "select fee_bps||'/'||fee_bearer from trade_policy where trade_type='platform_inventory';")" "100/buyer"
+expect_eq "and it is recorded against the person who set it" \
+  "$(sql "select set_by||' '||fee_bps from commission_log order by id desc limit 1;")" "pricing@kudimarket.com 100"
+asprice "select set_commission('platform_inventory',250,'kudimarket','pricing@kudimarket.com');" >/dev/null
+expect_eq "changing it again appends rather than replacing, so the history survives" \
+  "$(sql "select count(*) from commission_log;")" "2"
+expect_eq "and the chain over the settings verifies" "$(sql "select verify_commission_chain();")" "t"
+expect_fail "a commission over 10000 bps is refused by name, not clamped" \
+  "$(asprice "select set_commission('platform_inventory',10001,'buyer','x');")" "out of range"
+expect_fail "and so is a bearer nobody can pay" \
+  "$(asprice "select set_commission('platform_inventory',100,'seller','x');")" "not buyer or kudimarket"
+expect_fail "and a trade type that does not exist" \
+  "$(asprice "select set_commission('nonexistent',100,'buyer','x');")" "unknown trade type"
+
+# THE SEGREGATION, and it is the assertion this whole grant exists for. The commission is our price, so
+# it moves with the rate card onto the pricing desk: one account must not be able to change what we
+# charge AND judge the trades it charged it on. Operations resolve disputes, and the disputed question
+# is very often the fee, so ops reading the setting is necessary and ops changing it is not.
+expect_fail "the operations console may not change what we charge" \
+  "$(asops "select set_commission('platform_inventory',500,'buyer','mallory');")" "permission denied"
+expect_fail "the application role may not either" \
+  "$(asapp "select set_commission('platform_inventory',500,'buyer','mallory');")" "permission denied"
+expect_fail "and a trader cannot read the settings log either" \
+  "$(astrader "select count(*) from commission_log;")" "permission denied"
+expect_eq "while operations can still READ it, because a trader who calls about a fee has to be answered" \
+  "$(asops "select count(*) > 0 from commission_log;")" "t"
+# Tamper detection, on the same pattern as the money chain: the point is that it is DETECTED.
+sql "alter table commission_log disable trigger commission_log_append_only;" >/dev/null 2>&1 || true
+sql "update commission_log set fee_bps = 1 where id = (select min(id) from commission_log);" >/dev/null 2>&1
+expect_eq "a commission edited after the fact is detected" "$(sql "select verify_commission_chain();")" "f"
+
 # Put the ledger back the way this block found it. The sweeper test above set every window to 15 minutes
 # and later tests read those, so leaving a zero window behind would silently make the next block's
 # releases instant.

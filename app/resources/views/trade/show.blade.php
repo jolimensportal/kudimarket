@@ -101,6 +101,36 @@
             <p>KudiMarket Sim, Adwoa Serwaa. Use your own name as the reference. A payment from a number
                that is not registered to you is a payment we cannot give you a receipt for.</p>
         @endif
+
+        {{--
+            THE COMMISSION, if there is one. Two rules, and the second is the one that matters.
+
+            First: it appears only when the ledger holds one. A row reading "KudiMarket fee 0.00" on
+            every trade is a row nobody learns to read, and it is a number nobody typed -- the ledger
+            froze fee_minor_units at creation, and the settlement charges exactly this. If these two
+            ever disagree, the trader has been quoted one amount and charged another, which is the
+            whole thing kudi-core/017 exists to make impossible.
+
+            Second: it is OUR fee only, and only when the buyer is the one paying it. We never print a
+            counterparty's fee -- the seller sets a walk-away rate that may embed any margin, we never
+            see it, and asserting zero would be inventing a fact about a third party. When KudiMarket
+            absorbs the commission out of our own margin the row still appears, and says so, because a
+            trader should be able to see what they were NOT charged as well as what they were.
+        --}}
+        @if ($figures['fee'] !== null && $isBuyer && $isHandled)
+            <p class="num" style="margin-top:10px;color:var(--ink);font-weight:600">
+                KudiMarket fee &mdash; {{ $figures['fee'] }}</p>
+            <p>@if ($figures['fee_bearer'] === 'buyer')
+                    <strong>Send {{ $figures['send_total'] }} in total</strong> &mdash; that is
+                    {{ $figures['send'] }} at the rate above, plus this commission. We charge it in
+                    {{ $figures['fee_name'] }} because that is the currency you are paying in, and we take
+                    the whole amount in one payment, because a payment a few pesewas short cannot settle.
+                @else
+                    KudiMarket is paying this one, out of our margin. Your {{ $figures['send'] }} above is
+                    the whole amount &mdash; there is nothing extra to send.
+                @endif
+            </p>
+        @endif
     </div>
 
     {{--

@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Models\Trader;
+use App\Services\RateBoard;
+use App\Services\TradeDesk;
 use App\Services\TradeFigures;
 use App\Services\TradeLedger;
 use Illuminate\Support\Facades\Auth;
@@ -211,6 +213,62 @@ final class BuyFromUsTest extends TestCase
             $screen,
             'the handled-buyer branch carries the mockup\'s receipt rule, like the seller branch does'
         );
+    }
+
+    public function test_a_buyer_on_our_book_is_shown_the_commission_they_will_pay(): void
+    {
+        // The fee row the mockup draws. It has to be the amount the ledger froze, in the currency the
+        // buyer is handing over, and it has to be visible BEFORE they commit -- not a surprise on the
+        // settlement screen, which is how a fee becomes a complaint.
+        DB::connection('pgsql_admin')->statement("update trade_policy set fee_bps = 100 where trade_type = 'platform_inventory'");
+        $trader = $this->trader('fee-buyer');
+        $id = app(TradeDesk::class)->openAgainstUs($trader->email, 200000, 'NGN');
+
+        $screen = $this->get("/trade/{$id}")->assertOk()->getContent();
+        $flat = $this->flat($screen);
+
+        // 200000 NGN at 148.2 => base leg div(200000, 148.2) = 1349 minor units of cedi. 1% = 13.
+        $frozen = DB::connection('pgsql_ops')->selectOne('select fee_minor_units, fee_asset, fee_bearer from trade_view where id = ?', [$id]);
+        $this->assertSame('GHS', $frozen->fee_asset, 'the commission is in the currency the buyer pays');
+        $this->assertGreaterThan(0, (int) $frozen->fee_minor_units, 'a configured commission freezes a real amount');
+
+        $this->assertStringContainsString('KudiMarket fee', $flat);
+        $this->assertStringContainsString(
+            RateBoard::formatMoney((int) $frozen->fee_minor_units, 'GHS'),
+            $flat,
+            'the fee on the screen is the fee the ledger will charge, not a number typed beside it'
+        );
+
+        // ONE number to type. "Send 13.50 plus the fee" is how a mobile-money payment arrives a few
+        // pesewas short, and a short payment cannot settle -- so the total is computed in whole minor
+        // units and stated, not left as an addition for a trader to do on a phone.
+        $figures = TradeFigures::forTrade(
+            DB::connection('pgsql_ops')->selectOne('select * from trade_view where id = ?', [$id]),
+            'buyer'
+        );
+        $this->assertSame(
+            $figures['send_minor'] + (int) $frozen->fee_minor_units,
+            $figures['send_total_minor'],
+            'the total is exactly the send leg plus the commission, in minor units'
+        );
+        $this->assertStringContainsString(
+            'Send '.$figures['send_total'].' in total',
+            $flat,
+            'the instruction names the whole amount, so nobody has to add it up'
+        );
+    }
+
+    public function test_no_commission_configured_means_no_fee_row(): void
+    {
+        // The default is zero, and a row reading "KudiMarket fee 0.00" on every trade is a row nobody
+        // learns to read. If we are not charging, the screen says nothing.
+        DB::connection('pgsql_admin')->statement("update trade_policy set fee_bps = 0 where trade_type = 'platform_inventory'");
+        $trader = $this->trader('no-fee-buyer');
+        $id = app(TradeDesk::class)->openAgainstUs($trader->email, 200000, 'NGN');
+
+        $this->get("/trade/{$id}")
+            ->assertOk()
+            ->assertDontSee('KudiMarket fee');
     }
 
     private function flat(string $html): string

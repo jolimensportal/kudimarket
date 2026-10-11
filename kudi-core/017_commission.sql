@@ -427,3 +427,99 @@ grant execute on function set_rate(text, text, numeric, text, timestamptz, text)
 
 grant select on trade_view, trade_quote to kudi_app, kudi_ops, kudi_trader;
 grant select on trade_policy to kudi_app, kudi_ops;
+
+
+-- ---------------------------------------------------------------- 7. who may set it, and proof they did
+--
+-- trade_policy is SELECT-only to every application role, which is the right posture for ledger config: it
+-- is not a table the app should be able to edit column by column. So the commission is changed the way
+-- the rate is -- through one function, granted to one role, recorded against a name.
+--
+-- This is a configuration log, not a money movement. It is hash-chained anyway, because "who raised our
+-- commission and when" is a question a regulator asks, and an unchained settings table answers it only
+-- as far as the last person who cared to look.
+create table commission_log (
+  id          bigserial primary key,
+  trade_type  text not null references trade_policy(trade_type),
+  fee_bps     int not null check (fee_bps between 0 and 10000),
+  fee_bearer  text not null check (fee_bearer in ('buyer','kudimarket')),
+  set_by      text not null check (length(trim(set_by)) > 0),
+  note        text,
+  set_at      timestamptz not null default now(),
+  prev_hash   bytea,
+  hash        bytea
+);
+
+create function canonical_commission(p_type text, p_bps int, p_bearer text, p_at timestamptz, p_who text)
+returns text language sql immutable as $$
+  select p_type || '|' || p_bps || '|' || p_bearer || '|' || p_at::text || '|' || p_who
+$$;
+
+create function set_commission(p_trade_type text, p_fee_bps int, p_fee_bearer text, p_actor text,
+                               p_note text default null)
+returns void language plpgsql security definer set search_path = public, pg_temp as $$
+declare v_prev bytea; v_hash bytea; v_at timestamptz := now();
+begin
+  if p_actor is null or btrim(p_actor) = '' then raise exception 'actor required'; end if;
+  if p_fee_bps < 0 or p_fee_bps > 10000 then
+    raise exception 'fee_bps % is out of range: a commission is between 0 and 10000 basis points', p_fee_bps;
+  end if;
+  if p_fee_bearer not in ('buyer','kudimarket') then
+    raise exception 'fee_bearer % is not buyer or kudimarket', p_fee_bearer;
+  end if;
+  if not exists (select 1 from trade_policy where trade_type = p_trade_type) then
+    raise exception 'unknown trade type %', p_trade_type;
+  end if;
+
+  select hash into v_prev from commission_log order by id desc limit 1;
+  v_hash := digest(coalesce(v_prev, '\x'::bytea) ||
+                   convert_to(canonical_commission(p_trade_type, p_fee_bps, p_fee_bearer, v_at, p_actor), 'UTF8'),
+                   'sha256');
+
+  -- The setting is effective for trades opened AFTER this row. Trades already open keep the fee they
+  -- were quoted, because it was frozen onto them at creation -- this is the whole reason the fee lives
+  -- on the trade and not only in the policy.
+  update trade_policy set fee_bps = p_fee_bps, fee_bearer = p_fee_bearer where trade_type = p_trade_type;
+
+  insert into commission_log(trade_type, fee_bps, fee_bearer, set_by, note, set_at, prev_hash, hash)
+       values (p_trade_type, p_fee_bps, p_fee_bearer, p_actor, nullif(p_note, ''), v_at, v_prev, v_hash);
+end $$;
+
+-- A commission cannot be applied to a tier we do not charge on. Not a default of zero here: a silent
+-- no-op that looks like success is how a settings screen ends up lying about what it did.
+-- SECURITY DEFINER because it calls digest(), and no application role holds EXECUTE on pgcrypto's
+-- functions: without it the verification fails with "permission denied for function digest" at the first
+-- row, which reads as a broken ledger rather than a broken grant.
+create function verify_commission_chain() returns boolean
+language plpgsql security definer set search_path = public, pg_temp as $$
+declare r record; v_prev bytea; v_ok boolean := true;
+begin
+  v_prev := null;
+  for r in select * from commission_log order by id loop
+    if r.prev_hash is distinct from v_prev then return false; end if;
+    if r.hash is distinct from digest(coalesce(v_prev, '\x'::bytea) ||
+         convert_to(canonical_commission(r.trade_type, r.fee_bps, r.fee_bearer, r.set_at, r.set_by), 'UTF8'),
+         'sha256') then return false; end if;
+    v_prev := r.hash;
+  end loop;
+  return v_ok;
+end $$;
+
+grant select on commission_log to kudi_app, kudi_ops;
+
+-- TO kudi_pricing, NOT kudi_ops, and this is the whole point of the grant.
+--
+-- The commission is our price, so it moves with the rate card onto the pricing desk and 006's
+-- segregation of duties still holds: one account cannot reprice what we charge AND judge the trades it
+-- charged it on. Granting it to ops would have deleted that property in a single line -- ops resolve
+-- disputes, and the disputed question is very often the fee. The operations role can READ the setting,
+-- which it must in order to answer a trader who calls about one, and cannot change it.
+grant execute on function set_commission(text, int, text, text, text) to kudi_pricing;
+grant execute on function verify_commission_chain() to kudi_ops, kudi_app;
+
+-- AND BY NAME, because the blanket revoke in section 6 ran BEFORE these functions existed and a
+-- function created after it inherits EXECUTE to PUBLIC from Postgres, not from this file's intent.
+-- set_commission is SECURITY DEFINER and decides what we charge every trader, so with the default left
+-- standing, kudi_app could have set the commission to anything and the suite's "only the pricing desk
+-- may" assertion passed on the empty string it returned rather than on a refusal.
+revoke all on function set_commission(text, int, text, text, text) from public;
