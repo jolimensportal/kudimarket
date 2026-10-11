@@ -3,7 +3,7 @@
 @section('title', 'Your identity details')
 
 @section('content')
-    <p><a href="{{ route('trade.cdd.show') }}">&larr; Your identity details</a></p>
+    <p><a class="standalone-link" href="{{ route('trade.cdd.show') }}">&larr; Your identity details</a></p>
 
     <h1>Your identity details</h1>
 

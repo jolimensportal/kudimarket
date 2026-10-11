@@ -3,7 +3,7 @@
 @section('title', 'Report a problem')
 
 @section('content')
-    <p><a href="{{ route('trade.show', $trade->id) }}">&larr; Trade #{{ $trade->id }}</a></p>
+    <p><a class="standalone-link" href="{{ route('trade.show', $trade->id) }}">&larr; Trade #{{ $trade->id }}</a></p>
 
     <h1>What happened?</h1>
 

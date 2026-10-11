@@ -26,13 +26,13 @@
                 $available = number_format($balance['available'] / (10 ** $decimals), $decimals);
                 $escrow = number_format($balance['escrow'] / (10 ** $decimals), $decimals);
             @endphp
-            <dl style="margin-top:6px">
-                <div style="display:flex;justify-content:space-between;padding:5px 0">
+            <dl class="stack" style="margin-top:6px">
+                <div style="display:flex;justify-content:space-between;gap:12px;padding:5px 0">
                     <dt style="opacity:.65">{{ $balance['asset'] }} you can use</dt>
                     <dd class="num">{{ $available }}</dd>
                 </div>
                 @if ($balance['escrow'] > 0)
-                    <div style="display:flex;justify-content:space-between;padding:5px 0">
+                    <div style="display:flex;justify-content:space-between;gap:12px;padding:5px 0">
                         <dt style="opacity:.65">held for a trade in progress</dt>
                         <dd class="num" style="opacity:.75">{{ $escrow }}</dd>
                     </div>
@@ -78,7 +78,7 @@
 
     {{-- Identity details are a separate, mandatory thing from being checked to sell, so they get their
          own quiet line here rather than being folded into the selling flow. --}}
-    <p class="note"><a href="{{ route('trade.cdd.show') }}">Your identity details</a></p>
+    <p class="note"><a class="standalone-link" href="{{ route('trade.cdd.show') }}">Your identity details</a></p>
 
     @if (count($mine) > 0)
         <h2>Your offers</h2>

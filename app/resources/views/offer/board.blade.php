@@ -3,7 +3,7 @@
 @section('title', 'What others are selling')
 
 @section('content')
-    <p><a href="{{ route('trade.offer.position') }}">&larr; Where you stand</a></p>
+    <p><a class="standalone-link" href="{{ route('trade.offer.position') }}">&larr; Where you stand</a></p>
 
     <h1>What others are selling</h1>
 
@@ -19,7 +19,7 @@
          only trade here that somebody can be certain about. --}}
     <div class="card">
         <p>Want currency without relying on another trader being who they say they are?</p>
-        <p><a href="{{ route('trade.buy.create') }}">Buy from KudiMarket &mdash; we are the counterparty</a></p>
+        <p><a class="standalone-link" href="{{ route('trade.buy.create') }}">Buy from KudiMarket &mdash; we are the counterparty</a></p>
     </div>
 
     @forelse ($offers as $offer)
@@ -73,8 +73,8 @@
     @empty
         <div class="card">
             <p>Nobody has anything on offer right now.</p>
-            <p><a href="{{ route('trade.offer.create') }}">Sell currency instead</a></p>
-            <p><a href="{{ route('trade.buy.create') }}">Or buy from KudiMarket &mdash; we are the counterparty</a></p>
+            <p><a class="standalone-link" href="{{ route('trade.offer.create') }}">Sell currency instead</a></p>
+            <p><a class="standalone-link" href="{{ route('trade.buy.create') }}">Or buy from KudiMarket &mdash; we are the counterparty</a></p>
         </div>
     @endforelse
 

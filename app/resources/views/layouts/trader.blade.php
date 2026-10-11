@@ -30,6 +30,11 @@
 
         body {
             background: var(--bone);
+            /* Safe areas. A notched phone cuts into the top of the header and the bottom of the page:
+               without these the wordmark sits under the notch and the last control under the home
+               indicator. env() is 0 on a device with no inset, so this costs nothing on a desktop. */
+            padding-left: env(safe-area-inset-left);
+            padding-right: env(safe-area-inset-right);
             color: var(--ink);
             font-family: 'Instrument Sans', system-ui, -apple-system, sans-serif;
             font-size: 16px;      /* 16px on mobile so iOS does not zoom the viewport on focus */
@@ -46,6 +51,10 @@
             background: var(--plum-900);
             color: var(--bone);
             padding: 14px 16px;
+            /* The header is full-bleed plum, so it needs the notch inset itself. */
+            padding-top: calc(14px + env(safe-area-inset-top));
+            padding-left: calc(16px + env(safe-area-inset-left));
+            padding-right: calc(16px + env(safe-area-inset-right));
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -55,6 +64,8 @@
         .bar .mark b { font-weight: 800; }
 
         main { max-width: 720px; margin: 0 auto; padding: 20px 16px 48px; }
+        /* Bottom inset so the last button clears the home indicator on a notched phone. */
+        main { padding-bottom: calc(48px + env(safe-area-inset-bottom)); }
 
         h1 { font-size: 24px; font-weight: 600; letter-spacing: -0.02em; margin-bottom: 16px; }
         h2 { font-size: 17px; font-weight: 600; letter-spacing: -0.01em; margin: 26px 0 10px; }
@@ -162,6 +173,10 @@
         ul.offers .note { flex-basis: 100%; margin-top: 0; }
 
         dl { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; margin: 0; }
+        /* A list of balances is a LIST, not a grid of stats. Forcing it into two columns put
+           "held for a trade in progress" beside "GHS you can use" at 390px, which wrapped both labels
+           mid-phrase and left two numbers competing for one row. dl.stack is one per row, always. */
+        dl.stack { grid-template-columns: 1fr; gap: 0; }
         dt { font-size: 13px; color: var(--ink-soft); }
         dd { font-size: 16px; font-weight: 500; margin: 0; }
 
@@ -170,6 +185,40 @@
 
         .actions { display: flex; flex-direction: column; gap: 10px; margin-top: 22px; }
         .actions button { width: 100%; }
+
+        /* ---------------------------------------------------------- phone is the design width
+         * These screens were drawn at 305px and are used on budget Android handsets, so 44px is the
+         * floor for anything you tap, not an aspiration. Measured at 390px in a real browser: nothing
+         * overflows horizontally (the layout is flex and wraps), but three things were under the floor
+         * -- the sign-out button at 36px, and the standalone back-links at 17-19px.
+         *
+         * SCOPED BY CLASS, and the obvious way to scope it was wrong twice.
+         *
+         * First attempt: min-height on every a[href]. The links inside running prose inherited it and
+         * every paragraph containing a link got a 44px line box.
+         *
+         * Second attempt, and this is the one worth remembering: `p > a[href]:only-child`. It MATCHED
+         * the in-prose link anyway, because :only-child counts ELEMENT children and ignores text nodes
+         * -- the paragraph is a mix of text and one link, so the link really is the only element
+         * child. A selector that looks like it means "a link alone in its paragraph" in fact means "a
+         * paragraph containing exactly one link", which is the opposite case.
+         *
+         * So it is a class, stated by the author, on the links that stand alone: the back-links and the
+         * "Give us these details" call to action. A link inside running prose is text, and text keeps
+         * its line height.
+         */
+        .standalone-link {
+            display: inline-block;
+            min-height: 44px;
+            padding: 4px 0;
+        }
+
+        @media (max-width: 360px) {
+            /* Not 400px, deliberately. At 390px (iPhone 12/13/14) the stats dl holds two columns fine --
+               its labels are short, "You send", "You pay". Stacking there would make every screen
+               longer for nothing. Below 360px the labels start wrapping, so it drops to one per row. */
+            dl { grid-template-columns: 1fr; gap: 10px 0; }
+        }
 
         @media (prefers-color-scheme: dark) {
             /* Not a dark theme. A dimmed inversion of a light page would put the plum at a contrast
@@ -185,7 +234,7 @@
             <form method="post" action="{{ route('sign-out') }}" style="margin:0">
                 @csrf
                 <button type="submit" class="ghost"
-                        style="background:transparent;color:var(--bone);border:1px solid rgba(252,246,238,.35);min-height:36px;font-size:14px;font-weight:500;padding:4px 12px">
+                        style="background:transparent;color:var(--bone);border:1px solid rgba(252,246,238,.35);min-height:44px;font-size:14px;font-weight:500;padding:4px 12px">
                     {{ auth('trader')->user()->name }} &middot; sign out
                 </button>
             </form>

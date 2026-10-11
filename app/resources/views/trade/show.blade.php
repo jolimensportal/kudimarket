@@ -3,7 +3,7 @@
 @section('title', 'Trade #'.$trade->id)
 
 @section('content')
-    <p><a href="{{ route('trade.board') }}">&larr; Rates</a></p>
+    <p><a class="standalone-link" href="{{ route('trade.board') }}">&larr; Rates</a></p>
 
     <h1>Trade #{{ $trade->id }}</h1>
 
@@ -130,7 +130,7 @@
         @if ($canDispute)
             <p>Tell us what happened and operations will look at it. Reporting it does not move your money
                &mdash; it puts the trade in front of somebody.</p>
-            <p><a href="{{ route('trade.dispute', $trade->id) }}">Report a problem</a></p>
+            <p><a class="standalone-link" href="{{ route('trade.dispute', $trade->id) }}">Report a problem</a></p>
         @elseif ($trade->state === 'disputed')
             <p>This one is with operations. They will read both accounts and decide where the money goes,
                and you will see the reason on this page when they have.</p>

@@ -3,7 +3,7 @@
 @section('title', 'Your identity details')
 
 @section('content')
-    <p><a href="{{ route('trade.board') }}">&larr; The board</a></p>
+    <p><a class="standalone-link" href="{{ route('trade.board') }}">&larr; The board</a></p>
 
     <h1>Your identity details</h1>
 
@@ -31,7 +31,7 @@
             </ul>
             <p class="note">Four things, and none of them is a password we then forget.</p>
         </div>
-        <p><a href="{{ route('trade.cdd.submit') }}">Give us these details &rarr;</a></p>
+        <p><a class="standalone-link" href="{{ route('trade.cdd.submit') }}">Give us these details &rarr;</a></p>
     @else
         <div class="card">
             <div class="label">Where you stand</div>
@@ -48,7 +48,7 @@
                 <p>Sent. We are looking at it now.</p>
             @endif
             @unless ($status->is_cdd_verified)
-                <p><a href="{{ route('trade.cdd.submit') }}">Send new details</a></p>
+                <p><a class="standalone-link" href="{{ route('trade.cdd.submit') }}">Send new details</a></p>
             @endunless
         </div>
     @endif

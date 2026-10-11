@@ -3,7 +3,7 @@
 @section('title', 'Buy currency from KudiMarket')
 
 @section('content')
-    <p><a href="{{ route('trade.board') }}">&larr; Rates</a></p>
+    <p><a class="standalone-link" href="{{ route('trade.board') }}">&larr; Rates</a></p>
 
     <h1>Buy currency from us</h1>
 

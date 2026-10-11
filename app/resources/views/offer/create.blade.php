@@ -3,7 +3,7 @@
 @section('title', 'Sell currency')
 
 @section('content')
-    <p><a href="{{ route('trade.offer.position') }}">&larr; Where you stand</a></p>
+    <p><a class="standalone-link" href="{{ route('trade.offer.position') }}">&larr; Where you stand</a></p>
 
     <h1>List currency you want to sell</h1>
 

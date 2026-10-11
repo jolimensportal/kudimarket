@@ -3,7 +3,7 @@
 @section('title', 'Ask to be checked')
 
 @section('content')
-    <p><a href="{{ route('trade.verification') }}">&larr; Getting checked</a></p>
+    <p><a class="standalone-link" href="{{ route('trade.verification') }}">&larr; Getting checked</a></p>
 
     <h1>Ask to be checked</h1>
 
