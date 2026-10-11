@@ -3,11 +3,13 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\BoardController;
+use App\Http\Controllers\BuyController;
+use App\Http\Controllers\CddController;
 use App\Http\Controllers\DisputeController;
 use App\Http\Controllers\OfferController;
-use App\Http\Controllers\BuyController;
 use App\Http\Controllers\TradeController;
 use App\Http\Controllers\VerificationController;
+use App\Http\Middleware\SignInAsTrader;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -22,37 +24,45 @@ use Illuminate\Support\Facades\Route;
  */
 // auth:trader first, so the identity is set from a session that already exists. The other order would ask
 // the database who is signed in before anybody has signed in.
-Route::middleware(['auth:trader', \App\Http\Middleware\SignInAsTrader::class])
+Route::middleware(['auth:trader', SignInAsTrader::class])
     ->prefix('trade')->name('trade.')->group(function (): void {
-    Route::get('/board', BoardController::class)->name('board');
+        Route::get('/board', BoardController::class)->name('board');
 
-    // The seller's side. /sell/new rather than /new so the buy path and the sell path stay legible in the
-    // URL bar: a trader who mistyped one wants to see which they are on before they commit to anything.
-    // Getting checked. This is the only route that changes what a trader may DO elsewhere: it decides
-    // whether publish_offer will accept them. It is separate from selling so the route says plainly which
-    // of the two is being asked for.
-    Route::get('/check', [VerificationController::class, 'show'])->name('verification');
-    Route::get('/check/new', [VerificationController::class, 'create'])->name('verification.apply');
-    Route::post('/check/new', [VerificationController::class, 'store'])->name('verification.store');
+        // The seller's side. /sell/new rather than /new so the buy path and the sell path stay legible in the
+        // URL bar: a trader who mistyped one wants to see which they are on before they commit to anything.
+        // Getting checked. This is the only route that changes what a trader may DO elsewhere: it decides
+        // whether publish_offer will accept them. It is separate from selling so the route says plainly which
+        // of the two is being asked for.
+        Route::get('/check', [VerificationController::class, 'show'])->name('verification');
+        Route::get('/check/new', [VerificationController::class, 'create'])->name('verification.apply');
+        Route::post('/check/new', [VerificationController::class, 'store'])->name('verification.store');
 
-    Route::get('/sell', [OfferController::class, 'position'])->name('offer.position');
-    Route::get('/sell/new', [OfferController::class, 'create'])->name('offer.create');
-    Route::post('/sell/new', [OfferController::class, 'store'])->name('offer.store');
-    Route::get('/offers', [OfferController::class, 'board'])->name('offer.board');
-    Route::post('/offers/{offer}/withdraw', [OfferController::class, 'withdraw'])->whereNumber('offer')->name('offer.withdraw');
-    Route::post('/offers/{offer}/accept', [OfferController::class, 'accept'])->whereNumber('offer')->name('offer.accept');
+        // Customer due diligence. A SEPARATE line from /check above, on purpose: /check is the trust tier
+        // that decides whether you may list an offer, and /id is the AML duty that decides whether we can
+        // do business with you at all. They are different questions for different regulators, and one URL
+        // per question is the cheapest way to stop them being confused.
+        Route::get('/id', [CddController::class, 'show'])->name('cdd.show');
+        Route::get('/id/new', [CddController::class, 'create'])->name('cdd.submit');
+        Route::post('/id/new', [CddController::class, 'store'])->name('cdd.store');
 
-    // Buying from KudiMarket's own book: we are the counterparty, so this is the tier we guarantee. The
-    // other board routes live above the '/{trade}' wildcard deliberately -- a literal path that starts
-    // with a number-free segment still loses to a number wildcard the moment the segment parses as a digit.
-    Route::get('/buy', [BuyController::class, 'create'])->name('buy.create');
-    Route::post('/buy', [BuyController::class, 'store'])->name('buy.store');
+        Route::get('/sell', [OfferController::class, 'position'])->name('offer.position');
+        Route::get('/sell/new', [OfferController::class, 'create'])->name('offer.create');
+        Route::post('/sell/new', [OfferController::class, 'store'])->name('offer.store');
+        Route::get('/offers', [OfferController::class, 'board'])->name('offer.board');
+        Route::post('/offers/{offer}/withdraw', [OfferController::class, 'withdraw'])->whereNumber('offer')->name('offer.withdraw');
+        Route::post('/offers/{offer}/accept', [OfferController::class, 'accept'])->whereNumber('offer')->name('offer.accept');
 
-    Route::get('/{trade}', [TradeController::class, 'show'])->whereNumber('trade')->name('show');
-    Route::post('/{trade}/claim', [TradeController::class, 'claim'])->whereNumber('trade')->name('claim');
+        // Buying from KudiMarket's own book: we are the counterparty, so this is the tier we guarantee. The
+        // other board routes live above the '/{trade}' wildcard deliberately -- a literal path that starts
+        // with a number-free segment still loses to a number wildcard the moment the segment parses as a digit.
+        Route::get('/buy', [BuyController::class, 'create'])->name('buy.create');
+        Route::post('/buy', [BuyController::class, 'store'])->name('buy.store');
 
-    // Disputing is GET to read the form and POST to file it. Deliberately no resolve route for a trader:
-    // adjudication is operations' alone, and the capability is absent rather than refused.
-    Route::get('/{trade}/dispute', [DisputeController::class, 'create'])->whereNumber('trade')->name('dispute');
-    Route::post('/{trade}/dispute', [DisputeController::class, 'store'])->whereNumber('trade')->name('dispute');
-});
+        Route::get('/{trade}', [TradeController::class, 'show'])->whereNumber('trade')->name('show');
+        Route::post('/{trade}/claim', [TradeController::class, 'claim'])->whereNumber('trade')->name('claim');
+
+        // Disputing is GET to read the form and POST to file it. Deliberately no resolve route for a trader:
+        // adjudication is operations' alone, and the capability is absent rather than refused.
+        Route::get('/{trade}/dispute', [DisputeController::class, 'create'])->whereNumber('trade')->name('dispute');
+        Route::post('/{trade}/dispute', [DisputeController::class, 'store'])->whereNumber('trade')->name('dispute');
+    });

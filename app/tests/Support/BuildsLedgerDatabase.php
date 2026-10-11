@@ -37,7 +37,24 @@ trait BuildsLedgerDatabase
         '013_release_sweeper.sql',
         '014_segregation.sql',
         '015_trader_identity.sql',
+        '016_cdd.sql',
     ];
+
+    /**
+     * The file list is written out in THREE places -- here, kudi-core/run_tests.sh, and the
+     * 2026_01_01_000100_create_kudi_core migration -- and they must agree with what is on disk.
+     *
+     * 016_cdd.sql shipped into all three and the PHP suite still failed with "relation cdd_status does
+     * not exist", because this list was missed while fixing the other two. A missing entry fails
+     * confusingly and late: the SQL suite passes, and the application fails on a table that plainly
+     * exists in the repository. coreSqlFilesAreListedEverywhereTheyAreLoaded() is the cheap guard.
+     *
+     * @return list<string>
+     */
+    public static function coreFiles(): array
+    {
+        return (new \ReflectionClass(self::class))->getConstant('CORE_FILES');
+    }
 
     protected function buildLedgerDatabase(): void
     {

@@ -428,12 +428,21 @@ grant execute on function submit_cdd(text,text,text,date,date,text,text,text,tex
   to kudi_trader;
 
 -- Operations decides CDD, records biometric outcomes, owns the USD reference, and runs the checks.
+-- cdd_is_not_checked() is granted alongside them because integrity_report SELECTs it, and a function a
+-- view calls must be executable by whoever reads the view -- without this grant every read of the
+-- integrity report failed with "permission denied for function cdd_is_not_checked", which took out
+-- every ops screen and every journey test at once.
 grant execute on function decide_cdd(text,boolean,boolean,text,text),
                         record_biometric(text,text,text),
                         set_usd_reference(text,numeric,text,text),
                         verify_cdd_chain(), requires_biometric(text,numeric), requires_ctr(text,numeric),
-                        usd_equivalent(text,numeric)
+                        usd_equivalent(text,numeric),
+                        cdd_is_not_checked()
   to kudi_ops;
+
+-- kudi_app reads integrity_report too (the ops console runs on it), so it needs the same function.
+grant execute on function cdd_is_not_checked(), verify_cdd_chain()
+  to kudi_app;
 
 -- Adding the CDD chain to the integrity report. Rebuilding a VIEW means writing out EVERY column it
 -- already had, not just the ones this file is about -- 014 dropped nothing, 010's lesson was that

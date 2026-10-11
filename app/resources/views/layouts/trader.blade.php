@@ -121,6 +121,28 @@
             background: var(--paper);
             color: var(--ink);
         }
+        /* Date inputs sit alongside text inputs in the CDD form. Styled to match so the row of two
+           dates reads as one field pair rather than two differently-drawn boxes, and kept at 16px /
+           44px for the same reason as the others: a tap target and no iOS zoom on focus. */
+        input[type=date] {
+            font: inherit; font-size: 16px;
+            min-height: 44px;
+            padding: 8px 12px; width: 100%;
+            border-radius: 10px;
+            border: 1px solid color-mix(in oklch, var(--plum-900) 20%, var(--bone));
+            background: var(--paper);
+            color: var(--ink);
+        }
+        input[type=date]:focus-visible,
+        select:focus-visible,
+        input[type=text]:focus-visible {
+            outline: 2px solid var(--plum-600); outline-offset: 1px;
+        }
+        /* Two fields side by side, wrapping to one column when there is not the room. Used by the CDD
+           form for issue/expiry dates; the wrap is the point, since a trader is often on a phone. */
+        .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; }
+        @media (max-width: 520px) { .grid2 { grid-template-columns: 1fr; } }
+        .hint { font-weight: 400; color: var(--ink-soft); }
         button {
             background: var(--plum-600); color: var(--bone);
             border-color: var(--plum-600); font-weight: 600;
