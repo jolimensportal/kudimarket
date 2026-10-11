@@ -222,6 +222,100 @@ None of that satisfies a regulator. It is evidence that the control exists.
 
 ---
 
+## 5b. THE FORK THAT DECIDES EVERYTHING: BROKER OR DEALER
+
+This is the sharpest thing in the brief and it was not visible until the BoG's own FX Broker
+post-authorisation conditions were read. They forbid, in terms, the exact economics of the
+**KudiMarket handled** tier.
+
+> **v.** The FX Broker shall not take the other side of customer trade.
+> **vi.** An FX Broker shall not buy or sell foreign exchange for its own account, nor hold, borrow or
+> lend foreign exchange to an authorized market participant.
+> **viii.** FX Brokers shall operate on commission basis and should not include their commissions as
+> spreads in pricing trades.
+> **vii.** An FX Broker is required to be an intermediary between banks on the Interbank Foreign
+> Exchange Market.
+
+Read those against `product.html`'s own words — *"KudiMarket buys currency from traders and sells to
+other traders out of its own float"* — and the collision is total:
+
+| The tier | What it does | Broker condition that forbids it |
+|---|---|---|
+| **KudiMarket handled** | We are the counterparty, we take the spread, we hold inventory | v, vi **and** viii |
+| **Checked** | A venue where two traders deal with each other | vii — brokers must intermediate *between banks*, not host retail traders |
+
+**So there are two genuinely different businesses here, and they are not variations on one:**
+
+- **A licensed DEALER under Act 723 s.3.** May buy and sell foreign currency (§3(4)(a)) and earn a
+  spread. That is what the own-book tier *is*, and it is the ordinary bureau de change model. It requires
+  a licence, and whatever capital and fee the prescribed notice sets.
+- **An authorised FX BROKER on the Interbank Market.** May not take the other side, may not trade for
+  own account, must earn commission rather than spread, and must sit between banks. Yearly prior
+  approval, every calendar year.
+
+KudiMarket cannot be both, and the **KudiMarket handled** tier is not available under the broker route at
+any price. This is a bigger question than "which licence" — it is **"which business are we."**
+
+The current authorised list, effective 1 January to 31 December 2026, is **twelve FX Brokers** (IC
+Securities, SIC Brokers, Serengeti, Sarpong Capital, Terika Financial Services, Savvy Africa, GFX
+Brokers, Regulus, MB&CO Capital, ICAP, Obsidian Achernar, TAW Impact Capital) plus **three** Cross-Border
+Payments and Financial Services Providers (Crown Agents Bank, CSL Capital, StoneX Financial). An earlier
+draft of `product.html` cited "six admitted firms"; that number is wrong and has been corrected.
+
+Note also that every condition on that list is *post-authorisation*: the broker is already licensed.
+Condition (x) — *"shall quote exchange rates that are based on actual transactions within the domestic
+economy in Ghana"* — is one we would have to evidence on request.
+
+---
+
+## 5c. AML/CFT/CPF: A SECOND, HARDER OBLIGATION SET THAT WE HAVE NONE OF
+
+This is the largest single gap between what KudiMarket is and what the law requires, and it is worse than
+the licensing question because it is not a question at all. It is a list of duties that attach to Foreign
+Exchange Bureaux under the **Anti-Money Laundering Act, 2020 (Act 1044) s.52(e)(i)** and the BoG's
+**AML/CFT/CPF Guidelines for Foreign Exchange Bureaux** (Notice BG/GOV/SEC/2025/04). BoG is the designated
+supervisory body. L.I. 1987, the AML Regulations 2011, also applies.
+
+What the Guidelines actually require:
+
+| Duty | Detail | State at KudiMarket |
+|---|---|---|
+| **Ghana Card, every transaction** | Collect the customer's Ghana Card and verify through NIA's Identity Verification System Platform (IVSP) | **absent** |
+| **Source of funds and purpose** | Enquire purpose, occupation/business activity, source of funds | **absent** |
+| **CTR** | File with the FIC for every sale or purchase at or above **GHS 20,000** or foreign equivalent | **absent** |
+| **STR** | File with the FIC where CDD fails through customer non-cooperation — **within 24 hours** | **absent** |
+| **STR, any amount** | All suspicious transactions reported regardless of value; staff may never tell a customer a report was filed | **absent** |
+| **Records, 5 years** | Customer and transaction records, readily available to BoG or FIC on request | hash chain exists; **no retention policy or regulator export** |
+| **AMLRO** | A designated officer reporting to directors, filing STRs/CTRs, running training | **absent** |
+| **Electronic receipt** | Mandatory for customers | **absent** |
+| **Sanctions screening** | Screen every customer against sanctions lists | **absent** |
+| **Training** | Mandatory, with evidence submitted to BoG and FIC by **31 December** each year | **absent** |
+
+Act 1044 adds two statutory reporting duties of its own: **s.41** (conveyance of currency into or out of
+the country must be declared in accordance with Act 723 and its Regulations — which is what a cedi/naira
+cross-border book is) and **s.42** (an electronic transfer exceeding a prescribed BoG amount must be
+reported to the FIC **within 24 hours**).
+
+Cross-border wires additionally require originator and beneficiary data — name, account or unique
+reference, address, Ghana Card number — **and the purpose of the transaction**, captured on transfers at
+or above USD 1,000 equivalent.
+
+**And a nine-day-old notice that lands on us specifically.** On **9 October 2026** BoG amended the
+Guidelines on the Importation and Exportation of Foreign Currency as AML measures, issued under Act 723,
+Act 1044 **and** the Customs Act, 2015 (Act 891) as amended by Act 1014. A GHS↔NGN book is an
+importation and exportation of foreign currency. It should be read before anything else in this section.
+
+**THE POINT THAT MATTERS MOST, and it is unflattering:** the verification flow built in `kudi-core/010` —
+apply to be checked, staff approve, publish offers — **is not CDD and must never be described as
+compliance.** It is a trust signal between traders, and it is a good one. Act 1044 wants identity verified
+against the national ID system, source of funds, purpose, and a filing obligation to the FIC. Those are
+different things with different regulators and different consequences. Presenting the Checked tier as an
+AML control would be the single most dangerous thing this product could do.
+
+Penalties for non-compliance run to suspension or revocation of licence plus administrative penalties.
+
+---
+
 ## 6. What could not be verified
 
 Stated plainly, because the opposite would be a fabricated citation.
@@ -230,7 +324,12 @@ Stated plainly, because the opposite would be a fabricated citation.
   assembled this brief explicitly flag that it could not be found and that the gazetted text must be
   verified before relying on it. Everything in §3 comes from BoG and SEC summaries and from a
   secondary compilation. **Check it against the Gazette.**
-- **The Act 723 non-bank fee and capital schedule** is prescribed by notice; no current notice was found.
+- **The Act 723 primary text is public and has now been read.** GhaLII carries the full Act at
+  `ghalii.org/akn/gh/act/2006/723`. Everything in §1 and §2 above is quoted from it, not from a summary.
+  An earlier draft of this brief left the Act's availability open; it is settled, and only §3's caveat remains.
+- **The Act 723 non-bank fee and capital schedule** is prescribed by notice and no current notice was
+  found. §5 says so and asks for it. Act 723 s.5(1) does at least tell us what the application turns on:
+  the Bank must grant within sixty days *if* the conditions are satisfied and *the prescribed fee is paid*.
 - **NIPO trademark classes 36/42/9** remain unsearched (`brand/BRAND.md` §8).
 - The logo mark has not been produced; `brand/BRAND.md` records this as outstanding.
 
