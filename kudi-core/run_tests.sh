@@ -21,7 +21,7 @@ ops()  { sql "select ops_transition($1,'$2','$3','$4','$5'${6:+,'$6'});" >/dev/n
 
 
 dropdb --if-exists "$DB" >/dev/null 2>&1; createdb "$DB" || exit 1
-for f in 001_core.sql 002_trade_types.sql 003_fiat_leg.sql 004_state_chain.sql 005_creation_anchor.sql 006_rate_card.sql 007_trader_role.sql 008_traders.sql 009_offer_book.sql 010_verification.sql 011_rate_direction.sql 012_trade_pair.sql 013_release_sweeper.sql 014_segregation.sql 015_trader_identity.sql 016_cdd.sql 017_commission.sql; do
+for f in 001_core.sql 002_trade_types.sql 003_fiat_leg.sql 004_state_chain.sql 005_creation_anchor.sql 006_rate_card.sql 007_trader_role.sql 008_traders.sql 009_offer_book.sql 010_verification.sql 011_rate_direction.sql 012_trade_pair.sql 013_release_sweeper.sql 014_segregation.sql 015_trader_identity.sql 016_cdd.sql 017_commission.sql 018_platform_sell.sql; do
   psql -X -q -v ON_ERROR_STOP=1 -d "$DB" -f "$HERE/$f" >/dev/null || { echo "schema $f failed"; exit 1; }
 done
 sql "insert into asset values ('USDT',6),('GHS',2);" >/dev/null
@@ -1514,6 +1514,68 @@ tt $DB2 paid_claimed paid_attested db2a-$DB2 dz3; tt $DB2 paid_attested released
 expect_eq "both deposit accounts are emptied on release" \
   "$(sql "select coalesce(sum(balance),0) from account where owner like 'trade:'||$DB1||'%' or owner like 'trade:'||$DB2||'%';")" "0"
 sql "update trade_policy set deposit_bps = 0 where trade_type = 'vendor_vendor';" >/dev/null
+
+
+# ================================================================= selling to our own book
+#
+# The handled tier could only move money out. This is the other side: the trader is the SELLER, KudiMarket
+# is the BUYER, and we are the recipient of the money.
+#
+# The one assertion that matters most here is the one that could not have existed before this file: THE
+# TRADER MUST NOT BE ABLE TO CONFIRM THEIR OWN PAYMENT. On a buy that is structural, because the
+# confirmer is the seller and the trader is the buyer. On a sell the roles invert and it stops being
+echo "== a trader selling to us declares, and only operations confirm"
+sql "update trade_policy set claim_window = '0 seconds';
+     update trade_policy set fee_bps = 100 where trade_type in ('platform_sell','platform_inventory');" >/dev/null
+SELL=$(sql "select create_fiat_trade('sl1','platform',null,null,'NGN',20000000,148.2,'platform_sell','GHS','NGN','GHS');")
+expect_eq "a sell is a KudiMarket trade with the trader on the other side" \
+  "$(sql "select seller||' sells to '||buyer from trade where id=$SELL;")" "sl1 sells to platform"
+expect_eq "and it carries the same claim window as a buy, because the exposure is the same" \
+  "$(sql "select (select claim_window from trade_policy where trade_type='platform_sell')
+            = (select claim_window from trade_policy where trade_type='platform_inventory');")" "t"
+
+# transition_trade returns void, so the state is read back rather than the call asserted directly.
+expect_eq "the trader may declare that they have sent it" \
+  "$(sql "select transition_trade($SELL,'open','paid_claimed','sl-c','sl1'); select state from trade where id=$SELL;" | tail -1)" "paid_claimed"
+
+# THE ASSERTION. Before 018 a mirrored trade let this through, because the rule said "the seller confirms"
+# and on a sell the seller IS the payer. This is the whole reason the tier is separate.
+expect_fail "and the trader may NOT confirm their own payment -- that is the point of the tier" \
+  "$(sql "select transition_trade($SELL,'paid_claimed','paid_attested','sl-a','sl1');")" "ops only"
+expect_eq "so the trade is still only claimed, on the payer's word alone" \
+  "$(sql "select state from trade where id=$SELL;")" "paid_claimed"
+
+expect_eq "operations confirm it, because KudiMarket is the recipient on this side" \
+  "$(sql "select ops_transition($SELL,'paid_claimed','paid_attested','sl-a2','ops-sell'); select state from trade where id=$SELL;" | tail -1)" "paid_attested"
+expect_eq "and the confirmation is recorded against the staff identity" \
+  "$(sql "select actor from trade_event where trade_id=$SELL and to_state='paid_attested';")" "ops-sell"
+
+# DELTAS, not absolutes. Both handled tiers now carry a commission, so an absolute balance depends on
+# every earlier trade in the suite and breaks the day one of them moves. What is being asserted is that
+# THIS settlement moved our position by exactly the base leg plus the fee.
+g_base=$(sql "select coalesce(sum(balance),0) from account where owner='platform' and asset='GHS' and kind='external';")
+g_fee=$(sql "select coalesce(sum(balance),0) from account where owner='platform' and asset='GHS' and kind='fee';")
+n_base=$(sql "select coalesce(sum(balance),0) from account where owner='platform' and asset='NGN' and kind='external';")
+tt $SELL paid_attested released sl-r system
+expect_eq "and it settles once the window closes" \
+  "$(sql "select state from trade where id=$SELL;")" "released"
+expect_eq "our position RISES by the base leg, 134,952: we RECEIVE what the trader sent" \
+  "$(sql "select coalesce(sum(balance),0) from account where owner='platform' and asset='GHS' and kind='external';")" "$((g_base+134952))"
+expect_eq "and falls by what we paid out" \
+  "$(sql "select coalesce(sum(balance),0) from account where owner='platform' and asset='NGN' and kind='external';")" "$((n_base-20000000))"
+expect_eq "and the commission is charged on this tier exactly as on the buy" \
+  "$(sql "select coalesce(sum(balance),0) from account where owner='platform' and asset='GHS' and kind='fee';")" "$((g_fee+1349))"
+
+echo "== and the holes that would have come with a naive mirror are closed"
+expect_fail "a trade typed without KudiMarket on it is refused, on any type" \
+  "$(sql "select create_trade('sl4','sl5','USDT',1000,'platform_sell');")" "trade_platform_party"
+DISP=$(sql "select create_fiat_trade('sl8','platform',null,null,'NGN',20000000,148.2,'platform_sell','GHS','NGN','GHS');")
+sql "select transition_trade($DISP,'open','paid_claimed','sl-dc','sl8');" >/dev/null
+expect_eq "a sell is still disputable, because the window gates release and never a complaint" \
+  "$(sql "select transition_trade($DISP,'paid_claimed','disputed','sl-dd','sl8'); select state from trade where id=$DISP;" | tail -1)" "disputed"
+
+sql "update trade_policy set fee_bps = 0 where trade_type in ('platform_sell','platform_inventory');" >/dev/null
+
 
 echo "== integrity"
 expect_eq "cached balances equal sum of postings" "$(sql "select count(*) from check_balances();")" "0"

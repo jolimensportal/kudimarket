@@ -39,6 +39,7 @@ trait BuildsLedgerDatabase
         '015_trader_identity.sql',
         '016_cdd.sql',
         '017_commission.sql',
+        '018_platform_sell.sql',
     ];
 
     /**
