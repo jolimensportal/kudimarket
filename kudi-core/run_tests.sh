@@ -1456,6 +1456,65 @@ expect_eq "a commission edited after the fact is detected" "$(sql "select verify
 sql "update trade_policy set fee_bps=0, fee_bearer='buyer';
      update trade_policy set claim_window = '15 minutes';" >/dev/null
 
+
+# ================================================================= the deposit, whichever way the rate was quoted
+#
+# A deposit is a share of what the trade is worth, TAKEN IN A NAMED CURRENCY. Those are two different
+# numbers and the formula has to know which is which.
+#
+# Every deposit test until now used rate = 1, where multiplying and dividing are both the identity, so a
+# share of the wrong number was indistinguishable from a correct one. That is not a hypothetical: the
+# fixture below priced from 148.2 in one direction and 0.0067567 in the other, and the code produced
+# C2.02 and C44,460.00 for trades worth about C20.24 — a factor of 22,010 on a real sum of money.
+#
+# The rate column holds BOTH conventions depending on which ordered pair the card was read from, which
+# is what 011_rate_direction.sql exists to make survivable. So the deposit is priced by asking the pair
+# rather than by assuming, and the assertion is that the SAME trade costs the SAME deposit whether it was
+# quoted GHS-per-NGN or NGN-per-GHS.
+echo "== a deposit is a share of the trade, taken in the currency it is taken in"
+sql "update trade_policy set claim_window = '0 seconds';
+     update trade_policy set deposit_bps = 1000 where trade_type = 'vendor_vendor';" >/dev/null
+
+# Both sides funded in the deposit currency. A deposit is a ledger movement and a trader with no balance
+# cannot pay one, which is the product working rather than a test obstacle -- but it means an unfunded
+# claim is refused outright and the deposit account never appears, which reads exactly like a deposit of
+# zero and sent the first two runs of this test looking for a bug that was not there.
+sql "select ledger_deposit('dz1','GHS',100000,'ddz1'); select ledger_deposit('dz2','GHS',100000,'ddz2');
+     select ledger_deposit('dz3','GHS',100000,'ddz3'); select ledger_deposit('dz4','GHS',100000,'ddz4');" >/dev/null
+
+# Quoted NGN per GHS (148.2), deposit taken in GHS -- which is the BASE leg, so the conversion DIVIDES.
+DB1=$(sql "select create_fiat_trade('dz1','dz2',null,null,'NGN',300000,148.2,'vendor_vendor','GHS','NGN','GHS');")
+# Quoted GHS per NGN (0.0067567), deposit taken in GHS -- which is the QUOTE leg, so the conversion
+# MULTIPLIES. The same trade, the same deposit, the other way round.
+DB2=$(sql "select create_fiat_trade('dz3','dz4',null,null,'NGN',300000,0.006756756756756756,'vendor_vendor','GHS','GHS','NGN');")
+
+expect_eq "the trade is worth 2024 minor units of cedi whichever way the rate was quoted" \
+  "$(sql "select div(300000::numeric,148.2);")" "2024"
+
+# Deposits are taken on the FIRST commitment step, which for a fiat-only trade is open -> paid_claimed,
+# because there is no escrow to lock into. So the balances below are read AFTER the claim, not after the
+# create -- reading them earlier finds nothing, which is what the first run of this test did.
+tt $DB1 open paid_claimed db1c-$DB1 dz2
+tt $DB2 open paid_claimed db2c-$DB2 dz4
+
+expect_eq "a deposit taken in the BASE currency divides by the rate: 10% of 2024" \
+  "$(sql "select balance from account where owner='trade:'||$DB1||':seller_deposit' and asset='GHS';")" "202"
+expect_eq "a deposit taken in the QUOTE currency multiplies by it: also about 10% of 2024" \
+  "$(sql "select balance from account where owner='trade:'||$DB2||':seller_deposit' and asset='GHS';")" "202"
+expect_eq "so the rate's direction does not change what a trader is asked for" \
+  "$(sql "select (select balance from account where owner='trade:'||$DB1||':seller_deposit' and asset='GHS')
+            = (select balance from account where owner='trade:'||$DB2||':seller_deposit' and asset='GHS');")" "t"
+expect_eq "and it is a share of the trade rather than of the unconverted amount, which is the bug this pins" \
+  "$(sql "select coalesce(max(balance),0) < 1000 from account
+          where owner in ('trade:'||$DB1||':seller_deposit','trade:'||$DB2||':seller_deposit');")" "t"
+
+# And both trades settle, which is the real proof: the deposit comes back out either way.
+tt $DB1 paid_claimed paid_attested db1a-$DB1 dz1; tt $DB1 paid_attested released db1r-$DB1 system
+tt $DB2 paid_claimed paid_attested db2a-$DB2 dz3; tt $DB2 paid_attested released db2r-$DB2 system
+expect_eq "both deposit accounts are emptied on release" \
+  "$(sql "select coalesce(sum(balance),0) from account where owner like 'trade:'||$DB1||'%' or owner like 'trade:'||$DB2||'%';")" "0"
+sql "update trade_policy set deposit_bps = 0 where trade_type = 'vendor_vendor';" >/dev/null
+
 echo "== integrity"
 expect_eq "cached balances equal sum of postings" "$(sql "select count(*) from check_balances();")" "0"
 expect_eq "value is conserved (sum of all balances per asset = 0)" "$(sql "select count(*) from (select asset from account group by asset having sum(balance)<>0) x;")" "0"

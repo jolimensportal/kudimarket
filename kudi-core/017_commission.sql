@@ -302,10 +302,34 @@ begin
     esc := get_account('trade:' || t.id, 'escrow', t.crypto_asset);
   end if;
   if t.trade_type = 'vendor_vendor' and pol.deposit_bps > 0 then
-    if da = t.fiat_asset then
+    -- A deposit is a share of what the trade is worth, TAKEN IN A NAMED CURRENCY, and those are two
+    -- different numbers. The rate column holds BOTH conventions -- NGN per GHS on one ordered pair, GHS
+    -- per NGN on the other -- which is what 011_rate_direction.sql exists to make survivable, so the
+    -- conversion is chosen by ASKING THE PAIR rather than assumed.
+    --
+    -- 004 multiplied, always. Correct when the deposit asset is the quote leg, which is what accept_offer
+    -- always produces (it passes offer.quote_asset as the deposit asset and as rate_quote_asset together).
+    -- Wrong by a factor of the RATE when the deposit is taken in the base leg: a trade worth C20.24
+    -- produced a C44,460 deposit, 22,010 times too much, which the ledger then refuses as an overdraft --
+    -- so a trader cannot open a trade at all. Latent rather than live, because the app's own creation path
+    -- never asks for a deposit in the base currency, and every deposit test until this one used rate = 1
+    -- where multiplying and dividing are both the identity and a share of the wrong number looks right.
+    --
+    -- Anything that is neither leg is refused rather than guessed at, on the grounds that a wrong deposit
+    -- is a real sum of money and a wrong deposit nobody can explain is worse.
+    if t.rate is null or t.rate = 1 then
+      -- No conversion to do. The eight-argument create_fiat_trade() leaves rate_base_asset and
+      -- rate_quote_asset both defaulting to the fiat asset, so the row records no usable pair at all and
+      -- a rate of 1 is the placeholder for "no conversion here" rather than a claim that one naira buys
+      -- one cedi. Taking the share of the amount as recorded is what the ledger has always done on such
+      -- a row, and inventing a conversion for it would be guessing at a rate the row does not have.
       d := div(t.fiat_amount * pol.deposit_bps, 10000);
-    elsif t.crypto_amount is null and t.rate is not null then
-      d := div(t.fiat_amount * t.rate * pol.deposit_bps, 10000);
+    elsif da = t.fiat_asset then
+      d := div(t.fiat_amount * pol.deposit_bps, 10000);
+    elsif da = t.rate_quote_asset and t.fiat_asset = t.rate_base_asset then
+      d := div(t.fiat_amount * t.rate * pol.deposit_bps, 10000);                 -- base -> quote multiplies
+    elsif da = t.rate_base_asset and t.fiat_asset = t.rate_quote_asset then
+      d := div(div(t.fiat_amount, t.rate) * pol.deposit_bps, 10000);             -- quote -> base divides
     else
       raise exception 'cannot price a deposit for trade % in %: it is neither leg of the trade', t.id, da;
     end if;
