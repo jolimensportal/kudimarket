@@ -48,11 +48,22 @@ class TradeController extends Controller
     {
         $row = $this->ownedTrade($request, $trade, $ledger);
 
-        // A party may LOOK at the trade; only the buyer may say they have paid.
+        // The party who SENDS may declare. That is not always the buyer, and assuming it was is a bug the
+        // sell side exposed: on a trade where the trader sells currency TO KudiMarket they are the seller,
+        // and "only the buyer sends the money" refused the very trader who did. The rule is which party
+        // pays, and it is stated per trade type in the ledger's own trade_rule, which is why this mirrors
+        // that rather than inventing a second copy of it.
+        //
+        // The ledger refuses an unauthorized claim regardless, so this is here to give the trader a
+        // sentence they can act on instead of a bare 403.
+        $email = $request->user('trader')?->email;
+        $sends = $row->buyer === $email
+            || ($row->trade_type === 'platform_sell' && $row->seller === $email);
+
         abort_unless(
-            $row->buyer === $request->user('trader')?->email,
+            $sends,
             403,
-            'Only the buyer sends the money, so only the buyer can say they have sent it.'
+            'Only the party that sends the money can say they have sent it.'
         );
 
         try {

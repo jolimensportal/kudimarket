@@ -3,6 +3,15 @@
 @section('title', 'Trade #'.$trade->id)
 
 @section('content')
+    @php
+        // KudiMarket being A PARTY is what makes the tier handled -- not being the seller. On a buy we are
+        // the seller; on a sell we are the BUYER (kudi-core/018). Keying this off seller === 'platform' was
+        // right only while every trade was a buy, and it told a trader selling US currency that "another
+        // verified trader is the other side" -- which is the exact failure the assurance card exists to
+        // prevent, printed BY the assurance card. Defined before its first use because Blade runs
+        // top to bottom and this is read by the tier card near the top of the page.
+        $weAreTheCounterparty = $trade->seller === 'platform' || $trade->buyer === 'platform';
+    @endphp
     <p><a class="standalone-link" href="{{ route('trade.board') }}">&larr; Rates</a></p>
 
     <h1>Trade #{{ $trade->id }}</h1>
@@ -46,8 +55,8 @@
     <div class="card">
         <div class="label">The other side</div>
         @include('partials.assurance', [
-            'handled' => $trade->seller === 'platform',
-            'counterparty' => $trade->seller === 'platform' ? null : $trade->seller,
+            'handled' => $weAreTheCounterparty,
+            'counterparty' => $weAreTheCounterparty ? null : $trade->seller,
         ])
     </div>
 
@@ -73,7 +82,7 @@
         $sendName = ['GHS' => 'cedi', 'NGN' => 'naira'][$figures['send_asset']] ?? $figures['send_asset'];
         $receiveName = ['GHS' => 'cedi', 'NGN' => 'naira'][$figures['receive_asset']] ?? $figures['receive_asset'];
         $isBuyer = $role === 'buyer';
-        $isHandled = $trade->seller === 'platform';
+        $isHandled = $weAreTheCounterparty;
 
         // The two states in which money is in flight and somebody is waiting. Not `open` (nothing has been
         // sent), not `disputed` (release is not pending on a window while a dispute is open), not after

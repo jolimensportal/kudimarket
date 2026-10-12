@@ -7,6 +7,7 @@ use App\Http\Controllers\BuyController;
 use App\Http\Controllers\CddController;
 use App\Http\Controllers\DisputeController;
 use App\Http\Controllers\OfferController;
+use App\Http\Controllers\SellToUsController;
 use App\Http\Controllers\TradeController;
 use App\Http\Controllers\VerificationController;
 use App\Http\Middleware\SignInAsTrader;
@@ -57,6 +58,13 @@ Route::middleware(['auth:trader', SignInAsTrader::class])
         // with a number-free segment still loses to a number wildcard the moment the segment parses as a digit.
         Route::get('/buy', [BuyController::class, 'create'])->name('buy.create');
         Route::post('/buy', [BuyController::class, 'store'])->name('buy.store');
+
+        // Selling TO us, which is the other half of the handled tier and a different promise from selling
+        // an offer to other traders below. /sell-to-us rather than /sell, because /sell is taken and means
+        // something else entirely: a trader who mistyped one wants to see which they are on before they
+        // commit to anything. Same reasoning as the buy/sell split the comment above describes.
+        Route::get('/sell-to-us', [SellToUsController::class, 'create'])->name('sell.create');
+        Route::post('/sell-to-us', [SellToUsController::class, 'store'])->name('sell.store');
 
         Route::get('/{trade}', [TradeController::class, 'show'])->whereNumber('trade')->name('show');
         Route::post('/{trade}/claim', [TradeController::class, 'claim'])->whereNumber('trade')->name('claim');

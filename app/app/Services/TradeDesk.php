@@ -43,6 +43,54 @@ final class TradeDesk
      */
     public function openAgainstUs(string $traderEmail, int $receiveMinorUnits, string $receiveAsset): int
     {
+        return $this->openAgainstOurBook($traderEmail, $receiveMinorUnits, $receiveAsset, 'platform_inventory', 'platform', $traderEmail);
+    }
+
+    /**
+     * Sell currency INTO KudiMarket's own book. The trader is the seller; we are the buyer.
+     *
+     * This is the other half of the tier. openAgainstUs alone meant the handled book could only ever move
+     * money out, so the float could never be built, and REGULATORY.md 5b records that whether we may take
+     * the other side for own account at all is the difference between a licensed DEALER and an FX BROKER.
+     *
+     * The trade_type is 'platform_sell' rather than 'platform_inventory', and that is not cosmetic. The
+     * two tiers differ in who may CONFIRM the payment, and the difference is the whole safety property of
+     * this screen:
+     *
+     *   platform_inventory  the trader is the BUYER, so they declare and platform confirms (ops only).
+     *   platform_sell        the trader is the SELLER, so they declare and WE confirm (ops only).
+     *
+     * Both put the DECLARATION with the trader and the CONFIRMATION with operations. Mirroring
+     * platform_inventory instead -- swapping the two party columns and keeping the type -- was tried and
+     * verified to let a trader attest that their own payment had arrived, because that tier's rule reads
+     * "the seller confirms" and on a sell the seller is the payer. See kudi-core/018.
+     *
+     * Everything else is deliberately identical to the buy: same book, same rate lookup, same derivation
+     * of the paid leg from the published card. A trader who can buy naira with cedi can sell cedi for
+     * naira at the same rate, and the screen must not imply otherwise.
+     */
+    public function sellToUs(string $traderEmail, int $receiveMinorUnits, string $receiveAsset): int
+    {
+        return $this->openAgainstOurBook($traderEmail, $receiveMinorUnits, $receiveAsset, 'platform_sell', $traderEmail, 'platform');
+    }
+
+    /**
+     * One body, two directions. Kept as one method rather than two so the rate lookup, the currency pair
+     * and the derivation cannot drift between the buy and the sell -- and the drift between those two is
+     * exactly what kudi-core/011 and 012 exist to document after it happened once.
+     *
+     * @param  string  $tradeType  'platform_inventory' to buy from us, 'platform_sell' to sell to us
+     * @param  string  $seller  who sends the base leg
+     * @param  string  $buyer  who receives the quote leg
+     */
+    private function openAgainstOurBook(
+        string $traderEmail,
+        int $receiveMinorUnits,
+        string $receiveAsset,
+        string $tradeType,
+        string $seller,
+        string $buyer,
+    ): int {
         if ($receiveMinorUnits <= 0) {
             throw new RuntimeException('A trade needs a positive amount.');
         }
@@ -90,12 +138,17 @@ final class TradeDesk
         }
 
         $id = $this->call(
-            "select create_fiat_trade('platform', ?, null, null, ?, ?, ?, 'platform_inventory', 'GHS', ?, ?) as id",
+            "select create_fiat_trade(?, ?, null, null, ?, ?, ?, ?, 'GHS', ?, ?) as id",
             [
-                $traderEmail,
+                // Who sends the base leg and who receives the quote leg. On a buy that is platform and the
+                // trader; on a sell it is the trader and platform. Passed as values rather than written into
+                // the SQL text, so neither can be influenced by anything but this method.
+                $seller,
+                $buyer,
                 $receiveAsset,
                 $receiveMinorUnits,
                 (float) $published->rate,
+                $tradeType,
                 $published->quote_asset,
                 $published->base_asset,
             ],
