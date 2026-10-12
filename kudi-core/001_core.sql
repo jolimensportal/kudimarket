@@ -231,10 +231,14 @@ create trigger trade_event_append_only before update or delete on trade_event
 
 -- Colour derives from state. Nothing else decides it.
 -- Green = reached 'released'/'resolved_release' (attested + window elapsed + no dispute).
+-- Red = money actually going back to one side ('cancelled','resolved_refund').
+-- A dispute is an open question, not a verdict, so it reads plum like every other pending state.
+-- 002_trade_types.sql rebuilds this view and SETTLES the rule; this case is kept in step with it so the
+-- foundational file does not contradict the files that follow it.
 create view trade_view as
 select t.*,
        case when state in ('released','resolved_release')            then 'green'
-            when state in ('cancelled','disputed','resolved_refund') then 'red'
+            when state in ('cancelled','resolved_refund')             then 'red'
             else 'plum' end as colour
   from trade t;
 
