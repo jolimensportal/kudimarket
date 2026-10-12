@@ -12,7 +12,8 @@
         // top to bottom and this is read by the tier card near the top of the page.
         $weAreTheCounterparty = $trade->seller === 'platform' || $trade->buyer === 'platform';
     @endphp
-    <p><a class="standalone-link" href="{{ route('trade.board') }}">&larr; Rates</a></p>
+    <p><a class="standalone-link" href="{{ route('trade.board') }}">&larr; Rates</a> &middot;
+       <a class="standalone-link" href="{{ route('trade.history') }}">Your trades</a></p>
 
     <h1>Trade #{{ $trade->id }}</h1>
 

@@ -130,6 +130,12 @@
            not, which is the same mistake the .notice rule below was written to avoid. --green is a
            declared token; an earlier badge here named colours that were not, and rendered with none. */
         .badge.ok { color: var(--green); }
+        /* The red counterpart, and the same token the locked product reference uses for it
+           (.badge.lost = --red, product-preview/index.html). A trade that was cancelled or refunded is
+           the only thing that earns it: green is money a person has seen arrive, red is money that went
+           back, and a state in flight is neither, so it keeps the plain plum badge. Named .lost to match
+           the reference rather than inventing a second word for the same signal. */
+        .badge.lost { color: var(--red); }
 
         form.pair {
             display: flex; flex-wrap: wrap; gap: 8px; align-items: center;

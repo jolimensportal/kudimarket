@@ -33,6 +33,53 @@ class TradeController extends Controller
     }
 
     /**
+     * Every trade this trader is a party to, newest first.
+     *
+     * "Where you stand" has always said HOW MANY trades a trader has and never which -- settled, open,
+     * disputed, on offer, and no list. Each trade lives at its own id, so a trader who left a trade screen
+     * by any route other than the back button had no way to reach it again. This is the list to find it
+     * from, and the reason a trade id is worth showing on it: the id is how the screen is reached.
+     *
+     * The rows come from TradeLedger::mine(), which reads my_trades() on the session identity, so the
+     * database decides whose trades these are and this screen can only ever show the signed-in trader
+     * their own. The figures are computed HERE, for THIS trader's side -- never in the template, which
+     * would default to the seller's side and print the wrong direction, the bug trade/show.blade.php's
+     * comment keeps on the record.
+     */
+    public function index(Request $request, TradeLedger $ledger): View
+    {
+        $email = $request->user('trader')->email;
+
+        $trades = [];
+        foreach ($ledger->mine() as $row) {
+            $role = $row->buyer === $email ? 'buyer' : 'seller';
+
+            // KudiMarket being a party is what makes the tier handled, not being the seller: on a buy we
+            // are the seller, on a sell we are the buyer (kudi-core/018). Same rule the trade screen uses.
+            $handled = $row->buyer === 'platform' || $row->seller === 'platform';
+
+            $trades[] = [
+                'id' => (int) $row->id,
+                'handled' => $handled,
+                'counterparty' => $handled ? 'KudiMarket' : ($row->buyer === $email ? $row->seller : $row->buyer),
+                'figures' => TradeFigures::forTrade($row, $role),
+                'state_label' => self::stateLabel($row->state),
+                // The badge class follows trade_view's own colour, so the badge and the ledger's idea of
+                // the state cannot drift apart. green = money a person has seen arrive, red = money that
+                // went back or a trade that never happened, plum = in flight.
+                'badge' => match ($row->colour) {
+                    'green' => 'badge ok',
+                    'red' => 'badge lost',
+                    default => 'badge',
+                },
+                'updated_at' => $row->updated_at,
+            ];
+        }
+
+        return view('trade.history', ['trades' => $trades]);
+    }
+
+    /**
      * The buyer says the money is on its way.
      *
      * The amount is not a parameter. A client that could send the figure it wants recorded would let a
@@ -106,5 +153,29 @@ class TradeController extends Controller
     private function ownedTrade(Request $request, int $trade, TradeLedger $ledger): object
     {
         return TradeAccess::party($request, $trade, $ledger);
+    }
+
+    /**
+     * A trade's state in words a trader can act on.
+     *
+     * The raw state is the ledger's vocabulary -- paid_attested, resolved_release -- and a trader reading
+     * their own history should not have to learn it. The list is exhaustive on purpose so a state added to
+     * the ledger later falls through to `default` and reads as itself rather than being silently mislabelled.
+     * The COLOUR is not chosen here: it comes from trade_view's own case, so the badge and the ledger's
+     * idea of the state cannot drift apart.
+     */
+    private static function stateLabel(string $state): string
+    {
+        return match ($state) {
+            'open' => 'Waiting for the money',
+            'escrowed' => 'Currency held',
+            'paid_claimed' => 'Payment being checked',
+            'paid_attested' => 'Payment received, releasing',
+            'released', 'resolved_release' => 'Settled',
+            'cancelled' => 'Cancelled',
+            'disputed' => 'In dispute',
+            'resolved_refund' => 'Refunded',
+            default => str_replace('_', ' ', $state),
+        };
     }
 }

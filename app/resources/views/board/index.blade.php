@@ -85,4 +85,10 @@
             </dl>
         </div>
     @endif
+
+    {{-- The way back to a trade a trader has already opened. Rates is the landing page, so this is the one
+         place a trader passes through often enough for the link to be found without hunting. --}}
+    <p class="note" style="margin-top:18px">
+        <a class="standalone-link" href="{{ route('trade.history') }}">Your trades</a>
+    </p>
 @endsection

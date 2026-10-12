@@ -55,6 +55,9 @@
             <div><dt>Disputed</dt><dd class="num">{{ $position['disputed'] }}</dd></div>
             <div><dt>On offer now</dt><dd class="num">{{ $position['selling'] }}</dd></div>
         </dl>
+        @if ($position['trades'] > 0)
+            <p class="note"><a class="standalone-link" href="{{ route('trade.history') }}">See them all</a></p>
+        @endif
     </div>
 
     @if (count($rates) > 0)

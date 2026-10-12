@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use Illuminate\Database\QueryException;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
@@ -45,6 +46,30 @@ final class TradeLedger
         return DB::connection('pgsql_ops')->selectOne(
             'select * from trade_quote where id = ?', [$tradeId]
         );
+    }
+
+    /**
+     * The signed-in trader's own trades, newest first, for the history screen.
+     *
+     * Read on the trader connection through my_trades() (019), which takes no argument: the database
+     * answers from the session identity set at sign-in, so there is no name in this call to get wrong.
+     * Same shape 015 gave my_balances() and my_trade_counts(), and the same reason -- every trader shares
+     * one login role, so a query filtered by a caller-supplied address would answer about whoever the
+     * caller named.
+     *
+     * The timestamp is parsed here rather than in the template. A raw query returns a string, and calling
+     * diffForHumans() on one is a 500 that only appears once a trader actually has a trade -- the trap
+     * RateBoard::ourRateForDisplay() documents.
+     */
+    public function mine(): array
+    {
+        $rows = DB::connection('pgsql_trader')->select('select * from my_trades()');
+
+        foreach ($rows as $row) {
+            $row->updated_at = Carbon::parse((string) $row->updated_at);
+        }
+
+        return $rows;
     }
 
     /** The write-once record of a trade. This is what a regulator or a dispute reads. */

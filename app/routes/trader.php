@@ -59,6 +59,11 @@ Route::middleware(['auth:trader', SignInAsTrader::class])
         Route::get('/buy', [BuyController::class, 'create'])->name('buy.create');
         Route::post('/buy', [BuyController::class, 'store'])->name('buy.store');
 
+        // Every trade this trader is a party to, newest first. Literal path, above the '/{trade}' wildcard
+        // for the same reason the buy/sell routes are: a named segment must not fall through to the number
+        // route. 'history' rather than 'trades' because /trades read like it might be everyone's.
+        Route::get('/history', [TradeController::class, 'index'])->name('history');
+
         // Selling TO us, which is the other half of the handled tier and a different promise from selling
         // an offer to other traders below. /sell-to-us rather than /sell, because /sell is taken and means
         // something else entirely: a trader who mistyped one wants to see which they are on before they
