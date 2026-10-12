@@ -81,6 +81,21 @@
         .card.ours .label { color: color-mix(in oklch, var(--bone) 72%, var(--plum-600)); }
         .card.ours p { color: color-mix(in oklch, var(--bone) 82%, var(--plum-600)); }
         .card.ours .note { color: color-mix(in oklch, var(--bone) 70%, var(--plum-600)); }
+        /* The board's card is filled plum, so the buttons on it are inverted: a paper button reads
+           against the field the way the plum button reads against the page. Two actions fit one row at
+           390px and wrap to two full-width rows below it -- both 44px, both real tap targets. */
+        .card-actions {
+            display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px;
+        }
+        .card-actions a {
+            display: inline-flex; align-items: center; justify-content: center;
+            min-height: 44px; padding: 8px 16px; border-radius: 10px;
+            font: inherit; font-size: 16px; font-weight: 600; text-decoration: none;
+            border: 1px solid transparent;
+        }
+        .card-actions a.primary { background: var(--paper); color: var(--plum-900); }
+        .card-actions a.ghost { border-color: color-mix(in oklch, var(--bone) 55%, var(--plum-600)); color: var(--bone); }
+        @media (max-width: 360px) { .card-actions a { flex: 1 1 100%; } }
 
         .label {
             font-size: 12px; font-weight: 600; letter-spacing: 0.08em;
@@ -129,7 +144,12 @@
         textarea:focus-visible { outline: 2px solid var(--plum-600); outline-offset: 1px; }
         label { display: block; font-size: 14px; font-weight: 600; margin: 14px 0 6px; }
         .error { color: var(--red); font-size: 14px; margin-top: 6px; }
-        select, button, input[type=text] {
+        /* input:not([type]) is here because an input with no type attribute IS a text input, but the
+           attribute selector input[type=text] does not match it. The amount field on the buy and sell
+           screens is written without a type, so it rendered as a bare browser-default box -- 19px tall,
+           no radius -- beside a properly styled select. Fixed at the selector rather than by adding
+           type="text" to each field, because the next type-less input would inherit the same bug. */
+        select, button, input[type=text], input:not([type]) {
             font: inherit; font-size: 16px;
             min-height: 44px;            /* a tap target you can hit on a moving bus */
             padding: 8px 12px;
@@ -152,7 +172,8 @@
         }
         input[type=date]:focus-visible,
         select:focus-visible,
-        input[type=text]:focus-visible {
+        input[type=text]:focus-visible,
+        input:not([type]):focus-visible {
             outline: 2px solid var(--plum-600); outline-offset: 1px;
         }
         /* Two fields side by side, wrapping to one column when there is not the room. Used by the CDD

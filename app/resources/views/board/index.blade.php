@@ -33,10 +33,11 @@
             <p>We are the other side of this trade. If the money does not arrive, it comes back to you
                and it is our loss, not a claim you have to win.</p>
             <p class="note">Set by {{ $ours->set_by }}, {{ $ours->effective_from->diffForHumans() }}</p>
+            <div class="card-actions">
+                <a class="primary" href="{{ route('trade.sell.create') }}">Sell to us</a>
+                <a class="ghost" href="{{ route('trade.buy.create') }}">Buy from us</a>
+            </div>
         </div>
-
-        {{-- No button yet. The screen that opens a trade is Task 5's next step, and a link to a page that
-             does not exist would 404 a trader at the exact moment they decided to trade. --}}
     @endif
 
     @if (count($offers) > 0)

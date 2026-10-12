@@ -74,6 +74,21 @@ class BoardTest extends TestCase
         $response->assertSee(RateBoard::formatRate(0.006756756756756756), escape: false);
     }
 
+    public function test_the_board_links_to_both_trade_screens(): void
+    {
+        $this->publishRate();
+
+        $response = $this->actingAs(Trader::factory()->create(), 'trader')->get('/trade/board');
+
+        $response->assertOk();
+        // Both directions of our own rate belong on the card: the sell screen used to be reachable
+        // only by typing /trade/sell-to-us, which is not a path a trader can find.
+        $response->assertSee('/trade/sell-to-us');
+        $response->assertSee('Sell to us');
+        $response->assertSee('/trade/buy');
+        $response->assertSee('Buy from us');
+    }
+
     public function test_a_rate_is_formatted_with_a_floor_and_not_a_cap(): void
     {
         // 148.2 and 148.20 are the same price, so the floor keeps the trailing zero. The reverse leg
