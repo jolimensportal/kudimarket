@@ -92,19 +92,38 @@ drift. Do not add a file to one and not the others.
 
 ---
 
-## 4. Get the code and build the schema
+## 4. Get the code, and the one command that stands it up
+
+The whole journey in §5-§10 below is also scripted. `scripts/deploy.sh` runs it as a single
+command — it checks the system packages, creates the database if missing, verifies `pgcrypto`,
+migrates, caches config, and gates on the preflight command:
 
 ```bash
 git clone <your-remote> /srv/kudimarket
 cd /srv/kudimarket/app
 composer install --no-dev --optimize-autoloader
+bash ../scripts/deploy.sh /srv/kudimarket
+```
+
+Or, step by step by hand:
+
+```bash
+cd /srv/kudimarket/app
 php artisan key:generate --force
-php artisan migrate --force
+APP_ENV=production APP_DEBUG=false php artisan migrate --force --database=pgsql_admin
 ```
 
 The migration runs as the `pgsql_admin` connection (`kudi`, a cluster superuser). That is the intended
 shape: schema creation is a superuser action; the running application is not. It is not a reason to
 run the *app* as superuser, and it must not become one.
+
+> **Do not seed demo data by hand in production.** The `seed_reference_data` migration creates demo
+> traders with funded balances, a fabricated rate, and four trades including a *disputed* one —
+> "so the console has something real to show". A fresh production database needs none of that. The
+> migration is guarded: under `APP_ENV=production` it seeds only the `asset` rows (the currencies
+> themselves) and returns. That guard is pinned by `tests/Feature/SeedDataProductionGuardTest.php`.
+> Nothing in production should ever be told "here is a dispute to read" about a trade that never
+> happened.
 
 Verify the schema landed, including the extension and the roles:
 
@@ -113,6 +132,18 @@ Verify the schema landed, including the extension and the roles:
 select count(*) from pg_proc where proname = 'commission_quote';   -- expect 1
 select rolname from pg_roles where rolname like 'kudi%';           -- expect the five + logins
 ```
+
+Then run the readiness gate once the environment is set (§5) — it checks the hash chain, the
+balances, the published rates and the set commission:
+
+```bash
+php artisan kudi:preflight
+```
+
+`kudi:preflight` is the checklist at the end of this document (§10) as executable checks. It fails
+non-zero when anything is not ready, so a deploy or a human gate can rely on its exit code. On a
+fresh instance it will correctly fail on "a rate is published" and "a commission is set" until you do
+§6 — which is its job, not a bug.
 
 ---
 
@@ -130,6 +161,13 @@ DB_OPS_HOST=/var/run/postgresql         ; DB_OPS_DATABASE=kudi_prod   ; DB_OPS_U
 DB_TRADER_HOST=/var/run/postgresql      ; DB_TRADER_DATABASE=kudi_prod ; DB_TRADER_USERNAME=kudi_trader_login
 DB_PRICING_HOST=/var/run/postgresql     ; DB_PRICING_DATABASE=kudi_prod ; DB_PRICING_USERNAME=kudi_pricing_login
 ```
+
+The committed `.env.example` is a real production template, not Laravel's stock `sqlite` default. It
+declares the four role-scoped Postgres connections the application actually works through, plus the
+default `pgsql` connection (which is where the framework's own `users`/`sessions`/`cache` tables live,
+and which runs as `kudi_app_login` — never as the superuser). Do not copy Laravel's upstream example
+over it; that has no `DB_OPS_*`/`DB_TRADER_*`/`DB_PRICING_*`/`DB_ADMIN_*` lines at all, and the app
+would quietly point at a database that does not exist.
 
 Leave `DB_OPS_PASSWORD`, `DB_TRADER_PASSWORD`, `DB_PRICING_PASSWORD` empty to use peer/socket auth for
 local-only Postgres, or set strong per-role passwords if Postgres is not on the same host.
@@ -217,8 +255,17 @@ restore it. A backup you have never restored is not a backup.
 
 ## 10. Rehearsal checklist
 
-Before you would ever point a real trader at this, run these on the rehearsal instance:
+Before you would ever point a real trader at this, run these on the rehearsal instance. The machine
+checks are the same thing `php artisan kudi:preflight` executes, so the operator's step and the
+product's gate are not two different lists that can drift:
 
+```bash
+# the executable checklist: chain, balances, rates, commission, scheduler, env.
+# Fails non-zero when anything is not ready.
+php artisan kudi:preflight
+```
+
+- [ ] `php artisan kudi:preflight` passes clean.
 - [ ] Sign in as a trader; open a **buy** against KudiMarket. Check the fee line and the exact total.
 - [ ] Pay, claim, and have operations confirm (`/admin`). Watch the trade reach `paid_attested`.
 - [ ] Wait out the claim window (15 minutes on our own book) and watch the cron settle it to

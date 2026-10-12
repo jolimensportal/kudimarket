@@ -12,6 +12,16 @@ return new class extends Migration
             DB::table('asset')->insertOrIgnore(['code' => $code, 'decimals' => $decimals]);
         }
 
+        // Everything below this line is DEMO CONTENT: named demo traders, funded balances, a
+        // published rate with a fabricated price, and four trades including one disputed and one
+        // settled -- all so the dev console "has something real to show". None of it may exist in a
+        // production ledger, where a fabricated disputed trade and a settled trade that never
+        // happened would be indistinguishable from real ones. A fresh production database starts
+        // with customers, rates and trades created deliberately, one at a time, through the desks.
+        if (app()->environment('production')) {
+            return;
+        }
+
         // Our own book settles behind a claim window, because it receives fiat by mobile money
         // and is exposed to reversals. The window is opened to zero only while seeding, so that the
         // one historical trade below can be shown already settled.
