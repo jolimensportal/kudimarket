@@ -48,13 +48,37 @@
                  they cannot drift apart from what the trade will actually say. --}}
             <div class="card" style="margin:16px 0">
                 <dl>
-                    <div><dt>You pay</dt><dd class="num">{{ $figures['send'] }}</dd></div>
+                    {{-- The TOTAL, not the conversion. A commission is added on top, so the conversion
+                         alone is not the number that leaves the account -- and a trader who commits to the
+                         conversion and is charged the difference has been told one thing and charged
+                         another. That arrived here only because the commission work stopped at the trade
+                         screen: the form said "You pay 1,349.53" and the trade then said "Send 1,363.02
+                         in total". Item 7 exists to answer this BEFORE the phone call, so it belongs here. --}}
+                    <div>
+                        <dt>{{ $figures['fee'] ? 'You send in total' : 'You pay' }}</dt>
+                        <dd class="num">{{ $figures['fee'] ? $figures['send_total'] : $figures['send'] }}</dd>
+                    </div>
                     <div><dt>You receive</dt><dd class="num">{{ $figures['receive'] }}</dd></div>
                 </dl>
-                <p class="note" style="margin-top:10px">
-                    At today's rate, held from the card. Open the trade and the payment details are on the
-                    trade screen, with the account and the reference to use.
-                </p>
+                @if ($figures['fee'])
+                    <dl style="margin-top:10px">
+                        <div>
+                            <dt>KudiMarket fee</dt>
+                            <dd class="num">{{ $figures['fee'] }}</dd>
+                        </div>
+                    </dl>
+                    <p class="note" style="margin-top:10px">
+                        That is {{ $figures['send'] }} at today's rate plus the commission above, in
+                        {{ $figures['fee_name'] }}
+                        because that is the currency you are paying in. One payment, in one go, because a
+                        payment a few pesewas short cannot settle.
+                    </p>
+                @else
+                    <p class="note" style="margin-top:10px">
+                        At today's rate, held from the card. Open the trade and the payment details are on
+                        the trade screen, with the account and the reference to use.
+                    </p>
+                @endif
             </div>
 
             <button type="submit">Open this trade</button>

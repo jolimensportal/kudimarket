@@ -56,8 +56,19 @@ final class BuyController extends Controller
             'rate' => (string) $published->rate,
             'rate_base_asset' => $published->base_asset,
             'rate_quote_asset' => $published->quote_asset,
+            // The commission is priced for the PREVIEW from the live policy, because there is no trade
+            // yet to have frozen it. A real trade reads its own frozen column and never this.
+            // The commission is priced BY THE LEDGER, not here. commission_quote() applies the same
+            // div() the freeze trigger applies, so the figure on the form and the figure charged are the
+            // same number rather than two implementations that agree until the last digit.
+            'quoted_fee_minor' => (int) DB::connection('pgsql_ops')->selectOne(
+                'select commission_quote(?, ?, (select fee_bps from trade_policy where trade_type = ?)) as fee',
+                [(string) $receiveMinorUnits, (string) $published->rate, 'platform_inventory']
+            )->fee,
         ];
 
+        // forTrade derives the commission from fee_bps for a row that has none frozen, which is exactly
+        // what a preview is, so the form's total and the opened trade's total come from one rule.
         return ['figures' => TradeFigures::forTrade($row, 'buyer'), 'pay_asset' => $payAsset];
     }
 

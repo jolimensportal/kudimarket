@@ -11,6 +11,7 @@ use App\Services\TradeFigures;
 use App\Services\TradeLedger;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\RateLimiter;
 use Tests\TestCase;
 
 /**
@@ -25,6 +26,35 @@ use Tests\TestCase;
  */
 final class BuyFromUsTest extends TestCase
 {
+    /**
+     * The commission is a POLICY, and policy is shared state across the whole database. Without this the
+     * tests that set it and the tests that assert it is unset pass or fail according to the order PHPUnit
+     * happened to run them in, which is a test suite that reports the run order rather than the product.
+     */
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        RateLimiter::clear('127.0.0.1');
+
+        // Both directions, because the screens quote both and this class exercises both. This file never
+        // published a rate of its own -- it inherited whatever an earlier test left in the shared
+        // database -- which is why a rebuilt test database could make a form say "we have not published a
+        // rate for that pair yet" in a test that is not about rates at all.
+        DB::connection('pgsql_pricing')->selectOne(
+            'select set_rate(?, ?, ?, ?) as id',
+            ['GHS', 'NGN', '148.2', 'rates-desk@kudimarket.com']
+        );
+        DB::connection('pgsql_pricing')->selectOne(
+            'select set_rate(?, ?, ?, ?) as id',
+            ['NGN', 'GHS', '0.006756756756756756', 'rates-desk@kudimarket.com']
+        );
+
+        DB::connection('pgsql_admin')->statement(
+            "update trade_policy set fee_bps = 0, fee_bearer = 'buyer'"
+        );
+    }
+
     public function test_a_trader_can_buy_naira_with_cedi(): void
     {
         $trader = $this->trader('buy-naira');
@@ -100,6 +130,51 @@ final class BuyFromUsTest extends TestCase
         $this->assertStringContainsString('You receive', $screen);
         $this->assertStringContainsString('GHS', $screen);
         $this->assertStringContainsString('NGN', $screen);
+    }
+
+    public function test_the_buy_screen_states_the_total_before_the_trader_commits(): void
+    {
+        // THE DEFECT THIS PINS. With a commission configured, the buy form said "You pay 1,349.53 GHS"
+        // and the trade screen then said "Send 1,363.02 GHS in total". A trader commits to one number and
+        // is charged another, which is the phone call item 7 exists to remove -- and it arrives AFTER the
+        // commitment, which is the worst possible moment for it.
+        //
+        // The form has no trade row yet, so there is no frozen fee_minor_units to read. It prices the
+        // commission from the same policy the trade will be opened against, through the same rule.
+        DB::connection('pgsql_admin')->statement(
+            "update trade_policy set fee_bps = 100 where trade_type = 'platform_inventory'"
+        );
+
+        $trader = $this->trader('buy-total');
+        $screen = $this->flat($this->get('/trade/buy')->assertOk()->getContent());
+
+        $this->assertStringContainsString('KudiMarket fee', $screen,
+            'the commission is on the screen before anything is committed');
+
+        // And the total named on the form must be the total named on the trade.
+        //
+        // Opening the MATCHING trade, not an arbitrary one: the form previews its own default amount
+        // (GHS 1,000.00 received), so comparing that against a trade for some other size proves nothing
+        // except that two different trades have different totals.
+        $id = app(TradeDesk::class)->openAgainstUs($trader->email, 100000, 'GHS');
+        $trade = DB::connection('pgsql_ops')->selectOne('select * from trade_view where id = ?', [$id]);
+        $figures = TradeFigures::forTrade($trade, 'buyer');
+
+        $this->assertNotNull($figures['send_total'], 'the opened trade knows its total');
+        $this->assertStringContainsString($figures['send_total'], $screen,
+            'the figure the trader commits to is the figure they are told to send');
+    }
+
+    public function test_no_commission_configured_means_no_fee_line_on_the_buy_form(): void
+    {
+        DB::connection('pgsql_admin')->statement(
+            "update trade_policy set fee_bps = 0 where trade_type = 'platform_inventory'"
+        );
+        $this->trader('buy-nofee');
+
+        $this->get('/trade/buy')
+            ->assertOk()
+            ->assertDontSee('KudiMarket fee');
     }
 
     public function test_the_buy_screen_is_closed_to_anybody_not_signed_in(): void

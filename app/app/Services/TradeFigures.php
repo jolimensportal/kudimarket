@@ -116,7 +116,7 @@ final class TradeFigures
      *
      * @param  object  $trade  a trade_view row: needs fiat_amount, fiat_asset, rate, rate_quote_asset
      *                         and rate_base_asset
-     * @return array{send: string, receive: string, send_minor: int, receive_minor: int, send_asset: string, receive_asset: string, fee: string|null, fee_name: string|null, fee_bearer: string, send_total: string|null, send_total_minor: int|null}
+     * @return array{send: string, receive: string, send_minor: int, receive_minor: int, send_asset: string, receive_asset: string, fee: string|null, fee_name: string|null, fee_bearer: string, send_total: string|null, send_total_minor: int|null, fee_minor: int}
      */
     public static function forTrade(object $trade, string $viewer = 'buyer'): array
     {
@@ -137,8 +137,18 @@ final class TradeFigures
         // The commission is READ, never recomputed. The ledger froze fee_minor_units at creation and the
         // trader was shown it; a figure derived here could disagree with the amount actually charged, and
         // a screen that quotes one number and charges another is the exact failure 011 records.
-        $feeMinor = isset($trade->fee_minor_units) ? (int) $trade->fee_minor_units : 0;
-        $feeAsset = $trade->fee_asset ?? null;
+        //
+        // The one exception is a PREVIEW, which has no trade row and therefore no frozen column. There
+        // the commission is derived from the policy's basis points by the trigger's own formula -- and
+        // derived HERE rather than by a second rule elsewhere, because two implementations of a pricing
+        // rule is how the form and the quote came to disagree in the first place. A real trade always
+        // carries the frozen column whenever fee_bps is non-zero, so this branch can only ever be reached
+        // by a row that has not been opened yet -- and on that row the caller supplies quoted_fee_minor,
+        // which the LEDGER computed with its own div(). Deriving it here from the rounded send amount is
+        // what made the quote and the charge differ by a pesewa.
+        $frozen = isset($trade->fee_minor_units) ? (int) $trade->fee_minor_units : null;
+        $feeMinor = $frozen ?? (int) ($trade->quoted_fee_minor ?? 0);
+        $feeAsset = $trade->fee_asset ?? $sendAsset;
         $feeName = self::name($feeAsset);
         $bearer = (string) ($trade->fee_bearer ?? 'buyer');
 
@@ -169,6 +179,7 @@ final class TradeFigures
             'fee_bearer' => $bearer,
             'send_total' => $sendTotal,
             'send_total_minor' => $sendTotalMinor,
+            'fee_minor' => $feeMinor,
         ];
     }
 

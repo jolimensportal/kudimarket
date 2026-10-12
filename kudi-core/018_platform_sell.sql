@@ -373,7 +373,20 @@ grant execute on function set_rate(text, text, numeric, text, timestamptz, text)
 grant execute on function set_commission(text, int, text, text, text) to kudi_pricing;
 grant execute on function verify_commission_chain() to kudi_ops, kudi_app;
 
+-- commission_quote() is granted in 017, and THIS file's blanket revoke above takes it away again --
+-- the same trap as _apply_transition, third time in this ledger. Re-granted by name, and the comment
+-- exists so the next file that starts with a blanket revoke does not have to rediscover it.
+--
+-- THREE roles, not one: the quote is priced on the buy screen (which reads the card as kudi_trader) and
+-- on the sell screen, and the committed trade reads its frozen column through the ops connection. Granting
+-- only kudi_app looked right and failed at runtime as "permission denied for function commission_quote"
+-- on pgsql_ops -- which logs in as kudi_ops, not kudi_app. This function decides nothing and writes
+-- nothing; it is arithmetic over three numbers, so all three read-only roles may ask it what a trade
+-- would cost. kudi_pricing and kudi_chain are excluded deliberately: neither quotes a trader.
+grant execute on function commission_quote(numeric, numeric, int) to kudi_app, kudi_ops, kudi_trader;
+
 revoke all on function set_commission(text, int, text, text, text) from public;
+revoke all on function commission_quote(numeric, numeric, int) from public;
 
 
 

@@ -547,3 +547,49 @@ grant execute on function verify_commission_chain() to kudi_ops, kudi_app;
 -- standing, kudi_app could have set the commission to anything and the suite's "only the pricing desk
 -- may" assertion passed on the empty string it returned rather than on a refusal.
 revoke all on function set_commission(text, int, text, text, text) from public;
+
+
+-- ---------------------------------------------------------------- 8. one rule for what a commission IS
+--
+-- The quote and the charge disagreed by a pesewa, and it is worth being precise about why, because the
+-- expression looks identical in both places:
+--
+--     the trigger   div( div(fiat_amount, rate) * fee_bps, 10000)     -- TRUNCATES
+--     TradeFigures  (int) round($converted * 10 ** decimals)          -- ROUNDS
+--
+-- A real trade reads its FROZEN fee, so it always charged the truncated figure. The preview had no frozen
+-- column, so it derived one from the ROUNDED send amount, and the two disagreed at the last digit:
+--
+--     quote  N149,480.00        trade  N149,479.99
+--
+-- One pesewa is not a rounding curiosity here. A mobile-money payment is typed to the pesewa, so a trader
+-- who sends the quoted total is a pesewa short of the frozen one and the payment cannot settle -- which is
+-- exactly the failure this whole feature exists to remove.
+--
+-- So the rule moves into the ledger, where the trigger already lives, and both callers use it. The app no
+-- longer owns a copy of a pricing formula; it asks. This is the same lesson as 011 (one rate column, two
+-- meanings) and 012 (a direction discarded at creation), applied to the third place the same mistake could
+-- be made: the quote.
+create function commission_quote(p_fiat_amount numeric, p_rate numeric, p_fee_bps int)
+returns numeric language plpgsql immutable as $$
+begin
+  if p_fee_bps is null or p_fee_bps <= 0 then
+    return 0;
+  end if;
+  if p_fiat_amount is null or p_rate is null or p_rate = 0 or p_rate = 1 then
+    return 0;
+  end if;
+
+  -- EXACTLY the trigger's expression, div() included. Written out again here rather than shared, because
+  -- the trigger cannot call a function on a row being built without a forward reference; the test below is
+  -- what holds the two together.
+  return div(div(p_fiat_amount, p_rate) * p_fee_bps, 10000);
+end $$;
+
+comment on function commission_quote(numeric, numeric, int) is
+  'The commission a trade WOULD carry, in minor units of the sending currency, by the same div() the freeze trigger uses. The quote screen must call this rather than deriving its own: rounding where the ledger truncates produced a one-pesewa disagreement between the amount quoted and the amount charged, which on a payment typed to the pesewa means it cannot settle.';
+
+-- Granted explicitly, and after the section 6 blanket revoke rather than before it: a function created
+-- later inherits EXECUTE TO PUBLIC, and PUBLIC has no business asking what we would charge.
+grant execute on function commission_quote(numeric, numeric, int) to kudi_app;
+revoke all on function commission_quote(numeric, numeric, int) from public;

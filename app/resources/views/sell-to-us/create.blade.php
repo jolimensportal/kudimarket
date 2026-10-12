@@ -44,16 +44,30 @@
                  here and the figure on the trade screen come from one implementation. --}}
             <div class="card" style="margin:16px 0">
                 <dl>
-                    <div><dt>You send</dt><dd class="num">{{ $figures['send'] }}</dd></div>
+                    {{-- The total, for the same reason as the buy screen: the commission is added on top,
+                         so the conversion is not the amount that leaves the account. --}}
+                    <div>
+                        <dt>{{ $figures['fee'] ? 'You send in total' : 'You send' }}</dt>
+                        <dd class="num">{{ $figures['fee'] ? $figures['send_total'] : $figures['send'] }}</dd>
+                    </div>
                     <div><dt>You receive</dt><dd class="num">{{ $figures['receive'] }}</dd></div>
                 </dl>
-                <p class="note" style="margin-top:10px">
-                    At today's rate, held from the card. Open the trade and the payment details are on the
-                    trade screen, with the account and the reference to use.
-                </p>
+                @if ($figures['fee'])
+                    <dl style="margin-top:10px">
+                        <div>
+                            <dt>KudiMarket fee</dt>
+                            <dd class="num">{{ $figures['fee'] }}</dd>
+                        </div>
+                    </dl>
+                    <p class="note" style="margin-top:10px">
+                        That is {{ $figures['send'] }} at today's rate plus the commission above, in
+                        {{ $figures['fee_name'] }}
+                        because that is the currency you are paying in.
+                    </p>
+                @endif
                 <p class="note">
-                    We check that your payment arrived before the {{ $figures['receive'] }} is released. You
-                    do not confirm your own payment &mdash; a person who did not send it has to.
+                    We check that your payment arrived before the {{ $figures['receive'] }} is released.
+                    You do not confirm your own payment &mdash; a person who did not send it has to.
                 </p>
             </div>
 

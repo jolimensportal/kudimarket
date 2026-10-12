@@ -147,7 +147,16 @@ final class TradeDesk
                 $buyer,
                 $receiveAsset,
                 $receiveMinorUnits,
-                (float) $published->rate,
+                // The rate as a DECIMAL STRING, never a float. RateDesk::publish documents this in full:
+                // 0.0067567 has no exact binary representation, so round-tripping a price through a float
+                // changes what we publish by units in the last place -- on every trade priced from it, on
+                // the commission computed from it, and on the chain that commits to it.
+                //
+                // It mattered visibly here. As a float the card rate 0.006756756756756756 was stored as
+                // 0.0067567567567568, which moved the base leg by one minor unit, which moved the
+                // commission by one pesewa, which made the figure on the form and the amount charged
+                // disagree. The screens were right; the float was wrong.
+                (string) $published->rate,
                 $tradeType,
                 $published->quote_asset,
                 $published->base_asset,
