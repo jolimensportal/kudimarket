@@ -90,8 +90,15 @@ foreach ([
 
 // A KudiMarket counterparty record. Rates are published as kudi_pricing, which is its own role: a
 // trader must not be able to move the price even from inside the application.
-DB::connection("pgsql_pricing")->selectOne("select set_rate(?, ?, ?, ?)", ["GHS", "NGN", 148.2, "pricing@kudimarket.com"]);
-DB::connection("pgsql_pricing")->selectOne("select set_rate(?, ?, ?, ?)", ["NGN", "GHS", 1 / 148.2, "pricing@kudimarket.com"]);
+//
+// Decimal STRINGS, not floats. This used to publish 148.2 as a PHP float and the inverse as the
+// expression 1 / 148.2 -- the same float-into-money bug that cost a pesewa in TradeDesk, and worse
+// here because the reciprocal is computed, so it is rounded twice before Postgres ever sees it. A
+// float is the wrong type for money the moment it is written down: it is a binary approximation, and
+// the string below is the rate the ledger and the tests both use. Written out, not divided, so the
+// inverse is the number we actually mean rather than 1 divided by a lossy double.
+DB::connection("pgsql_pricing")->selectOne("select set_rate(?, ?, ?, ?)", ["GHS", "NGN", "148.20", "pricing@kudimarket.com"]);
+DB::connection("pgsql_pricing")->selectOne("select set_rate(?, ?, ?, ?)", ["NGN", "GHS", "0.006756756756756756", "pricing@kudimarket.com"]);
 
 // One open trade for Ama, so the trade screen and the claim button have something to show on a fresh
 // database. Opened through TradeDesk, not by INSERT, so the rate comes from the card and the state
