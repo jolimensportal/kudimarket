@@ -375,3 +375,63 @@ grant execute on function verify_commission_chain() to kudi_ops, kudi_app;
 
 revoke all on function set_commission(text, int, text, text, text) from public;
 
+
+
+-- ---------------------------------------------------------------- 7. the AML view, which was assessing one leg of two
+--
+-- ctr_candidates (016) unpivots a trade into one row per PARTY per trade and assesses fiat_amount, which
+-- is the QUOTE leg: the currency that ARRIVES at the counterparty. On every trade KudiMarket has ever
+-- had, the trader is the receiver, so that happened to be the leg in the trader's hands and the view was
+-- right by accident.
+--
+-- The sell side breaks the accident. On a sell the trader is the SELLER: they send the base leg and
+-- receive the quote leg. The view already reaches a sell, because it pivots on role rather than on
+-- trade_type -- but it only ever assesses the RECEIVED leg, so the money coming INTO the business was
+-- never a CTR candidate at all. Verified before this file was written:
+--
+--     select count(*) filter (where fiat_asset='GHS'), count(*) filter (where fiat_asset='NGN')
+--       from ctr_candidates;      --  0 | 198
+--
+-- Both legs are now unpivoted. A currency exchange reportable on either side is reportable, and a
+-- reporting view that silently drops one direction of every transaction is worse than no view at all,
+-- because it is a view somebody trusts.
+-- DROP AND RECREATE, not CREATE OR REPLACE: a replace may not reorder columns, and this one adds
+-- `direction` in the middle of the list. Same rule as trade_view in 017.
+drop view ctr_candidates;
+
+create view ctr_candidates as
+with legs as (
+  -- What the party PAYS: the base leg. This is the inbound leg on a sell, and it was the missing half.
+  select t.id as trade_id, t.seller as trader_email, 'seller' as role, 'send' as direction,
+         t.rate_base_asset as leg_asset,
+         div(t.fiat_amount, t.rate) as leg_amount
+    from trade t
+   where t.crypto_amount is null and t.rate is not null and t.rate <> 0
+  union all
+  select t.id, t.buyer, 'buyer', 'send', t.rate_base_asset, div(t.fiat_amount, t.rate)
+    from trade t
+   where t.crypto_amount is null and t.rate is not null and t.rate <> 0
+  union all
+  -- What the party RECEIVES: the quote leg, which is what the view has always assessed.
+  select t.id as trade_id, t.seller as trader_email, 'seller' as role, 'receive' as direction,
+         t.rate_quote_asset as leg_asset, t.fiat_amount as leg_amount
+    from trade t
+   where t.fiat_amount is not null and t.rate_quote_asset is not null
+  union all
+  select t.id, t.buyer, 'buyer', 'receive', t.rate_quote_asset, t.fiat_amount
+    from trade t
+   where t.fiat_amount is not null and t.rate_quote_asset is not null
+)
+select l.trade_id, l.trader_email, l.role, l.direction,
+       l.leg_asset as fiat_asset, l.leg_amount as fiat_amount,
+       requires_ctr(l.leg_asset, l.leg_amount) as threshold_call,
+       s.doc_type, s.doc_number, s.purpose_code, s.source_of_funds, s.is_cdd_verified
+  from legs l
+  left join cdd_status s on s.trader_email = l.trader_email
+ where l.leg_amount is not null and l.leg_amount > 0
+   and l.trader_email <> 'platform'
+   and requires_ctr(l.leg_asset, l.leg_amount) in ('reportable','unknown')
+ order by l.trader_email, l.trade_id, l.direction;
+
+comment on view ctr_candidates is
+  'Every party-leg of every trade that may need a CTR, one row per party per leg. BOTH directions are unpivoted because the received leg alone misses the money arriving, which on a sell is the inbound leg -- and 016 assessed only the received leg, which was right by accident while every trader was a receiver.';

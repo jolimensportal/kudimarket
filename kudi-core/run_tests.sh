@@ -1574,6 +1574,27 @@ sql "select transition_trade($DISP,'open','paid_claimed','sl-dc','sl8');" >/dev/
 expect_eq "a sell is still disputable, because the window gates release and never a complaint" \
   "$(sql "select transition_trade($DISP,'paid_claimed','disputed','sl-dd','sl8'); select state from trade where id=$DISP;" | tail -1)" "disputed"
 
+echo "== the AML view sees the money arriving, not only the money leaving"
+# 016 unpivoted a trade per PARTY and assessed fiat_amount, which is the quote leg -- the currency that
+# ARRIVES. While every trader was a receiver that was right by accident. On a sell the trader is the
+# sender, so the inbound leg was not a CTR candidate at all: the view produced 198 naira rows and zero
+# cedi rows, and would have reported nothing on a trader bringing in cedi by the million.
+#
+# This trade sends G20,000 (exactly the CTR threshold) and receives N2,964,000 (under the NGN 5,000,000
+# threshold), so only the INBOUND leg can be reportable. Before this it produced no row at all.
+AML=$(sql "select create_fiat_trade('bigseller@example.com','platform',null,null,'NGN',296400000,148.2,'platform_sell','GHS','NGN','GHS');")
+# The outbound leg's own verdict depends on whether a USD rate is on file for NGN -- "unknown" without
+# one, judged against USD with one -- so asserting on it would be asserting on the suite's rate fixtures.
+# What matters is that the inbound leg is assessed AT ALL, and that it is the cedi that is reported.
+expect_eq "the inbound leg is exactly at the cedi threshold, and IS reported" \
+  "$(sql "select threshold_call from ctr_candidates where trade_id=$AML and direction='send' and fiat_asset='GHS';")" "reportable"
+expect_eq "and both legs are assessed, because a transaction reportable either way is reportable" \
+  "$(sql "select count(distinct direction) from ctr_candidates where trade_id=$AML;")" "2"
+expect_eq "the view never assesses KudiMarket's own side as a customer" \
+  "$(sql "select count(*) from ctr_candidates where trader_email='platform';")" "0"
+expect_eq "nor a leg of zero, which would flag every trade in the ledger" \
+  "$(sql "select count(*) from ctr_candidates where fiat_amount <= 0;")" "0"
+
 sql "update trade_policy set fee_bps = 0 where trade_type in ('platform_sell','platform_inventory');" >/dev/null
 
 
