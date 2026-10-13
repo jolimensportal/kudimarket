@@ -2,7 +2,8 @@
 
 **Status: this has never been done. Every database in the repository currently points at a local
 Postgres socket (`/tmp`) to a database called `kudi_dev`, and `APP_ENV=local`. There is no production
-server, no deployment, and `kudimarket.com` has no DNS. This document is a rehearsal, not a record.**
+server and no deployment. The domain `kudimarket.com` is owned (purchased 13 Oct 2026) but points
+nowhere — no DNS, no TLS. This document is a rehearsal, not a record.**
 
 This is deliberately written to be followed by a competent person who is not the author. Where it
 names a file or a setting, that is the real file or the real setting, checked while writing it.
@@ -32,8 +33,9 @@ step below. That is what this runbook is for.
 - A Linux server (any provider — this document names none, deliberately). Ubuntu 24.04 or Debian 12
   are the paths of least resistance.
 - PostgreSQL 15 or 16, running on the same server or a managed instance you control.
-- A domain you control, pointed at the server's IP. `kudimarket.com` is unregistered; if you buy it,
-  buy `kudimarket.com` plus the defensive set listed in `brand/BRAND.md` §4.
+- A domain you control, pointed at the server's IP. `kudimarket.com` is owned as of 13 Oct 2026 but
+  has no DNS yet; buy the defensive set listed in `brand/BRAND.md` §4 too, and point an A record for
+  `kudimarket.com` (and `www` if you serve it) at the server's address before running certbot.
 - This repository.
 
 ---

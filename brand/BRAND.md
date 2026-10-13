@@ -1,8 +1,8 @@
 # KudiMarket — Brand Strategy
 
-**Domain:** kudimarket.com (verified available 6 Oct 2026 — WHOIS `No match`, RDAP `404`, no DNS)
+**Domain:** kudimarket.com (registered by the owner; verified available 6 Oct 2026 — WHOIS `No match`, RDAP `404`, no DNS. Purchased 13 Oct 2026. Not yet pointed at a server, so it resolves nowhere until §8 DNS steps are done.)
 **Status:** Working brand platform. Wordmark directions delivered; final mark not yet produced.
-**Owner action required:** NIPO trademark search via accredited agent (see §8).
+**Owner action required:** Point the domain's DNS at the production server (§8); register the defensive set (§8); NIPO trademark search via accredited agent (§8).
 
 ---
 
@@ -290,8 +290,8 @@ word list lives in `kudilint/kudi.config.json`.
    Ghana was flagged during naming but could not be confirmed; search
    rate-limited. Check it directly. If a live Kudi brand holds class 36/42,
    the compound may still be distinct — but know before you commit.
-4. **Register defensively:** kudimarket.com (primary), kudimarkets.com,
-   kudi-market.com, and the .ng equivalents once you have a Ghanaian
+4. **Register defensively:** kudimarket.com (primary — **purchased 13 Oct 2026**, not yet
+   DNS-pointed), kudimarkets.com, kudi-market.com, and the .ng equivalents once you have a Ghanaian
    presence. `.ng` registry WHOIS timed out and could not be verified here.
 
 **Non-blocking but real:**
