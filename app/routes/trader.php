@@ -76,6 +76,11 @@ Route::middleware(['auth:trader', SignInAsTrader::class])
 
         // Disputing is GET to read the form and POST to file it. Deliberately no resolve route for a trader:
         // adjudication is operations' alone, and the capability is absent rather than refused.
+        //
+        // The POST is named dispute.store, not dispute. Two routes cannot share a name, and route:cache --
+        // which only ever runs on deploy -- refuses to serialise a duplicate with "Another route has already
+        // been assigned name [trade.dispute]". Tests never caught it because nothing in the suite caches
+        // routes. GET keeps the plain name so the link and the URL stay what they were.
         Route::get('/{trade}/dispute', [DisputeController::class, 'create'])->whereNumber('trade')->name('dispute');
-        Route::post('/{trade}/dispute', [DisputeController::class, 'store'])->whereNumber('trade')->name('dispute');
+        Route::post('/{trade}/dispute', [DisputeController::class, 'store'])->whereNumber('trade')->name('dispute.store');
     });

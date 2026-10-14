@@ -14,7 +14,7 @@
         who will look and then decide.
     </p>
 
-    <form method="post" action="{{ route('trade.dispute', $trade->id) }}">
+    <form method="post" action="{{ route('trade.dispute.store', $trade->id) }}">
         @csrf
 
         <label for="reason">In your own words</label>
