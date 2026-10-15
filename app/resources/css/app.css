@@ -1,9 +1,33 @@
 @import 'tailwindcss';
 
+/*
+    Order matters. Tailwind first so its preflight sits underneath, then the four layers in
+    dependency order: tokens declare the custom properties everything else reads, base applies
+    them to the document, layout builds the containers, components are the last thing to have an
+    opinion about a surface.
+*/
+@import './tokens.css';
+@import './base.css';
+@import './layout.css';
+@import './components.css';
+
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
 
 @theme {
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
+
+    /*
+        Tailwind utilities for the brand colour. These are the same hexes as the primitives in
+        tokens.css and are duplicated deliberately: @theme is evaluated at build time and cannot
+        read a custom property declared in a later import. A DesignTokensTest case keeps the two
+        lists from drifting, so a palette change lands in both or fails the suite.
+    */
+    --color-plum-900: #331931;
+    --color-plum-800: #462444;
+    --color-plum-600: #5E2D5A;
+    --color-plum-400: #743F6F;
+    --color-bone: #FCF6EE;
+    --color-paper: #FFFFFF;
 }

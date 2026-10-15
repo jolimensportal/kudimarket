@@ -146,6 +146,38 @@ class DesignTokensTest extends TestCase
         $this->assertStringContainsString('auto-fit', $css);
     }
 
+    public function test_the_tailwind_theme_does_not_drift_from_the_primitives(): void
+    {
+        // @theme is evaluated at build time and cannot read a custom property declared in a later
+        // import, so app.css necessarily repeats the brand hexes. This is the check that makes the
+        // duplication safe: if a designer changes a primitive in tokens.css and forgets the theme,
+        // a utility class would quietly render the old colour.
+        $tokens = $this->stylesheet('resources/css/tokens.css');
+        $theme = $this->stylesheet('resources/css/app.css');
+
+        preg_match_all('/--color-([a-z0-9-]+):\s*(#[0-9A-Fa-f]{6})/', $theme, $found, PREG_SET_ORDER);
+
+        $this->assertNotEmpty($found, 'app.css declares no Tailwind theme colours');
+
+        foreach ($found as [$whole, $name, $hex]) {
+            $primitive = '--'.str_replace('color-', '', $name);
+            $this->assertStringContainsString(
+                "{$primitive}: {$hex};",
+                $tokens,
+                "the Tailwind colour --color-{$name} is {$hex} but the primitive {$primitive} is not"
+            );
+        }
+    }
+
+    public function test_app_css_imports_the_four_layers(): void
+    {
+        $css = $this->stylesheet('resources/css/app.css');
+
+        foreach (['tokens.css', 'base.css', 'layout.css', 'components.css'] as $import) {
+            $this->assertStringContainsString($import, $css, "{$import} is not imported");
+        }
+    }
+
     public function test_every_declared_component_exists_and_meets_the_tap_target(): void
     {
         $css = $this->stylesheet('resources/css/components.css');
