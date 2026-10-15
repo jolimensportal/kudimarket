@@ -52,6 +52,30 @@ class ResponsiveLayoutTest extends TestCase
         $this->assertStringNotContainsString('class="container', $this->layout('trader'));
     }
 
+    public function test_the_marketing_layout_uses_the_shared_container(): void
+    {
+        $this->assertStringContainsString('class="container', $this->layout('marketing'));
+    }
+
+    public function test_the_marketing_layout_no_longer_carries_an_inline_style_block(): void
+    {
+        $this->assertDoesNotMatchRegularExpression(
+            '/<style[\s>]/i',
+            $this->withoutBladeComments($this->layout('marketing')),
+            'the marketing layout is carrying its own <style> block again'
+        );
+    }
+
+    public function test_the_printed_rate_is_no_longer_hand_stripped(): void
+    {
+        // The defect: rtrim(rtrim($rate, '0'), '.') rendered 148.20 as 148.2 and printed the inverse
+        // rate at full float length. Formatting now comes from RateFormatter, in one place.
+        $view = (string) file_get_contents(resource_path('views/public/landing.blade.php'));
+
+        $this->assertStringNotContainsString('rtrim(rtrim($rates', $view);
+        $this->assertStringContainsString('RateFormatter::format', $view);
+    }
+
     private function layout(string $name): string
     {
         $path = resource_path("views/layouts/{$name}.blade.php");
