@@ -115,4 +115,92 @@ class LandingPageTest extends TestCase
         $this->get('/')->assertRedirect(route('login'));
         $this->get('/sign-in')->assertOk()->assertSee('Sign in');
     }
+
+    public function test_the_rate_and_the_fee_are_read_from_the_ledger_not_typed_into_the_page(): void
+    {
+        // The claim on this page is that we publish our price. A price typed into a template is a claim
+        // about the past; a price read out of the rate card is a claim about now. Publish a rate and
+        // the page has to show it.
+        DB::connection('pgsql_pricing')->selectOne(
+            'select set_rate(?, ?, ?, ?) as id', ['GHS', 'NGN', '150.5', 'rates@kudimarket.com']
+        );
+
+        $this->get('/about')
+            ->assertOk()
+            ->assertSee('150.5')
+            ->assertSee('GHS to NGN');
+    }
+
+    public function test_the_fee_is_quoted_in_basis_points_not_only_as_a_percentage(): void
+    {
+        // A fee shown only as a percentage is a fee being hidden. 100 bps must appear as 100 bps.
+        DB::connection('pgsql_pricing')->selectOne(
+            'select set_commission(?, ?, ?, ?, ?) as ok',
+            ['platform_inventory', 125, 'buyer', 'rates@kudimarket.com', 'test']
+        );
+
+        $this->get('/about')->assertOk()->assertSee('125 bps')->assertSee('1.25%');
+    }
+
+    public function test_signing_up_gives_a_shareable_code_and_a_real_position(): void
+    {
+        $this->post('/about', ['email' => 'first@example.com']);
+
+        $row = DB::table('launch_signups')->where('email', 'first@example.com')->first();
+
+        $this->assertNotNull($row->referral_code);
+        // No 0/O or 1/l: these get read aloud and typed off a screenshot.
+        $this->assertDoesNotMatchRegularExpression('/[01OI]/', $row->referral_code);
+
+        $this->get('/about')
+            ->assertOk()
+            ->assertSee('You are number')
+            ->assertSee($row->referral_code);
+    }
+
+    public function test_two_people_never_get_the_same_code(): void
+    {
+        foreach (['a@example.com', 'b@example.com', 'c@example.com'] as $email) {
+            $this->post('/about', ['email' => $email]);
+        }
+
+        $codes = DB::table('launch_signups')->pluck('referral_code');
+        $this->assertSame($codes->count(), $codes->unique()->count());
+    }
+
+    public function test_a_referral_is_recorded_only_when_the_code_is_real(): void
+    {
+        $this->post('/about', ['email' => 'inviter@example.com']);
+        $code = DB::table('launch_signups')->where('email', 'inviter@example.com')->value('referral_code');
+
+        $this->post('/about', ['email' => 'friend@example.com', 'ref' => $code]);
+        // The stored value is the CODE, so it must be something that already exists in the table as
+        // somebody's referral_code -- there is no value a visitor can supply that is not.
+        $this->assertSame($code, DB::table('launch_signups')
+            ->where('email', 'friend@example.com')->value('referred_by'));
+
+        // An invented code must not inflate anybody's position. If it did, the queue on the
+        // confirmation screen would be decoration, and the queue is the one thing on this page that
+        // a trader is asked to believe.
+        $this->post('/about', ['email' => 'stranger@example.com', 'ref' => 'ZZZZZZ']);
+        $this->assertNull(DB::table('launch_signups')
+            ->where('email', 'stranger@example.com')->value('referred_by'));
+    }
+
+    public function test_the_page_shows_the_real_number_waiting_and_never_an_invented_one(): void
+    {
+        // Every teardown warns that inventing a signup count is both illegal and instantly legible.
+        // The only number that may appear is the one in the table.
+        DB::connection('pgsql_admin')->table('launch_signups')->truncate();
+        $this->get('/about')->assertOk()->assertDontSee('already on the list');
+
+        $this->post('/about', ['email' => 'only@example.com']);
+
+        // Flush the session first. Signing up flashes 'subscribed', so without this the next GET
+        // renders the confirmation screen -- which is the correct product behaviour and means this
+        // test would be asserting about the wrong page entirely.
+        $this->flushSession();
+
+        $this->get('/about')->assertOk()->assertSee('1 person is already on the list');
+    }
 }

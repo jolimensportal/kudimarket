@@ -24,7 +24,7 @@ use Illuminate\Support\Facades\Route;
  */
 Route::get('/', function () {
     if (config('kudi.launching')) {
-        return app(LandingController::class)();
+        return app(LandingController::class)(request());
     }
 
     if (Auth::guard('trader')->check()) {
