@@ -100,9 +100,13 @@ set_login_passwords() {
     printf '  %s_login: no password in .env, left for peer/socket auth\n' "$role"
     return 0
   fi
+  # Through stdin, not -c. psql documents that a -c string must be completely parsable by the server,
+  # i.e. no psql-specific features -- so :"rolename" reaches Postgres verbatim and dies on the colon.
+  # Heredoc on stdin is where psql's own quoting does its job.
   sudo -u postgres psql -q -v ON_ERROR_STOP=1 -d "$DB_ADMIN_DATABASE" \
-    --set=rolename="${role}_login" --set=pw="$value" \
-    -c "alter role :\"rolename\" with password :'pw';"
+    --set=rolename="${role}_login" --set=pw="$value" <<'SQL'
+alter role :"rolename" with password :'pw';
+SQL
   printf '  %s_login: password set\n' "$role"
 }
 set_login_passwords kudi_app     DB_PASSWORD
