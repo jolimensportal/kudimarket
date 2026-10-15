@@ -117,6 +117,21 @@ class DesignTokensTest extends TestCase
         );
     }
 
+    public function test_base_css_preserves_the_deliberate_constraints(): void
+    {
+        $css = $this->stylesheet('resources/css/base.css');
+
+        // Tabular lining figures. A rate board with proportional digits looks like a typo.
+        $this->assertStringContainsString('font-variant-numeric: tabular-nums', $css);
+
+        // Safe-area insets. A notched phone cuts into the top of the header and the bottom of the
+        // page; env() is 0 on a device with no inset, so this costs nothing on a desktop.
+        $this->assertStringContainsString('env(safe-area-inset-', $css);
+
+        // 16px base size so iOS does not zoom the viewport on focus.
+        $this->assertStringContainsString('font-size: 16px', $css);
+    }
+
     private function tokens(): string
     {
         return (string) file_get_contents(resource_path('views/partials/tokens.blade.php'));
