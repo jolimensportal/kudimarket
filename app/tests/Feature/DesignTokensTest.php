@@ -88,9 +88,46 @@ class DesignTokensTest extends TestCase
         $this->assertNotSame('', trim($tokens), 'the tokens partial must not be empty');
     }
 
+    public function test_the_three_token_layers_are_declared_in_the_stylesheet(): void
+    {
+        $css = $this->stylesheet('resources/css/tokens.css');
+
+        // Layer 1: primitives. The only values a designer edits.
+        foreach (['--plum-900', '--plum-600', '--bone', '--paper'] as $token) {
+            $this->assertStringContainsString($token.':', $css, "primitive {$token} is missing");
+        }
+
+        // Layer 2: semantic. Meaning, not colour.
+        foreach (['--ink', '--surface', '--line', '--action-primary'] as $token) {
+            $this->assertStringContainsString($token.':', $css, "semantic token {$token} is missing");
+        }
+
+        // Layer 3: component.
+        foreach (['--card-bg', '--control-height', '--tap-target'] as $token) {
+            $this->assertStringContainsString($token.':', $css, "component token {$token} is missing");
+        }
+
+        // Every semantic token must reference a primitive, never a raw hex. This is the property that
+        // makes a designer swap propagate instead of half-applying: if --ink were a literal, changing
+        // --plum-900 would leave the body text behind.
+        $this->assertStringNotContainsString(
+            '--ink: #',
+            $css,
+            '--ink must be derived from a primitive, not written as a raw hex'
+        );
+    }
+
     private function tokens(): string
     {
         return (string) file_get_contents(resource_path('views/partials/tokens.blade.php'));
+    }
+
+    private function stylesheet(string $relativePath): string
+    {
+        $path = base_path($relativePath);
+        $this->assertFileExists($path);
+
+        return (string) file_get_contents($path);
     }
 
     private function layout(string $name): string

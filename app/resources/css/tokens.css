@@ -1,0 +1,83 @@
+/*
+    The design system, in three layers.
+
+    Primitives are the only values a designer edits. Semantic tokens carry meaning and are derived
+    from primitives with color-mix(), so swapping a primitive propagates everywhere. Component tokens
+    let a component change shape without touching the palette.
+
+    The hex values here are what ship today in views/partials/tokens.blade.php. brand/BRAND.md records
+    settled green as #2F7D4F and oxblood as #822B2A, which disagrees with the shipped code. This
+    project builds on the code; the discrepancy is an owner decision recorded in the design doc and
+    is deliberately not resolved here.
+*/
+
+:root {
+    /* ── Layer 1: primitives ─────────────────────────────────────────────── */
+    --plum-900: #331931;
+    --plum-800: #462444;
+    --plum-600: #5E2D5A;
+    --plum-400: #743F6F;
+    --plum-300: #8B6187;
+    --bone: #FCF6EE;
+    --paper: #FFFFFF;
+    --green: #185B37;
+    --red: #933331;
+
+    /* ── Layer 2: semantic ───────────────────────────────────────────────── */
+    --ink: var(--plum-900);
+    --ink-mid: color-mix(in oklch, var(--plum-900) 74%, var(--bone));
+    --ink-soft: color-mix(in oklch, var(--plum-900) 52%, var(--bone));
+    --surface: var(--bone);
+    --surface-raised: var(--paper);
+    --line: color-mix(in oklch, var(--plum-900) 12%, var(--bone));
+    --focus: var(--plum-600);
+    --action-primary: var(--plum-600);
+    --action-primary-hover: var(--plum-400);
+    --action-destructive: var(--red);
+    --state-settled: var(--green);
+
+    /* ── Layer 3: component ──────────────────────────────────────────────── */
+    --card-bg: var(--surface-raised);
+    --card-border: var(--line);
+    --card-radius: 12px;
+    --control-height: 44px;
+    --control-radius: 10px;
+    --tap-target: 44px;
+
+    /* ── Type scale: font-size / line-height ─────────────────────────────── */
+    --text-2xs: 12px;   --leading-2xs: 16px;
+    --text-xs:  13px;   --leading-xs:  18px;
+    --text-sm:  14px;   --leading-sm:  20px;
+    --text-md:  16px;   --leading-md:  24px;
+    --text-lg:  18px;   --leading-lg:  26px;
+    --text-xl:  21px;   --leading-xl:  28px;
+    --text-2xl: 24px;   --leading-2xl: 32px;
+    --text-3xl: 30px;   --leading-3xl: 38px;
+    --text-4xl: 38px;   --leading-4xl: 44px;
+    --text-5xl: 48px;   --leading-5xl: 52px;
+    --text-6xl: 60px;   --leading-6xl: 60px;
+
+    /* ── Space scale ─────────────────────────────────────────────────────── */
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 24px;
+    --space-6: 32px;
+    --space-7: 48px;
+    --space-8: 64px;
+    --space-9: 96px;
+    --space-10: 128px;
+
+    /* ── Container ───────────────────────────────────────────────────────── */
+    --container-max: 1200px;
+    --container-pad: var(--space-4);
+}
+
+@media (min-width: 768px) {
+    :root { --container-pad: var(--space-5); }
+}
+
+@media (min-width: 1024px) {
+    :root { --container-pad: var(--space-6); }
+}
