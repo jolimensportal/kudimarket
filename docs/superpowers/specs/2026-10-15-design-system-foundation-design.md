@@ -230,7 +230,11 @@ These are deliberate and must survive the migration:
   A rate board with proportional digits looks like a typo.
 - **16px minimum input font size** so iOS does not zoom the viewport on focus.
 - **44×44px minimum tap target** on every interactive control.
-- **Zero webfonts.** Instrument Sans with a `system-ui` fallback stack only.
+- **One webfont, self-hosted.** Instrument Sans (400/500/600), served through
+  `laravel-vite-plugin`'s Bunny integration, with a `system-ui` fallback stack.
+  This was originally written here as "zero webfonts", which was wrong — the
+  project has always loaded Instrument Sans this way. The constraint is one
+  family, not zero.
 
 ---
 
