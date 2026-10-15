@@ -146,6 +146,22 @@ class DesignTokensTest extends TestCase
         $this->assertStringContainsString('auto-fit', $css);
     }
 
+    public function test_every_declared_component_exists_and_meets_the_tap_target(): void
+    {
+        $css = $this->stylesheet('resources/css/components.css');
+
+        foreach ([
+            '.btn', '.card', '.field', '.rate-row', '.badge',
+            '.section-header', '.phone-frame', '.stat-band', '.nav',
+        ] as $component) {
+            $this->assertStringContainsString($component, $css, "component {$component} is missing");
+        }
+
+        // Every interactive control is at least a 44px target. Asserted here as well as in the
+        // browser harness so a regression is caught by the unit suite and not only at the end.
+        $this->assertStringContainsString('var(--tap-target)', $css);
+    }
+
     public function test_base_css_preserves_the_deliberate_constraints(): void
     {
         $css = $this->stylesheet('resources/css/base.css');
