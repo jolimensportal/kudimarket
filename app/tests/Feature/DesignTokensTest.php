@@ -117,6 +117,35 @@ class DesignTokensTest extends TestCase
         );
     }
 
+    public function test_layout_css_declares_the_breakpoints_and_the_container(): void
+    {
+        $css = $this->stylesheet('resources/css/layout.css');
+
+        foreach ([640, 768, 1024, 1280, 1536] as $breakpoint) {
+            $this->assertStringContainsString(
+                "min-width: {$breakpoint}px",
+                $css,
+                "breakpoint {$breakpoint} is missing"
+            );
+        }
+
+        $this->assertStringContainsString('var(--container-max)', $css);
+        $this->assertStringContainsString('var(--container-pad)', $css);
+    }
+
+    public function test_layout_css_defines_the_three_grid_primitives(): void
+    {
+        $css = $this->stylesheet('resources/css/layout.css');
+
+        $this->assertStringContainsString('.stack', $css);
+        $this->assertStringContainsString('.grid-auto', $css);
+        $this->assertStringContainsString('.split', $css);
+
+        // auto-fit, not a fixed column count: a fixed count is what produced the phone page on a
+        // desktop, because it could not adapt to a wider canvas.
+        $this->assertStringContainsString('auto-fit', $css);
+    }
+
     public function test_base_css_preserves_the_deliberate_constraints(): void
     {
         $css = $this->stylesheet('resources/css/base.css');

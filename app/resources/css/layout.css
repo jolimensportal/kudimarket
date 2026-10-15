@@ -1,0 +1,91 @@
+/*
+    Layout. This is what was missing.
+
+    The trader layout capped its content at 720px and defined no desktop breakpoint, so a desktop
+    browser received a phone page with empty margins either side of it. The fix is not a wider
+    number; it is a container that has behaviour at every width, and a rule that nothing is capped
+    below lg.
+
+    Breakpoints: sm 640 · md 768 · lg 1024 · xl 1280 · 2xl 1536.
+    Container: full width below md, 24px pad at md, centred with a real max-width at lg and above.
+    Container max: 1120px at lg, 1200px at xl and above.
+*/
+
+.container {
+    width: 100%;
+    margin-inline: auto;
+    padding-inline: var(--container-pad);
+    max-width: var(--container-max);
+}
+
+/* md: the pad opens up. Full width, because below lg the layout is still one column and a
+   max-width would only centre a phone page on a wide screen. */
+@media (min-width: 768px) {
+    .container { padding-inline: var(--space-5); }
+}
+
+/* lg: the first release of the cap. Before this the trader layout was capped at 720px at every
+   width, which is the whole defect. */
+@media (min-width: 1024px) {
+    .container { max-width: 1120px; }
+}
+
+@media (min-width: 1280px) {
+    .container { max-width: 1200px; }
+}
+
+/* 2xl: hold the measure. Past about 1300px a longer line is not more readable, it is more scanning. */
+@media (min-width: 1536px) {
+    .container { max-width: 1200px; }
+}
+
+/* sm: two-up for a stat pair, which is the narrowest thing that benefits from side-by-side. */
+@media (min-width: 640px) {
+    .grid-auto.pair { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/*
+    The three grid primitives. Layout never relies on inline-flow siblings, because a run of
+    siblings collapses the moment content is reordered, and a drag-reorder edit should not need the
+    stylesheet rewritten with it.
+*/
+
+.stack {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+}
+
+.grid-auto {
+    display: grid;
+    gap: var(--space-4);
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+}
+
+.split {
+    display: grid;
+    gap: var(--space-6);
+}
+
+@media (min-width: 1024px) {
+    .split {
+        grid-template-columns: 1fr 400px;
+        gap: var(--space-8);
+    }
+}
+
+/*
+    Reading column. Used by the trader app at lg so a rate row or a trade summary still reads
+    instead of stretching the length of a 1440px screen. It is released below lg, which is the rule
+    that the old 720px cap broke.
+*/
+
+.read-col {
+    width: 100%;
+    margin-inline: auto;
+    max-width: 100%;
+}
+
+@media (min-width: 1024px) {
+    .read-col { max-width: 880px; }
+}
