@@ -49,3 +49,7 @@ kudi-core/pg.log
 
 # Session scratch from the brainstorming tool, not part of the product.
 .superpowers/
+
+# Isolated workspaces. A worktree is a full checkout of the repo inside the repo, so without this a
+# git status from the main checkout reports the entire worktree as untracked files.
+.worktrees/
