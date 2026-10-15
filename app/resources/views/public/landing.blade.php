@@ -30,9 +30,20 @@
     @if (session('subscribed'))
         @include('public.partials.confirmation')
     @else
-        {{-- ─── Hero ────────────────────────────────────────────────────────────────
-             Split on desktop, stacked on mobile with the proof screen BELOW the field, because
-             on a 390px phone the ask has to come before the evidence or people never scroll. --}}
+        {{-- ─── Hero ───────────────────────────────────────────────────────────────
+             SCREEN 1, under review. Nothing here has been deployed.
+
+             The tagline stays. "Your market. Your rate." is a decision that was made, defended
+             against fifteen candidates and restored on purpose -- brand/BRAND.md section 3 keeps
+             the rejected alternatives and the trade-off on the record. It is not a placeholder and
+             it is not mine to replace. What follows it is the concrete claim: we are the
+             counterparty, not a matching board, so nothing waits on a stranger.
+
+             The three doors are the first real piece of navigation on the page. Every teardown
+             said the waitlist page has one job, and a trader arriving cold does not yet know
+             which job that is -- so they are given the choice in their own words, before any
+             evidence. Stacked rules, not a card grid: a card grid reads as features, and these
+             are not features, they are the three reasons people arrive. --}}
         <section class="hero">
             <div class="hero-copy">
                 <p class="status"><span class="dot"></span>Not open yet</p>
@@ -40,16 +51,22 @@
                 <h1>Your market.<br>Your rate.</h1>
 
                 <p class="lead">
-                    List your naira, name your cedi. KudiMarket holds the money in escrow
-                    and releases it only when you say so.
+                    You send your side, we send ours. That is why it is instant —
+                    you are never waiting for a stranger to turn up.
                 </p>
+
+                <nav class="doors" aria-label="What brings you here">
+                    <a href="#send"><span class="n">01</span> I am sending money</a>
+                    <a href="#earn"><span class="n">02</span> I want to earn on my money</a>
+                    <a href="#trust"><span class="n">03</span> I do not trust apps that took my money</a>
+                </nav>
 
                 <form method="post" action="{{ route('landing.subscribe') }}" class="signup" novalidate>
                     @csrf
                     @if ($referrer)
                         <input type="hidden" name="ref" value="{{ request()->query('ref') }}">
                     @endif
-                    <label for="email">Get told when we open</label>
+                    <label for="email">Tell us when we open</label>
                     <div class="row">
                         <input type="email" id="email" name="email" value="{{ old('email') }}"
                                placeholder="you@example.com" autocomplete="email" required
@@ -59,19 +76,19 @@
                     @error('email')
                         <p class="err" id="email-error" role="alert">{{ $message }}</p>
                     @enderror
-                    <p class="help" id="email-help">
-                        One email, when we open. No follow-up sequence.
-                        @if ($waiting > 0)
-                            <strong>{{ $waiting }} {{ Str::plural('person', $waiting) }} {{ Str::plural('is', $waiting) }} already on the list.</strong>
-                        @endif
+                    <p class="help" id="email-help">One email, when we open. No sequence.</p>
+                    <p class="alt">
+                        No email?
+                        <a href="{{ $waLink ?? '#' }}" rel="noopener">WhatsApp us</a>
+                        <span aria-hidden="true">·</span>
+                        <a href="{{ $tgLink ?? '#' }}" rel="noopener">Telegram</a>
                     </p>
                 </form>
             </div>
 
-            {{-- The real application, photographed. Nothing on this page is drawn. --}}
             <div class="hero-shot">
                 <img src="{{ asset('img/landing/board.png') }}" width="780" height="1688"
-                     alt="The KudiMarket rate board on a phone: cedi and naira, our published rate, and the buttons to buy from us or sell to us."
+                     alt="The KudiMarket board on a phone: cedi and naira, the published rate, and the buttons to buy from us or sell to us."
                      fetchpriority="high" decoding="async">
                 <p class="shot-cap">The board, on a phone, running now.</p>
             </div>

@@ -75,6 +75,27 @@
 
         .hero .lead { margin-top: 20px; max-width: 27em; }
 
+        /* ── Three doors ──────────────────────────────────────────────────────
+           Stacked rules, not a card grid. A card grid reads as a feature row; these
+           are the three reasons somebody arrives, and they are the page's only real
+           navigation. Touch targets stay at 44px+ because most of this traffic is a
+           thumb on a budget Android. */
+        .doors { margin-top: 30px; border-top: 1px solid var(--line); max-width: 30em; }
+        .doors a {
+            display: flex; align-items: baseline; gap: 14px;
+            padding: 15px 2px; min-height: 48px;
+            border-bottom: 1px solid var(--line);
+            font-size: clamp(16px, 2.2vw, 18px); font-weight: 600; letter-spacing: -0.01em;
+            color: var(--ink); text-decoration: none;
+        }
+        .doors a:hover { color: var(--plum-600); }
+        .doors a:focus-visible { outline: 2px solid var(--plum-400); outline-offset: 2px; }
+        .doors .n { font-variant-numeric: tabular-nums; font-size: 13px; font-weight: 700; color: var(--plum-300); }
+
+        .alt { font-size: 14px; color: var(--ink-soft); margin-top: 14px; }
+        .alt a { color: var(--plum-600); }
+        .alt span { margin: 0 6px; color: var(--line); }
+
         /* ── Signup ─────────────────────────────────────────────────────────── */
         .signup, .closer form { margin-top: 30px; }
         label { display: block; font-size: 14px; font-weight: 700; margin-bottom: 10px; letter-spacing: 0.005em; }
@@ -184,9 +205,6 @@
     <div class="wrap">
         <header class="top">
             <a class="mark" href="{{ route('landing') }}"><b>kudi</b>market</a>
-            @unless (session('subscribed'))
-                <span class="status"><span class="dot"></span>Not open yet</span>
-            @endunless
         </header>
 
         @yield('content')
