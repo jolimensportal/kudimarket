@@ -18,34 +18,42 @@ use Tests\TestCase;
  * This closes that direction: a token that is read but not defined is an error, not a fallback.
  *
  * The tokens moved out of layouts/trader.blade.php into partials/tokens.blade.php when the public
- * landing page needed the same palette and a second copy would have drifted. Both files are read here,
- * because both ship the same rules -- which is exactly the pair that must be checked together.
+ * landing page needed the same palette and a second copy would have drifted. Both files were read
+ * here, because both shipped the same rules -- which is exactly the pair that must be checked
+ * together. They have since moved again, into resources/css/. The check did not change; only the
+ * source it reads did. A token that is used but never defined is still an error, not a fallback.
  */
 class DesignTokensTest extends TestCase
 {
-    public function test_the_trader_layout_declares_every_token_it_uses(): void
+    /**
+     * Every stylesheet the design system serves, concatenated.
+     *
+     * The used-but-undeclared check is only meaningful if it reads everything that can reference a
+     * token. Reading one file would pass while a different file names a token that does not exist.
+     */
+    private function allCss(): string
     {
-        $css = $this->tokens().' '.$this->layout('trader');
+        $css = '';
 
-        $missing = array_values(array_unique(array_diff(
-            $this->usedIn($css),
-            $this->declaredIn($css)
-        )));
+        foreach ([
+            'resources/css/tokens.css',
+            'resources/css/base.css',
+            'resources/css/layout.css',
+            'resources/css/components.css',
+            'resources/css/trader.css',
+            'resources/css/marketing.css',
+        ] as $sheet) {
+            $path = base_path($sheet);
+            $this->assertFileExists($path, "{$sheet} is missing");
+            $css .= ' '.file_get_contents($path);
+        }
 
-        $this->assertSame(
-            [],
-            $missing,
-            'these tokens are used in the trader layout but never declared, so they resolve to nothing: '
-                .implode(', ', $missing)
-        );
+        return $css;
     }
 
-    public function test_the_marketing_layout_declares_every_token_it_uses(): void
+    public function test_every_stylesheet_declares_every_token_it_uses(): void
     {
-        // Same rule for the public page. It was added after the original test existed and shipped with
-        // a missing token of its own, which is the argument for making the check a loop rather than a
-        // single hand-picked file.
-        $css = $this->tokens().' '.$this->layout('marketing');
+        $css = $this->allCss();
 
         $missing = array_values(array_unique(array_diff(
             $this->usedIn($css),
@@ -55,7 +63,7 @@ class DesignTokensTest extends TestCase
         $this->assertSame(
             [],
             $missing,
-            'these tokens are used in the marketing layout but never declared, so they resolve to nothing: '
+            'these tokens are used but never declared, so they resolve to nothing: '
                 .implode(', ', $missing)
         );
     }
@@ -63,7 +71,7 @@ class DesignTokensTest extends TestCase
     public function test_the_laid_out_colours_are_the_locked_brand_palette(): void
     {
         // The locked palette, spelled out so a well-meaning change to the CSS has to argue with it.
-        $css = $this->tokens();
+        $css = $this->stylesheet('resources/css/tokens.css');
 
         foreach (['#331931', '#5E2D5A', '#FCF6EE', '#185B37', '#933331'] as $locked) {
             $this->assertStringContainsStringIgnoringCase($locked, $css);
@@ -72,20 +80,39 @@ class DesignTokensTest extends TestCase
 
     public function test_a_token_is_defined_in_one_place(): void
     {
-        // The whole reason the tokens were extracted. Two copies of a palette is one copy waiting to
-        // disagree with the other, and the disagreement is invisible until a page renders wrong.
-        $tokens = $this->tokens();
-        $layouts = $this->layout('trader').' '.$this->layout('marketing');
+        // The whole reason the tokens were extracted, and the reason they were moved to a
+        // stylesheet. Two copies of a palette is one copy waiting to disagree with the other, and the
+        // disagreement is invisible until a page renders wrong.
+        //
+        // This used to check the two Blade layouts. The layouts no longer carry CSS, so the check now
+        // asks a stronger question: the only stylesheet allowed to declare a custom property is
+        // tokens.css. Every other sheet may use them and may define its own selectors, but a second
+        // --plum-600 anywhere else is a palette that will drift.
+        $allowed = ['tokens.css'];
 
-        preg_match_all('/^\s*(--[a-z0-9-]+)\s*:/mi', $layouts, $inLayouts);
+        foreach ([
+            'base.css', 'layout.css', 'components.css', 'trader.css', 'marketing.css',
+        ] as $sheet) {
+            $css = $this->stylesheet("resources/css/{$sheet}");
 
-        $this->assertSame(
-            [],
-            array_values(array_unique($inLayouts[1])),
-            'tokens are declared in a layout; they belong in partials/tokens.blade.php'
+            // Strip comments first: these stylesheets explain the token architecture in prose, and
+            // that prose necessarily contains token names.
+            $css = (string) preg_replace('!/\*.*?\*/!s', '', $css);
+
+            preg_match_all('/^\s*(--[a-z0-9-]+)\s*:/mi', $css, $declared);
+
+            $this->assertSame(
+                [],
+                array_values(array_unique($declared[1])),
+                "tokens are declared in {$sheet}; they belong in tokens.css"
+            );
+        }
+
+        $this->assertNotSame(
+            '',
+            trim($this->stylesheet('resources/css/tokens.css')),
+            'tokens.css must not be empty'
         );
-
-        $this->assertNotSame('', trim($tokens), 'the tokens partial must not be empty');
     }
 
     public function test_the_three_token_layers_are_declared_in_the_stylesheet(): void
@@ -209,22 +236,12 @@ class DesignTokensTest extends TestCase
         $this->assertStringContainsString('font-size: 16px', $css);
     }
 
-    private function tokens(): string
-    {
-        return (string) file_get_contents(resource_path('views/partials/tokens.blade.php'));
-    }
-
     private function stylesheet(string $relativePath): string
     {
         $path = base_path($relativePath);
         $this->assertFileExists($path);
 
         return (string) file_get_contents($path);
-    }
-
-    private function layout(string $name): string
-    {
-        return (string) file_get_contents(resource_path("views/layouts/{$name}.blade.php"));
     }
 
     /** @return list<string> */

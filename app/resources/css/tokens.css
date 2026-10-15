@@ -5,10 +5,10 @@
     from primitives with color-mix(), so swapping a primitive propagates everywhere. Component tokens
     let a component change shape without touching the palette.
 
-    The hex values here are what ship today in views/partials/tokens.blade.php. brand/BRAND.md records
-    settled green as #2F7D4F and oxblood as #822B2A, which disagrees with the shipped code. This
-    project builds on the code; the discrepancy is an owner decision recorded in the design doc and
-    is deliberately not resolved here.
+    The hex values here are what shipped in the now-deleted views/partials/tokens.blade.php.
+    brand/BRAND.md records settled green as #2F7D4F and oxblood as #822B2A, which disagrees with the
+    shipped code. This project builds on the code; the discrepancy is an owner decision recorded in
+    the design doc and is deliberately not resolved here.
 */
 
 :root {
