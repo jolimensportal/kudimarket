@@ -46,3 +46,6 @@ kudi-core/pg.log
 # this is here so that copying one in by accident cannot stage it.
 *.pem
 *.key
+
+# Session scratch from the brainstorming tool, not part of the product.
+.superpowers/
