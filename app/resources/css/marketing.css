@@ -20,7 +20,14 @@
         h2 { font-size: clamp(25px, 4.4vw, 38px); line-height: 1.12; letter-spacing: -0.025em; font-weight: 800; text-wrap: balance; }
         .lead { font-size: clamp(17px, 2.2vw, 20px); color: var(--ink-mid); text-wrap: pretty; }
 
-        .mark { font-size: 21px; letter-spacing: -0.015em; text-decoration: none; color: var(--ink); }
+        /* The wordmark is the only navigation on this page, so it is a tap target and not decoration:
+           44px, or it is a 33px link that a thumb can miss. */
+        .mark {
+            display: inline-flex;
+            align-items: center;
+            min-height: var(--tap-target);
+            font-size: 21px; letter-spacing: -0.015em; text-decoration: none; color: var(--ink);
+        }
         .mark b { font-weight: 800; color: var(--plum-600); }
 
         .top {

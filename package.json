@@ -8,7 +8,15 @@
     "lint:rules": "node kudilint/kudilint.mjs --rules",
     "prepare": "husky || true"
   },
+  "scripts": {
+    "lint:design": "node kudilint/kudilint.mjs .",
+    "audit:palette": "node kudilint/kudilint.mjs --audit",
+    "lint:rules": "node kudilint/kudilint.mjs --rules",
+    "visual": "node scripts/visual-check.mjs",
+    "prepare": "husky || true"
+  },
   "devDependencies": {
-    "husky": "^9.1.0"
+    "husky": "^9.1.0",
+    "playwright-core": "^1.56.0"
   }
 }
