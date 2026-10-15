@@ -24,6 +24,12 @@ class LandingPageTest extends TestCase
         parent::setUp();
 
         Config::set('kudi.launching', true);
+
+        // launch_signups is created by a Laravel migration, not by kudi-core, so the SQL rebuild that
+        // precedes this suite does not clear it and rows survive from run to run. The assertions
+        // below count real rows -- "1 person is already on the list" is a claim about the database,
+        // not a string -- so they can only be deterministic from an empty table.
+        DB::table('launch_signups')->delete();
     }
 
     public function test_the_root_serves_the_landing_page_while_launching(): void

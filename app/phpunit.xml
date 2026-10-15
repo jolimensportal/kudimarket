@@ -77,6 +77,16 @@
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
         <env name="SESSION_COOKIE" value="kudi-test-session"/>
+
+        <!--
+            The launching switch, pinned. Without this the suite inherits whatever the developer's
+            .env says, and RootRedirectTest, which asserts that / redirects a signed-out trader to
+            sign-in, silently fails for anyone whose local .env carries KUDI_LAUNCHING=true. The
+            test was not wrong; the harness was reading an unversioned file. force="true" because a
+            real environment variable of the same name would otherwise win over the default.
+        -->
+        <env name="KUDI_LAUNCHING" value="false" force="true"/>
+
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>

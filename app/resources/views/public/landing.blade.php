@@ -76,7 +76,12 @@
                     @error('email')
                         <p class="err" id="email-error" role="alert">{{ $message }}</p>
                     @enderror
-                    <p class="help" id="email-help">One email, when we open. No sequence.</p>
+                    <p class="help" id="email-help">
+                        One email, when we open. No sequence.
+                        @if ($waiting > 0)
+                            <strong>{{ $waiting }} {{ Str::plural('person', $waiting) }} {{ Str::plural('is', $waiting) }} already on the list.</strong>
+                        @endif
+                    </p>
                     <p class="alt">
                         No email?
                         <a href="{{ $waLink ?? '#' }}" rel="noopener">WhatsApp us</a>
