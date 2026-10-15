@@ -8,21 +8,9 @@
          a stylesheet that 404s on a bad connection is a page that arrives unstyled with the numbers
          still on it. Tailwind comes later, with the rest of the app, once there is a Vite build. --}}
     <style>
-        :root {
-            --plum-900: #331931;
-            --plum-800: #462444;
-            --plum-600: #5E2D5A;
-            --plum-400: #743F6F;
-            --plum-300: #8B6187;
-            --bone: #FCF6EE;
-            --paper: #FFFFFF;
-            --green: #185B37;
-            --red: #933331;
-            --ink: var(--plum-900);
-            --ink-mid: color-mix(in oklch, var(--plum-900) 74%, var(--bone));
-            --ink-soft: color-mix(in oklch, var(--plum-900) 52%, var(--bone));
-            --line: color-mix(in oklch, var(--plum-900) 12%, var(--bone));
-        }
+        {{-- The tokens live in one file so the public landing page shares them instead of keeping a
+             second copy that drifts. Do not paste them back in here. --}}
+        @include('partials.tokens')
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
 

@@ -42,3 +42,7 @@ kudi-core/pg.log
 
 # macOS
 .DS_Store
+# Never commit a private key. The live one lives in ~/.ssh/KudiMarket.pem, outside the repo;
+# this is here so that copying one in by accident cannot stage it.
+*.pem
+*.key
