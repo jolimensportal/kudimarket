@@ -77,6 +77,41 @@ step "Running migrations (the one step that runs as the kudi superuser)"
 # That guard is tested by tests/Feature/SeedDataProductionGuardTest.php.
 (cd "$APP" && APP_ENV=production APP_DEBUG=false php artisan migrate --force --no-interaction --database=pgsql_admin)
 
+step "Setting the login role passwords"
+# 2026_01_01_000200 creates the login roles as `create role kudi_ops_login login;` -- with NO password.
+# That is correct when the app connects over the local socket as the postgres OS user, and useless the
+# moment it connects over TCP as a login role, which is what a real deployment does. Nothing else in
+# this script set them, so every pgsql_app/pgsql_trader/pgsql_pricing/pgsql_ops connection died with
+# "password authentication failed for user kudi_ops_login" and preflight reported it as five separate
+# failures -- three of which ("a rate is published", "a commission is set") have nothing to do with the
+# thing actually broken.
+#
+# The passwords come from the DB_*_PASSWORD values already in .env. They are read with grep/cut and
+# passed to psql through --set, never echoed, never on a command line (where `ps` would show them).
+# psql's :'var' quotes the value as a SQL literal, so a password containing a quote is escaped rather
+# than breaking the statement.
+#
+# An empty password is left alone: the runbook allows peer/socket auth for a Postgres on the same host,
+# and silently setting an empty password here would turn that into "no password can ever log in".
+set_login_passwords() {
+  local role="$1" key="$2" value
+  value="$(grep -E "^${key}=" "$APP_ENV_FILE" | cut -d= -f2- | tr -d '"' || true)"
+  if [ -z "$value" ]; then
+    printf '  %s_login: no password in .env, left for peer/socket auth\n' "$role"
+    return 0
+  fi
+  sudo -u postgres psql -q -v ON_ERROR_STOP=1 -d "$DB_ADMIN_DATABASE" \
+    --set=rolename="${role}_login" --set=pw="$value" \
+    -c "alter role :\"rolename\" with password :'pw';"
+  printf '  %s_login: password set\n' "$role"
+}
+set_login_passwords kudi_app     DB_PASSWORD
+set_login_passwords kudi_trader  DB_TRADER_PASSWORD
+set_login_passwords kudi_pricing DB_PRICING_PASSWORD
+set_login_passwords kudi_ops     DB_OPS_PASSWORD
+# kudi_chain is deliberately absent: config/database.php defines no pgsql_chain connection, because the
+# chain watcher is not wired into the application yet. When it is, add the key here in the same way.
+
 step "Caching config and routes"
 (cd "$APP" && php artisan config:cache && php artisan route:cache)
 
