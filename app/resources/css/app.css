@@ -10,6 +10,7 @@
 @import './base.css';
 @import './layout.css';
 @import './components.css';
+@import './trader.css';
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
