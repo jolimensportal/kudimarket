@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Support\MoneyFormatter;
+use App\Support\RateFormatter;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -25,8 +27,14 @@ final class LandingController extends Controller
 {
     public function __invoke(Request $request): View
     {
+        // Read once and reuse. The worked example is derived from the same rate card as the hero card,
+        // and two queries against the same table on a page whose whole claim is that its numbers are
+        // live is a way to show a rate and an example that disagree.
+        $rates = $this->publishedRates();
+
         return view('public.landing', [
-            'rates' => $this->publishedRates(),
+            'rates' => $rates,
+            'example' => $this->workedExample($rates),
             'feeBps' => $this->publishedFee(),
             'waiting' => $this->waiting(),
             'referrer' => $this->validReferralCode($request->query('ref')),
@@ -117,6 +125,33 @@ final class LandingController extends Controller
         }
 
         return $out;
+    }
+
+    /**
+     * A worked example at the live rate, or null when no GHS/NGN rate is published.
+     *
+     * Computed here rather than typed into the template. A sender wants to see their own transaction
+     * rather than three abstract rates, and the moment anyone hard-codes 14,820 the page carries a
+     * number that is not the real number -- which is the single thing this page is built to avoid.
+     *
+     * @param  array<string, string>  $rates
+     * @return array{send: string, receive: string, rate: string}|null
+     */
+    private function workedExample(array $rates): ?array
+    {
+        $rate = $rates['GHS/NGN'] ?? null;
+
+        if ($rate === null) {
+            return null;
+        }
+
+        $send = 100.0;
+
+        return [
+            'send' => MoneyFormatter::format($send),
+            'receive' => MoneyFormatter::format($send * (float) $rate),
+            'rate' => RateFormatter::format($rate),
+        ];
     }
 
     /** The commission actually set, in basis points, or null. */

@@ -52,7 +52,7 @@ class LandingPageTest extends TestCase
     {
         $response = $this->get('/about')->assertOk();
 
-        $response->assertSee('Escrow you can see.');
+        $response->assertSee('Cash in hand, the same day.');
         $response->assertSee('Nobody touches your money until you say so.');
         $response->assertSee('The rate you agreed is the rate you get.');
 
@@ -60,6 +60,14 @@ class LandingPageTest extends TestCase
         // do are the failure mode, and this page is the first thing a regulator, a bank or a
         // journalist will read.
         foreach (['seamless', 'revolutionary', 'cutting-edge', 'world-class', 'bank-grade', 'best-in-class'] as $word) {
+            $response->assertDontSee($word, false);
+        }
+
+        // Escrow, offers and trading are cut from this page because the business is a remittance
+        // company, and BRAND.md section 0 retires escrow explicitly: the business moves money, it does
+        // not hold it on the customer's behalf. Without this, the exchange would creep back into a
+        // remittance page one noun at a time, which is exactly how it got there.
+        foreach (['escrow', 'trade', 'offer'] as $word) {
             $response->assertDontSee($word, false);
         }
     }
@@ -133,8 +141,11 @@ class LandingPageTest extends TestCase
 
         $this->get('/about')
             ->assertOk()
-            ->assertSee('150.5')
-            ->assertSee('GHS to NGN');
+            ->assertSee('150.50')
+            // The pair is labelled with an arrow in the rate card rather than the words "to", so the
+            // assertion follows the presentation. The intent is unchanged: publishing a rate must
+            // make it appear on the page, labelled with the pair it belongs to.
+            ->assertSee('GHS &rarr; NGN', false);
     }
 
     public function test_the_fee_is_quoted_in_basis_points_not_only_as_a_percentage(): void
@@ -191,6 +202,30 @@ class LandingPageTest extends TestCase
         $this->post('/about', ['email' => 'stranger@example.com', 'ref' => 'ZZZZZZ']);
         $this->assertNull(DB::table('launch_signups')
             ->where('email', 'stranger@example.com')->value('referred_by'));
+    }
+
+    public function test_the_worked_example_is_computed_from_the_live_rate_not_hard_coded(): void
+    {
+        DB::connection('pgsql_pricing')->selectOne(
+            'select set_rate(?, ?, ?, ?) as id', ['GHS', 'NGN', '150.5', 'rates@kudimarket.com']
+        );
+
+        // 100 GHS at 150.5 is 15,050 NGN. If the page ever shows a figure that was typed into the
+        // template rather than multiplied out of the rate card, this fails.
+        $this->get('/about')
+            ->assertOk()
+            ->assertSee('15,050.00');
+
+        // And the rate moves, so the example moves with it. A worked example frozen at one number is
+        // the exact lie this page exists not to tell.
+        DB::connection('pgsql_pricing')->selectOne(
+            'select set_rate(?, ?, ?, ?) as id', ['GHS', 'NGN', '200', 'rates@kudimarket.com']
+        );
+
+        $this->get('/about')
+            ->assertOk()
+            ->assertSee('20,000.00')
+            ->assertDontSee('15,050.00');
     }
 
     public function test_the_page_shows_the_real_number_waiting_and_never_an_invented_one(): void
