@@ -116,6 +116,13 @@ set_login_passwords kudi_ops     DB_OPS_PASSWORD
 # kudi_chain is deliberately absent: config/database.php defines no pgsql_chain connection, because the
 # chain watcher is not wired into the application yet. When it is, add the key here in the same way.
 
+step "Building front-end assets"
+# The layouts load their CSS through @vite, so a deploy without a build leaves the manifest missing
+# and every page 500s with ViteManifestNotFoundException. This was not needed while the styles were
+# inline in the layout, which is exactly why it is easy to forget now.
+(cd "$APP" && npm ci --omit=dev=false >/dev/null 2>&1 || npm install >/dev/null)
+(cd "$APP" && npm run build)
+
 step "Caching config and routes"
 (cd "$APP" && php artisan config:cache && php artisan route:cache)
 
