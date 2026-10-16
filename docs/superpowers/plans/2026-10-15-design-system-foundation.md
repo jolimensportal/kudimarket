@@ -24,9 +24,14 @@ bash scripts/test.sh
 For a fast single-file loop against a freshly-rebuilt DB:
 
 ```bash
-cd /Users/macbookpro/Desktop/kudimarket/kudi-core && bash run_tests.sh   # rebuild kudi_test
-cd /Users/macbookpro/Desktop/kudimarket/app && php artisan test --filter=DesignTokensTest
+cd /Users/macbookpro/Desktop/kudimarket/kudi-core
+PGHOST=/tmp PGPORT=5433 PGUSER=kudi bash run_tests.sh   # rebuild kudi_test
+cd ../app && php artisan test --filter=DesignTokensTest
 ```
+
+> `run_tests.sh` needs `PGHOST`/`PGPORT`/`PGUSER`. Run bare, it connects to the wrong cluster and
+> `psql` blocks on a password prompt, which looks exactly like a hung test suite. `scripts/test.sh`
+> exports them; if you call `run_tests.sh` directly, export them yourself.
 
 Design lint (palette lock) runs as part of `scripts/test.sh` and can be run alone:
 
