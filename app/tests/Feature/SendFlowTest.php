@@ -309,6 +309,22 @@ final class SendFlowTest extends TestCase
         );
     }
 
+    /**
+     * The form must RENDER with an amount in it.
+     *
+     * Every other test here posts a send rather than loading the form, so the one screen a sender
+     * actually opens was never rendered by any test in this file -- and it 500'd the moment an amount was
+     * entered, because quote() called a formatter class that does not exist. Ten passing tests and a
+     * broken product entry point.
+     */
+    public function test_the_send_form_renders_with_an_amount_entered(): void
+    {
+        $this->actingAs($this->trader('form'))
+            ->get('/trade/send?amount=250')
+            ->assertOk()
+            ->assertSee('NGN');
+    }
+
     public function test_the_send_screen_says_nothing_about_the_old_exchange(): void
     {
         $trader = $this->trader('send-copy');

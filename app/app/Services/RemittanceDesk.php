@@ -56,7 +56,12 @@ final class RemittanceDesk
             // The direct rate only. A sender in Ghana wants "one cedi is X naira", which is the
             // forward pair; the inverse is what the Nigeria-facing side reads, and it is on the card
             // in the other direction rather than derived here.
-            'rate' => RateFormatter::format($published->rate),
+            // RateBoard::formatRate, not a RateFormatter that does not exist. Nothing referenced this
+            // path until now: SendFlowTest POSTED a send rather than loading the form, so the one screen
+            // a sender actually opens was never rendered by a test, and it 500'd on any amount. RateBoard
+            // already formats rates for the board and the trade screen; a second formatter here is how
+            // three places end up disagreeing about the same number.
+            'rate' => RateBoard::formatRate($published->rate),
         ];
     }
 

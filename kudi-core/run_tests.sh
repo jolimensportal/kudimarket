@@ -212,12 +212,30 @@ expect_fail "vendor: immediate release is refused"   "$(sql "select transition_t
 # time -- a sleep guarantees it; a fast machine does not.
 sql "update trade_policy set claim_window = '2 seconds' where trade_type = 'p2p';" >/dev/null
 sql "update trade_policy set claim_window = '5 seconds' where trade_type = 'vendor_vendor';" >/dev/null
+
+# A trade of its OWN for the timed half, attested on the line above the first sleep.
+#
+# $V was attested twenty lines and a dozen psql round-trips earlier, and the window runs from
+# attested_at -- not from the sleep. So "still closed at 2.6s" was really asserting "less than five
+# seconds of wall clock has passed since I attested it", which only holds on an idle machine. On a
+# loaded one the five seconds were already gone before the first sleep, the release succeeded, and the
+# test failed for being slow. A fresh trade puts the window's start at a known point, which is the thing
+# the test is actually about.
+# Its own funded accounts. wv1/wv2 cannot be reused: their deposits are already committed to $V, so the
+# escrow leg fails, `tt` swallows the error, and the trade sits in `open` -- which is a different test
+# failing for an unrelated reason.
+sql "select ledger_deposit('wv4','USDT',2000,'dwv4'); select ledger_deposit('wv5','USDT',2000,'dwv5');" >/dev/null
+TV=$(sql "select create_trade('wv4','wv5','USDT',1000,'vendor_vendor');")
+# Actors are wv4/wv5 -- this trade's parties. `tt` throws the output away, so a wrong actor here does
+# not fail loudly; the trade silently stays in `open` and the release test fails twenty lines later for
+# a reason that has nothing to do with the claim window.
+tt $TV open escrowed wvw1 wv4; tt $TV escrowed paid_claimed wvw2 wv5; tt $TV paid_claimed paid_attested wvw3 wv4
 expect_eq   "platform: zero window releases at once" "$(sql "select transition_trade($F,'paid_attested','released','wr3','system'); select state from trade where id=$F;" | tail -1)" "released"
 sleep 2.6
 expect_eq   "p2p: releases after its 2s window"      "$(sql "select transition_trade($P,'paid_attested','released','wr4','system'); select state from trade where id=$P;" | tail -1)" "released"
-expect_fail "vendor: still closed at 2.6s (needs 5s)" "$(sql "select transition_trade($V,'paid_attested','released','wr5','system');")" "claim window open"
+expect_fail "vendor: still closed at 2.6s (needs 5s)" "$(sql "select transition_trade($TV,'paid_attested','released','wr5','system');")" "claim window open"
 sleep 2.8
-expect_eq   "vendor: releases after its 5s window"   "$(sql "select transition_trade($V,'paid_attested','released','wr6','system'); select state from trade where id=$V;" | tail -1)" "released"
+expect_eq   "vendor: releases after its 5s window"   "$(sql "select transition_trade($TV,'paid_attested','released','wr6','system'); select state from trade where id=$TV;" | tail -1)" "released"
 expect_fail "the release job must identify as system" "$(sql "select transition_trade($V,'paid_attested','released','wr7','alice');")" "not in state\|system step"
 
 

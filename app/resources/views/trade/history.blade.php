@@ -5,7 +5,7 @@
 @section('content')
     <p><a class="standalone-link" href="{{ route('trade.board') }}">&larr; Rates</a></p>
 
-    <h1>Your trades</h1>
+    <h1>Your sends and trades</h1>
 
     {{--
         WHERE THIS LIST COMES FROM. Nothing here reads a name out of a query string. TradeLedger::mine()
@@ -14,6 +14,34 @@
         my_trade_counts() rest on (kudi-core/015, /019). The alternative, an email passed in as an
         argument, is the whole vulnerability 015 exists to remove.
     --}}
+    {{-- Sends first, because they are what this product is for. A send is a trade row underneath --
+         same table, same state chain -- so my_trades() hands it back with the rest, and the only way it
+         does not appear under this heading with a counterparty and a Buy/Sell framing is to be listed
+         separately in its own words. --}}
+    @if (count($sends))
+        <h2>Your sends</h2>
+        <p class="note" style="margin:-4px 0 14px">
+            Money you are sending to someone. Newest first.
+        </p>
+
+        @foreach ($sends as $send)
+            <div class="card" style="margin-bottom:12px">
+                <p style="margin:0 0 4px">
+                    <strong>To {{ $send['beneficiary'] }}</strong>
+                    <span class="{{ $send['badge'] }}">{{ $send['state_label'] }}</span>
+                </p>
+                <p class="note" style="margin:0">
+                    {{ $send['receive'] }} for them.
+                    Last change {{ $send['updated_at']->diffForHumans() }}.
+                </p>
+                <p style="margin-top:8px">
+                    <a class="standalone-link" href="{{ route('trade.send.show', $send['id']) }}">Open send #{{ $send['id'] }}</a>
+                </p>
+            </div>
+        @endforeach
+    @endif
+
+    <h2>Your trades</h2>
     <p class="note" style="margin:-4px 0 14px">
         Every trade you are part of, newest first. Open one to see what it is doing.
     </p>

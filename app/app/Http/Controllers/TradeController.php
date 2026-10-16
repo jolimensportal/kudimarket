@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Services\RemittanceDesk;
 use App\Services\TradeDesk;
 use App\Services\TradeFigures;
 use App\Services\TradeLedger;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use RuntimeException;
 
 class TradeController extends Controller
@@ -52,6 +54,14 @@ class TradeController extends Controller
 
         $trades = [];
         foreach ($ledger->mine() as $row) {
+            // A send is a row in this table and comes back from my_trades() like any other trade. Without
+            // this filter it was rendered TWICE -- once as a send, and once here, described as a trade
+            // whose counterparty is KudiMarket and whose money is "at risk, not just theirs", for a
+            // transaction the sender never entered. Same id, same figures, two incompatible stories.
+            if (($row->trade_type ?? null) === 'remittance') {
+                continue;
+            }
+
             $role = $row->buyer === $email ? 'buyer' : 'seller';
 
             // KudiMarket being a party is what makes the tier handled, not being the seller: on a buy we
@@ -76,7 +86,53 @@ class TradeController extends Controller
             ];
         }
 
-        return view('trade.history', ['trades' => $trades]);
+        // Sends are their own list, in their own words, and they are NOT merged into the trade list
+        // above. A send is a trade row as far as the ledger is concerned -- same table, same state chain
+        // -- so my_trades() returns it, and dropping it in would show a sender their remittance under a
+        // heading that says "Your trades", with a counterparty and a "Buy"/"Sell" framing describing a
+        // transaction model they are not in. Separating them costs one query and keeps every word on
+        // both pages honest.
+        $sends = array_map(
+            fn (object $row) => [
+                'id' => (int) $row->id,
+                'beneficiary' => $row->beneficiary_name,
+                'receive' => TradeFigures::forTrade($row, 'buyer')['receive'],
+                'state_label' => self::sendStateLabel($row->state),
+                'badge' => match ($row->state) {
+                    'released' => 'badge ok',
+                    'cancelled', 'resolved_refund' => 'badge lost',
+                    default => 'badge',
+                },
+                // Cast here. The trade rows come back through the Trade model, which casts timestamps;
+                // these come back from a plain function as strings, and a template calling
+                // diffForHumans() on a string 500s the page.
+                'updated_at' => Carbon::parse($row->updated_at),
+            ],
+            app(RemittanceDesk::class)->mine()
+        );
+
+        return view('trade.history', ['trades' => $trades, 'sends' => $sends]);
+    }
+
+    /**
+     * What a send is doing, in the words of somebody waiting for it.
+     *
+     * Not the ledger's state names. "paid_attested" on a send means the cedi is confirmed and somebody
+     * still has to walk to the till, and rendering that as the raw state told the sender nothing about
+     * whether their money was safe or when it would arrive.
+     */
+    private static function sendStateLabel(string $state): string
+    {
+        return match ($state) {
+            'open' => 'Not started',
+            'paid_claimed' => 'Waiting for us to confirm',
+            'paid_attested' => 'Arranging the handover',
+            'paid_out' => 'Handed over, finishing up',
+            'released' => 'Complete',
+            'disputed' => 'Under review',
+            'cancelled' => 'Cancelled',
+            default => str_replace('_', ' ', $state),
+        };
     }
 
     /**
