@@ -154,10 +154,118 @@ final class TradeLedger
     {
         $operator = $this->requireOperator($operator);
 
+        // The state this settles FROM depends on the type, and hardcoding paid_attested was wrong for
+        // remittance: a send settles from paid_out, because the cash has to have been handed over
+        // before the float may fall. Called as written, releasing a send raised 'illegal transition'
+        // -- which is at least a refusal rather than a wrong payment, but it meant a send that was
+        // ready to complete could not be completed at all.
+        $from = $this->releaseStateFor($tradeId);
+        $current = (string) (DB::connection('pgsql_ops')->selectOne(
+            'select state from trade where id = ?',
+            [$tradeId]
+        )->state ?? '');
+
+        // Said here rather than left to the ledger's own refusal. Attempting the move and letting
+        // ops_transition throw reports "trade N is not in state paid_out", which the message mapper
+        // turns into "Someone already moved this trade" -- which is not what happened. Nothing moved.
+        // On a send, the honest message names the thing that has not happened yet.
+        if ($current !== $from) {
+            throw new RuntimeException($this->notYetReleasable($current, $from));
+        }
+
         $this->call(fn () => DB::connection('pgsql_ops')->selectOne(
             'select ops_transition(?, ?, ?, ?, ?) as ok',
-            [$tradeId, 'paid_attested', 'released', $this->idempotencyKey($tradeId, 'released', 'released', null), $operator]
+            [$tradeId, $from, 'released', $this->idempotencyKey($tradeId, $from, 'released', null), $operator]
         ));
+    }
+
+    /**
+     * Where a release starts for this trade.
+     *
+     * Read from the trade's own rules rather than decided here, so adding a type that settles from a
+     * third state does not need this file to learn about it.
+     */
+    private function releaseStateFor(int $tradeId): string
+    {
+        $row = DB::connection('pgsql_ops')->selectOne(
+            "select r.from_state
+               from trade_rule r join trade t on t.trade_type = r.trade_type
+              where t.id = ? and r.to_state = 'released'
+              order by case r.from_state when 'paid_attested' then 0 else 1 end
+              limit 1",
+            [$tradeId]
+        );
+
+        return (string) ($row->from_state ?? 'paid_attested');
+    }
+
+    /** What is actually missing, in the words of somebody standing at the till. */
+    private function notYetReleasable(string $current, string $releases): string
+    {
+        return match (true) {
+            $current === 'paid_attested' && $releases === 'paid_out' => 'This send is confirmed but the naira has not been handed over yet. Record the payout first.',
+            $current === 'paid_claimed' => 'We have not confirmed this one arrived yet.',
+            default => "This trade is at {$current}, and it cannot be released from there.",
+        };
+    }
+
+    /**
+     * Records that the cash was physically handed to the beneficiary.
+     *
+     * Not a state transition on its own. paid_attested -> paid_out is only reachable through
+     * record_payout() in kudi-core/020, because that move is the one place the float is allowed to
+     * start falling and it must never be reachable without saying what was handed over, to whom and
+     * against which till reference. There is deliberately no sibling method that transitions to
+     * paid_out directly -- the absence is the control.
+     *
+     * The amount is passed in rather than read from the form alone because the ledger checks it
+     * against what the trade owes and refuses a payout that does not match. An operator keying the
+     * wrong figure gets told, rather than moving the float by a number unrelated to what the
+     * beneficiary received.
+     */
+    public function recordPayout(int $tradeId, int $amountMinorUnits, string $reference, string $operator): void
+    {
+        $operator = $this->requireOperator($operator);
+
+        $this->call(fn () => DB::connection('pgsql_ops')->selectOne(
+            'select record_payout(?, ?, ?, ?, ?) as ok',
+            [$tradeId, $amountMinorUnits, trim($reference), $operator, $this->idempotencyKey($tradeId, 'paid_out', 'payout', null)]
+        ));
+    }
+
+    /**
+     * Sends that are waiting for a handover, newest first.
+     *
+     * Only remittance trades, and only the one state where a person has something to do. The list is
+     * deliberately not "everything not yet released": a send that has not been attested yet is with
+     * the sender's bank transfer, not with operations, and putting it here would train operators to
+     * read this queue as work.
+     *
+     * @return list<object>
+     */
+    public function awaitingPayout(): array
+    {
+        return DB::connection('pgsql_ops')->select(
+            "select t.id, t.state, t.fiat_asset, t.fiat_amount, t.updated_at,
+                    s.beneficiary_name, s.beneficiary_phone, s.corridor,
+                    (select max(e.created_at) from trade_event e
+                      where e.trade_id = t.id and e.to_state = 'paid_attested') as attested_at
+               from trade t
+               join remittance_send s on s.trade_id = t.id
+              where t.trade_type = 'remittance'
+                and t.state = 'paid_attested'
+              order by t.id desc"
+        );
+    }
+
+    /** The evidence on a payout, for the send page and the operations record. */
+    public function payoutFor(int $tradeId): ?object
+    {
+        return DB::connection('pgsql_ops')->selectOne(
+            'select delivered_amount, delivered_reference, delivered_by, delivered_at
+               from remittance_send where trade_id = ?',
+            [$tradeId]
+        );
     }
 
     /** One idempotency key per decision. A double click cannot settle a trade twice. */
@@ -193,6 +301,9 @@ final class TradeLedger
                 str_contains($message, 'may not do') => 'That actor is not allowed to take this step on this trade.',
                 str_contains($message, 'ops only') => 'This step is restricted to the operations console.',
                 str_contains($message, 'illegal transition') => 'That move is not allowed from this state.',
+                str_contains($message, 'till reference') => 'A till reference is required. An untraceable handover is not a payout.',
+                str_contains($message, 'refusing to record a payout') => 'That is not the amount this send owes. Check the figure on the send.',
+                str_contains($message, 'already has a payout recorded') => 'Someone already recorded this handover.',
                 str_contains($message, 'inconsistent') => 'That fault contradicts the outcome you chose.',
                 str_contains($message, 'insufficient funds') => 'A balance involved in this trade cannot cover the move.',
                 default => 'The ledger refused that change.',

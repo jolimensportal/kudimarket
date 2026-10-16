@@ -8,6 +8,7 @@ use App\Http\Controllers\CddController;
 use App\Http\Controllers\DisputeController;
 use App\Http\Controllers\OfferController;
 use App\Http\Controllers\SellToUsController;
+use App\Http\Controllers\SendController;
 use App\Http\Controllers\TradeController;
 use App\Http\Controllers\VerificationController;
 use App\Http\Middleware\SignInAsTrader;
@@ -70,6 +71,16 @@ Route::middleware(['auth:trader', SignInAsTrader::class])
         // commit to anything. Same reasoning as the buy/sell split the comment above describes.
         Route::get('/sell-to-us', [SellToUsController::class, 'create'])->name('sell.create');
         Route::post('/sell-to-us', [SellToUsController::class, 'store'])->name('sell.store');
+
+        // Sending money to a named person. The word is 'send' and not 'transfer' or 'remit' because the
+        // sender is doing the thing themselves: there is no counterparty choosing to trade with them, and
+        // a screen that implied one would be describing the offer board this route replaced.
+        //
+        // Above the '/{trade}' wildcard for the same reason buy and sell are. The POST is 'send.store'
+        // rather than 'send' because the GET is named send.create and two routes cannot share a name.
+        Route::get('/send', [SendController::class, 'create'])->name('send.create');
+        Route::post('/send', [SendController::class, 'store'])->name('send.store');
+        Route::get('/send/{send}', [SendController::class, 'show'])->whereNumber('send')->name('send.show');
 
         Route::get('/{trade}', [TradeController::class, 'show'])->whereNumber('trade')->name('show');
         Route::post('/{trade}/claim', [TradeController::class, 'claim'])->whereNumber('trade')->name('claim');

@@ -532,6 +532,87 @@ end $$;
 -- this file: a release for any other type is still refused by the rule table, and remittance's own
 -- rules are the ones 020 section 4 wrote.
 
+-- ---------------------------------------------------------------- 9b. the sender's own view of a send
+--
+-- A remittance_send row is a person's NAME and PHONE NUMBER. The table must not be readable by the
+-- trader role: grant it SELECT and every signed-in trader could read every other sender's beneficiary,
+-- and the trader role can already run SELECT against trade, so the grant would hand over the one table
+-- whose contents are not already derivable from a row they could see.
+--
+-- So the trader gets a FUNCTION, on the pattern 019 sets out: it takes no trader argument, reads the
+-- identity from the session through current_trader(), and is granted only to kudi_trader. The base
+-- table stays unreadable to traders.
+--
+-- The claim already said this. It said it because 015 exists precisely to remove the "pass me a trader
+-- argument" pattern, and re-introducing it here would have undone that work for the one table that
+-- carries personal data.
+create or replace function my_remittance_sends()
+returns table(
+  id                  bigint,
+  buyer               text,
+  seller              text,
+  state               text,
+  fiat_asset          text,
+  fiat_amount         numeric,
+  rate                numeric,
+  rate_base_asset     text,
+  rate_quote_asset    text,
+  corridor            text,
+  beneficiary_name    text,
+  beneficiary_phone   text,
+  delivered_amount    numeric,
+  delivered_reference text,
+  delivered_by        text,
+  delivered_at        timestamptz,
+  updated_at          timestamptz
+)
+language sql stable security definer set search_path = public, pg_temp as $$
+  -- buyer is returned so the application can assert ownership as well as being scoped to it. The
+  -- scoping is the control; the column is there so a controller that checks ownership is checking a
+  -- real value rather than a property that does not exist, which is how a defensive check silently
+  -- becomes a crash on the happy path instead.
+  select t.id, t.buyer, t.seller, t.state, t.fiat_asset, t.fiat_amount,
+         t.rate, t.rate_base_asset, t.rate_quote_asset,
+         s.corridor, s.beneficiary_name, s.beneficiary_phone,
+         s.delivered_amount, s.delivered_reference, s.delivered_by, s.delivered_at,
+         t.updated_at
+    from remittance_send s
+    join trade t on t.id = s.trade_id
+   where t.buyer = current_trader()
+   order by t.id desc;
+$$;
+
+comment on function my_remittance_sends() is
+  'The signed-in sender''s own remittance sends, newest first. Takes no trader argument: an argument is the vulnerability 015 exists to remove. This is a function rather than a grant on remittance_send because that table holds names and phone numbers.';
+
+create or replace function my_remittance_send(p_trade bigint)
+returns table(
+  id                  bigint,
+  buyer               text,
+  seller              text,
+  state               text,
+  fiat_asset          text,
+  fiat_amount         numeric,
+  rate                numeric,
+  rate_base_asset     text,
+  rate_quote_asset    text,
+  corridor            text,
+  beneficiary_name    text,
+  beneficiary_phone   text,
+  delivered_amount    numeric,
+  delivered_reference text,
+  delivered_by        text,
+  delivered_at        timestamptz,
+  updated_at          timestamptz
+)
+language sql stable security definer set search_path = public, pg_temp as $$
+  select * from my_remittance_sends() where id = p_trade;
+$$;
+
+comment on function my_remittance_send(bigint) is
+  'One of the signed-in sender''s own sends, or no rows. A send belonging to somebody else is not an error here -- it is no rows, and the application turns that into a 404.';
+
+
 -- ---------------------------------------------------------------- 10. privileges
 --
 -- Re-granted by name. The blanket revoke that runs in each file runs BEFORE that file redefines
@@ -539,11 +620,23 @@ end $$;
 -- than from our intent. It is SECURITY DEFINER. This is the third file to inherit the trap and the
 -- third to have to re-grant by name.
 revoke execute on all functions in schema public from public;
+-- The sender opens their own send, so the TRADER role needs this one. It was granted to kudi_app first,
+-- which is the role nothing in this product signs in as, and the symptom was a permission error on the
+-- create screen rather than anything that named the missing grant.
 grant execute on function create_remittance_send(text,text,text,text,numeric,numeric,text),
                           transition_trade(bigint,text,text,text,text,text,text),
-                          verify_chain(), verify_trade_chain(), check_balances() to kudi_app;
+                          verify_chain(), verify_trade_chain(), check_balances() to kudi_app, kudi_trader;
+
+-- The sender reads their own sends. Granted here and NOT on the remittance_send table: see 9b.
+-- These two were first granted to kudi_ops, on the reasonable-sounding grounds that they are read by
+-- the console too. Nothing in the product uses that, and the symptom was a permission error on a
+-- screen the sender is meant to be able to read their own send on.
+grant execute on function my_remittance_sends(),
+                          my_remittance_send(bigint) to kudi_app, kudi_trader;
 grant execute on function record_payout(bigint,numeric,text,text,text),
                           ops_transition(bigint,text,text,text,text,text),
                           release_due_trades(),
                           verify_chain(), check_balances() to kudi_ops;
 grant select on remittance_send to kudi_app, kudi_ops;
+-- deliberately NOT granted to kudi_trader: see 9b. The trader reads its own sends through
+-- my_remittance_sends(), which is scoped to the session identity.
