@@ -8,11 +8,13 @@ use App\Filament\Resources\Trades\Pages\ListTrades;
 use App\Models\Trader;
 use App\Models\User;
 use App\Services\OfferDesk;
+use App\Services\RemittanceDesk;
 use App\Services\TradeDesk;
 use App\Services\TradeLedger;
 use App\Services\VerificationDesk;
 use Filament\Http\Middleware\PreventRequestForgery;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Livewire\Features\SupportTesting\Testable;
 use Livewire\Livewire;
 use Tests\InterpretsPostgresBooleans;
@@ -277,6 +279,122 @@ class OpsConsoleTest extends TestCase
      * and app(ListTrades::class)->getTable() throws on an uninitialised typed property -- and asserting on
      * the page that actually renders is worth more than asserting on a stand-in the test author assembled.
      */
+    // ---------------------------------------------------------------- remittance
+
+    public function test_the_payout_button_is_offered_on_a_confirmed_send(): void
+    {
+        $this->actingAs($this->operator());
+
+        $send = $this->confirmedSend();
+
+        $this->assertSame('paid_attested', $this->stateOf($send->id));
+
+        // The action has to exist on a table row, not only on a record page: an operator works the list.
+        $this->tradesPage()->assertTableActionExists('record_payout');
+    }
+
+    public function test_the_payout_is_not_offered_on_an_exchange_trade(): void
+    {
+        $this->actingAs($this->operator());
+
+        // Otherwise the button would appear on every trade in the console, on a type where the handover
+        // means nothing -- and a control that is wrong on most rows trains operators to click it anyway.
+        $trade = $this->claimedTrade();
+
+        $this->tradesPage()->assertTableActionHidden('record_payout', record: (string) $trade->trade_id);
+    }
+
+    public function test_recording_a_payout_from_the_console_moves_the_send_to_paid_out(): void
+    {
+        $this->actingAs($this->operator());
+
+        $send = $this->confirmedSend();
+        $floatBefore = $this->platformFloat();
+
+        $this->tradesPage()
+            ->callTableAction('record_payout', $send->id, ['amount' => $send->fiat_amount, 'reference' => 'TILL-9001'])
+            ->assertHasNoActionErrors();
+
+        $this->assertSame('paid_out', $this->stateOf($send->id));
+
+        $recorded = DB::connection('pgsql_ops')->selectOne(
+            'select delivered_reference, delivered_by from remittance_send where trade_id = ?',
+            [$send->id]
+        );
+        $this->assertSame('TILL-9001', $recorded->delivered_reference);
+        $this->assertSame('ops-console-test@kudimarket.com', $recorded->delivered_by, 'recorded against the staff member, not a form value');
+
+        // The whole point of the gate: recording a handover does not move a naira.
+        $this->assertSame($floatBefore, $this->platformFloat());
+    }
+
+    public function test_release_is_unlocked_only_after_the_handover_on_a_send(): void
+    {
+        $this->actingAs($this->operator());
+
+        $send = $this->confirmedSend();
+
+        // Confirmed, but nothing handed over: Release must still be locked, and must say why in terms
+        // of the handover rather than in terms of a claim window this type does not have.
+        $this->tradesPage()->assertTableActionDisabled('release', record: (string) $send->id);
+
+        $this->tradesPage()
+            ->callTableAction('record_payout', $send->id, ['amount' => $send->fiat_amount, 'reference' => 'TILL-9002'])
+            ->assertHasNoActionErrors();
+
+        $this->tradesPage()->assertTableActionEnabled('release', record: (string) $send->id);
+    }
+
+    public function test_the_console_shows_who_a_send_is_paying(): void
+    {
+        $this->actingAs($this->operator());
+
+        $send = $this->confirmedSend();
+
+        $this->actingAs($this->operator(), 'web')
+            ->get("/admin/trades/{$send->id}")
+            ->assertOk()
+            ->assertSee('Kwesi Osei')
+            ->assertSee('+2348012345678');
+    }
+
+    /**
+     * A send a sender has opened, declared they paid, and operations has confirmed -- sitting at the
+     * one state where an operator has something to do.
+     */
+    private function confirmedSend(): object
+    {
+        $trader = Trader::factory()->create();
+        Auth::guard('trader')->setUser($trader);
+
+        DB::connection('pgsql_pricing')->selectOne(
+            'select set_rate(?, ?, ?, ?) as id',
+            ['GHS', 'NGN', '148.2', 'rates-desk@kudimarket.com']
+        );
+
+        $id = (int) app(RemittanceDesk::class)->open(
+            $trader->email,
+            1000000,
+            'Kwesi Osei',
+            '+2348012345678',
+        );
+
+        app(TradeDesk::class)->claimPaid($id, $trader->email);
+        app(TradeLedger::class)->attest($id, 'ops@kudimarket.com');
+
+        return DB::connection('pgsql_ops')->selectOne(
+            'select id, state, trade_type, fiat_amount, fiat_asset from trade where id = ?',
+            [$id]
+        );
+    }
+
+    private function platformFloat(): int
+    {
+        return (int) DB::connection('pgsql_ops')->selectOne(
+            "select coalesce(balance, 0) as b from account where owner = 'platform' and kind = 'external' and asset = 'NGN'"
+        )->b;
+    }
+
     private function tradesPage(): Testable
     {
         return Livewire::test(ListTrades::class);

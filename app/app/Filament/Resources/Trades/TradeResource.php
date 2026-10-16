@@ -13,6 +13,7 @@ use App\Services\TradeLedger;
 use Filament\Actions\Action;
 use Filament\Actions\ViewAction;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
@@ -21,6 +22,7 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
 class TradeResource extends Resource
@@ -96,6 +98,47 @@ class TradeResource extends Resource
                     ->action(function ($record, TradeLedger $ledger) {
                         $ledger->attest((int) $record->id, static::operatorIdentity());
                     }),
+                // The handover. Only on a remittance send, only once the money is confirmed, and only
+                // reachable with a form rather than a confirmation dialog -- because the two things an
+                // operator has to supply ARE the record: what was handed over, and against which till
+                // reference. record_payout() refuses both if they are missing, so a form with two
+                // required fields is the honest shape rather than a dialog that could be confirmed
+                // without either.
+                Action::make('record_payout')
+                    ->label('Record the payout')
+                    ->icon(Heroicon::OutlinedBanknotes)
+                    ->color('primary')
+                    // $record is NOT always a record. Filament calls visible() once with no argument while
+                    // building the table, and reading a property off null there is a fatal that kills the
+                    // console page before any HTML is produced -- which is precisely how the two 500s this
+                    // test file was written for shipped.
+                    ->visible(fn (?object $record) => $record !== null
+                        && $record->trade_type === 'remittance'
+                        && $record->state === 'paid_attested')
+                    ->form([
+                        TextInput::make('amount')
+                            ->label('Amount handed over (minor units)')
+                            ->required()
+                            ->numeric()
+                            ->default(fn ($record) => (string) $record->fiat_amount)
+                            ->helperText('Minor units, exactly as the ledger holds them. '
+                                .'A figure that does not match what this send owes is refused.'),
+                        TextInput::make('reference')
+                            ->label('Till reference')
+                            ->required()
+                            ->minLength(3)
+                            ->maxLength(80)
+                            ->helperText('The drawer or till this came out of. '
+                                .'Without it a handover cannot be recorded at all.'),
+                    ])
+                    ->action(function ($record, TradeLedger $ledger, array $data) {
+                        $ledger->recordPayout(
+                            (int) $record->id,
+                            (int) $data['amount'],
+                            (string) $data['reference'],
+                            static::operatorIdentity(),
+                        );
+                    }),
                 Action::make('release')
                     ->label('Release')
                     ->icon(Heroicon::OutlinedLockOpen)
@@ -108,17 +151,42 @@ class TradeResource extends Resource
                     // say why it is locked. Hidden is worse than disabled: an operator looking at a
                     // paid_claimed trade could not tell whether the button was missing, broken, or
                     // deliberately withheld.
-                    ->disabled(fn ($record) => $record->state !== 'paid_attested')
+                    // A remittance send settles from paid_out, not paid_attested -- the cash has to have
+                    // been handed over first. Locking Release to paid_attested alone meant a send that
+                    // had been paid out and was ready to complete could never be completed from here.
+                    ->disabled(fn (?object $record) => $record === null
+                        || $record->state !== static::releasableState($record))
                     // There is no disabledReason() on this Filament version; the reason travels as a
                     // tooltip. Written onto a disabled control rather than hidden, because an operator
                     // looking at a paid_claimed trade otherwise cannot tell whether Release is missing,
                     // broken, or deliberately withheld.
-                    ->tooltip(fn ($record) => $record->state === 'paid_attested'
-                        ? 'Release the naira to the buyer. The claim window has elapsed.'
-                        : ($record->state === 'paid_claimed'
-                            ? 'Locked: the payment has not been confirmed yet. Use "Confirm the payment arrived" first.'
-                            : 'Locked: release only applies to a confirmed payment.'))
-                    ->visible(fn ($record) => in_array($record->state, ['open', 'escrowed', 'paid_claimed', 'paid_attested'], true))
+                    ->tooltip(function (?object $record) {
+                        if ($record === null) {
+                            return null;
+                        }
+                        $state = $record->state;
+
+                        if ($state === static::releasableState($record)) {
+                            return $record->trade_type === 'remittance'
+                                ? 'Complete this send. The naira has been handed over and the beneficiary has it.'
+                                : 'Release the naira to the buyer. The claim window has elapsed.';
+                        }
+
+                        // On a send, the thing standing between here and release is the handover, and
+                        // saying "the claim window has not elapsed" would describe a control this
+                        // product does not have for this type.
+                        if ($record->trade_type === 'remittance' && $state === 'paid_attested') {
+                            return 'Locked: the naira has not been handed over yet. Use "Record the payout" first.';
+                        }
+
+                        return match ($state) {
+                            'paid_claimed' => 'Locked: the payment has not been confirmed yet. Use "Confirm the payment arrived" first.',
+                            default => 'Locked: release only applies to a confirmed payment.',
+                        };
+                    })
+                    ->visible(fn (?object $record) => $record !== null && ($record->trade_type === 'remittance'
+                        ? in_array($record->state, ['open', 'paid_claimed', 'paid_attested', 'paid_out'], true)
+                        : in_array($record->state, ['open', 'escrowed', 'paid_claimed', 'paid_attested'], true)))
                     ->action(function ($record, TradeLedger $ledger) {
                         $ledger->release((int) $record->id, static::operatorIdentity());
                     }),
@@ -186,6 +254,30 @@ class TradeResource extends Resource
      * hardcoded placeholder, every decision on the platform has the same author, and the record is
      * decoration.
      */
+    /**
+     * The state this trade settles FROM, asked of the trade's own rules.
+     *
+     * 'paid_attested' for every type that has been true since before remittance existed, and
+     * 'paid_out' for a send. Reading it here keeps the button's lock, its tooltip and its action from
+     * each holding their own copy of the answer -- which is how a send ended up with a Release button
+     * that was locked in the one state where it was the only thing left to do.
+     */
+    private static function releasableState(object $record): string
+    {
+        if ($record->trade_type !== 'remittance') {
+            return 'paid_attested';
+        }
+
+        return DB::connection('pgsql_ops')->selectOne(
+            "select r.from_state
+               from trade_rule r join trade t on t.trade_type = r.trade_type
+              where t.id = ? and r.to_state = 'released'
+              order by case r.from_state when 'paid_attested' then 0 else 1 end
+              limit 1",
+            [(int) $record->id]
+        )->from_state ?? 'paid_out';
+    }
+
     private static function operatorIdentity(): string
     {
         $email = auth()->user()?->email;
@@ -279,7 +371,43 @@ class TradeResource extends Resource
                 });
         }
 
+        // Who the money is going to, and whether it has been. On every other trade type the counterparty
+        // is an email and nothing else, but a send is made out to a named person at a phone number --
+        // and an operator standing at a till with a handover form has to be able to check they are paying
+        // the right person before they write a reference against it. The record page showed neither.
+        $remittance = DB::connection('pgsql_ops')->selectOne(
+            'select beneficiary_name, beneficiary_phone, corridor,
+                    delivered_amount, delivered_reference, delivered_by, delivered_at
+               from remittance_send where trade_id = ?',
+            [$tradeId]
+        );
+
+        // Each entry's state is bound explicitly. A TextEntry named 'beneficiary_name' would look for
+        // that property on the Trade record, which is a read-only model over trade_view and has no such
+        // column -- so the section rendered with every field blank, which reads as "no beneficiary" and
+        // is the worst possible way for that section to fail.
+        $field = fn (string $column, ?string $placeholder) => TextEntry::make($column)
+            ->label(trim(str_replace('_', ' ', ucwords(str_replace('_', ' ', $column)))))
+            ->state($remittance->{$column} ?? null)
+            ->placeholder($placeholder ?? '—');
+
+        $sendSection = $remittance === null ? [] : [
+            Section::make('Who is receiving it')
+                ->description('A send is made out to a person, not to an account. Check the name and the '
+                    .'number against what they gave you before you hand anything over.')
+                ->schema([
+                    $field('beneficiary_name', null),
+                    $field('beneficiary_phone', null),
+                    $field('corridor', null),
+                    $field('delivered_amount', 'not yet handed over'),
+                    $field('delivered_reference', 'not yet handed over'),
+                    $field('delivered_by', 'not yet handed over'),
+                    $field('delivered_at', 'not yet handed over'),
+                ]),
+        ];
+
         return $schema->schema([
+            ...$sendSection,
             Section::make('Terms')
                 ->columns(3)
                 ->schema($terms),
