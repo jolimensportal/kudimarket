@@ -1,0 +1,242 @@
+/*
+    The nine components shared by both surfaces.
+
+    These are hand-written rather than composed from utilities because each one carries a decision
+    worth naming: a 44px tap target, tabular figures, a fixed rate precision, a destructive colour
+    that never sits beside a primary. The decision lives with the component, not scattered across a
+    view where the next person to edit copy will not see it.
+*/
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: var(--tap-target);
+    padding: 0 var(--space-4);
+    border-radius: var(--control-radius);
+    border: 1px solid transparent;
+    font: inherit;
+    font-size: 16px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.btn.primary {
+    background: var(--action-primary);
+    border-color: var(--action-primary);
+    color: #fff;
+}
+
+.btn.primary:hover {
+    background: var(--action-primary-hover);
+    border-color: var(--action-primary-hover);
+}
+
+.btn.ghost {
+    background: transparent;
+    border-color: var(--line);
+    color: var(--ink);
+}
+
+.btn.destructive {
+    background: var(--action-destructive);
+    border-color: var(--action-destructive);
+    color: #fff;
+}
+
+/* Destructive never sits beside a primary. Rule 2 of the brand system: two colours in one button
+   group reads as two warnings at once. */
+.btn + .btn {
+    margin-left: var(--space-2);
+}
+
+@media (max-width: 360px) {
+    .btn + .btn {
+        margin-left: 0;
+        margin-top: var(--space-2);
+    }
+}
+
+.card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: var(--card-radius);
+    padding: var(--space-4);
+}
+
+.card.ours {
+    border-color: var(--action-primary);
+    background: var(--action-primary);
+    color: var(--bone);
+}
+
+.field {
+    display: block;
+}
+
+.field label {
+    display: block;
+    font-size: var(--text-sm);
+    font-weight: 600;
+    margin-bottom: var(--space-2);
+}
+
+.field input,
+.field select {
+    width: 100%;
+    min-height: var(--control-height);
+    padding: 0 var(--space-3);
+    font: inherit;
+    font-size: 16px;
+    border: 1px solid var(--line);
+    border-radius: var(--control-radius);
+    background: var(--surface-raised);
+    color: var(--ink);
+}
+
+.field .help {
+    margin-top: var(--space-2);
+    font-size: var(--text-sm);
+    color: var(--ink-soft);
+}
+
+.field .err {
+    margin-top: var(--space-2);
+    font-size: var(--text-sm);
+    color: var(--action-destructive);
+}
+
+.rate-row {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+}
+
+.rate-row .label {
+    font-size: var(--text-2xs);
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+}
+
+/* Rule 1 of the brand system: the brand colour is the frame, the data is never dressed in it. */
+.rate-row .value {
+    font-size: var(--text-3xl);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+}
+
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    font-size: var(--text-xs);
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: var(--surface-raised);
+    color: var(--ink-mid);
+}
+
+.badge.settled {
+    color: var(--state-settled);
+}
+
+.badge.disputed {
+    color: var(--action-destructive);
+}
+
+.section-header .eyebrow {
+    font-size: var(--text-2xs);
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--plum-300);
+}
+
+.section-header h2 {
+    font-size: var(--text-3xl);
+    font-weight: 800;
+    letter-spacing: -0.025em;
+    margin-top: var(--space-2);
+}
+
+.section-header .lede {
+    margin-top: var(--space-3);
+    color: var(--ink-mid);
+}
+
+/* Sized by breakpoint. This is what stops the 375px mockup from being a stamp on a desktop: below
+   lg it may be decorative, at lg and above it has to be legible or it is removed. */
+.phone-frame img {
+    width: 100%;
+    border-radius: 26px;
+    border: 1px solid var(--line);
+    box-shadow: 0 24px 60px -28px color-mix(in oklch, var(--plum-900) 42%, transparent);
+}
+
+@media (min-width: 1024px) {
+    .phone-frame img {
+        max-width: 320px;
+    }
+}
+
+.stat-band {
+    display: grid;
+    gap: 0;
+    border-top: 1px solid var(--line);
+}
+
+@media (min-width: 768px) {
+    .stat-band {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+.stat-band > div {
+    padding: var(--space-5) 0;
+    border-bottom: 1px solid var(--line);
+}
+
+@media (min-width: 768px) {
+    .stat-band > div {
+        border-bottom: 0;
+        padding: var(--space-5) var(--space-5) var(--space-5) 0;
+    }
+
+    .stat-band > div + div {
+        border-left: 1px solid var(--line);
+        padding-left: var(--space-5);
+    }
+}
+
+.stat-band .value {
+    font-size: var(--text-4xl);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    font-variant-numeric: tabular-nums;
+}
+
+.nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+}
+
+@media (min-width: 1024px) {
+    .nav {
+        border-left: 1px solid var(--line);
+        padding-left: var(--space-5);
+    }
+
+    .nav.rail {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}

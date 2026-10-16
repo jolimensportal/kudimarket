@@ -1,0 +1,72 @@
+/*
+    Reset, page defaults, and the constraints that are deliberate rather than decorative.
+
+    Everything here is lifted from the two inline <style> blocks so the landing page and the trader
+    app stop carrying two copies that can drift.
+
+    Three of these are not opinions. A notched phone clips the header without env(safe-area-inset-*).
+    iOS zooms the entire viewport on focus if an input is under 16px. And proportional digits make a
+    rate board look like a typo, which on a page of numbers is a correctness problem, not a taste one.
+*/
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+}
+
+body {
+    background: var(--surface);
+    color: var(--ink);
+    font-family: 'Instrument Sans', system-ui, -apple-system, sans-serif;
+    font-size: 16px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+
+    /* Safe areas. env() is 0 on a device with no inset, so this costs nothing on a desktop. */
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+}
+
+img {
+    display: block;
+    max-width: 100%;
+    height: auto;
+}
+
+ol,
+ul {
+    list-style: none;
+}
+
+/* Currency, rates and counts line up in a column. Proportional digits make a rate board look like
+   a typo, so the convention is: anything numeric carries this class. */
+.num,
+output {
+    font-variant-numeric: tabular-nums;
+}
+
+a {
+    color: var(--plum-600);
+}
+
+:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        transition: none !important;
+        animation: none !important;
+    }
+}

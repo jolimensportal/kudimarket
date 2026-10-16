@@ -76,7 +76,12 @@
                     @error('email')
                         <p class="err" id="email-error" role="alert">{{ $message }}</p>
                     @enderror
-                    <p class="help" id="email-help">One email, when we open. No sequence.</p>
+                    <p class="help" id="email-help">
+                        One email, when we open. No sequence.
+                        @if ($waiting > 0)
+                            <strong>{{ $waiting }} {{ Str::plural('person', $waiting) }} {{ Str::plural('is', $waiting) }} already on the list.</strong>
+                        @endif
+                    </p>
                     <p class="alt">
                         No email?
                         <a href="{{ $waLink ?? '#' }}" rel="noopener">WhatsApp us</a>
@@ -103,10 +108,10 @@
                 <h2>What we charge, before you ask</h2>
                 <dl>
                     @if (isset($rates['GHS/NGN']))
-                        <div><dt>We publish</dt><dd class="num">{{ rtrim(rtrim($rates['GHS/NGN'], '0'), '.') }} <span>GHS to NGN</span></dd></div>
+                        <div><dt>We publish</dt><dd class="num">{{ \App\Support\RateFormatter::format($rates['GHS/NGN']) }} <span>GHS to NGN</span></dd></div>
                     @endif
                     @if (isset($rates['NGN/GHS']))
-                        <div><dt>And back</dt><dd class="num">{{ rtrim(rtrim($rates['NGN/GHS'], '0'), '.') }} <span>NGN to GHS</span></dd></div>
+                        <div><dt>And back</dt><dd class="num">{{ \App\Support\RateFormatter::format($rates['NGN/GHS']) }} <span>NGN to GHS</span></dd></div>
                     @endif
                     @if ($feeBps !== null)
                         <div><dt>Our fee</dt><dd class="num">{{ rtrim(rtrim(sprintf('%.2f', $feeBps / 100), '0'), '.') }}% <span>{{ $feeBps }} bps</span></dd></div>

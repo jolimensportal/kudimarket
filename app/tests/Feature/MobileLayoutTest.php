@@ -146,21 +146,36 @@ class MobileLayoutTest extends TestCase
     }
 
     /**
-     * The layout's CSS with its comments stripped.
+     * The app's CSS with its comments stripped.
      *
      * The first version of these tests asserted against the whole file and failed on their own
      * documentation: the explanation of why :only-child is wrong contains the literal text
      * ":only-child", so the test that forbids it was forbidding its own comment. A rule test that
      * cannot tell a selector from a sentence about a selector is not testing the stylesheet.
+     *
+     * The source moved. These rules lived in a <style> block inside layouts/trader.blade.php and now
+     * live in the shared stylesheets, so the test reads the stylesheets. It concatenates all four
+     * because the rules under test are now split across them: the base owns the 16px font and the
+     * safe-area insets, the components own the 44px floor, and the trader surface owns the
+     * breakpoints and the balance list.
      */
     private function layoutCss(): string
     {
-        $html = $this->layoutHtml();
+        $css = '';
 
-        // The <style> block, then its CSS comments. Blade comments ({{-- --}}) are HTML and live
-        // outside it; the CSS comments are /* ... */ inside.
-        preg_match('/<style>(.*?)<\/style>/s', $html, $style);
+        foreach ([
+            'resources/css/tokens.css',
+            'resources/css/base.css',
+            'resources/css/layout.css',
+            'resources/css/components.css',
+            'resources/css/trader.css',
+        ] as $sheet) {
+            $path = base_path($sheet);
+            $this->assertFileExists($path, "{$sheet} is missing; the layout's CSS moved out of the view");
+            $css .= ' '.file_get_contents($path);
+        }
 
-        return (string) preg_replace('!/\*.*?\*/!s', '', $style[1] ?? '');
+        // Strip the CSS comments, which is what the previous regex did for the inline block.
+        return (string) preg_replace('!/\*.*?\*/!s', '', $css);
     }
 }
