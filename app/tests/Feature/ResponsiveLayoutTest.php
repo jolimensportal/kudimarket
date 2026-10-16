@@ -76,6 +76,36 @@ class ResponsiveLayoutTest extends TestCase
         $this->assertStringContainsString('RateFormatter::format', $view);
     }
 
+    public function test_the_landing_page_declares_no_removed_section_or_image(): void
+    {
+        $view = (string) file_get_contents(resource_path('views/public/landing.blade.php'));
+
+        // The exchange screenshots. They proved a product this page no longer describes.
+        foreach (['board.png', 'buy.png', 'history.png'] as $image) {
+            $this->assertStringNotContainsString($image, $view, "{$image} is still referenced");
+        }
+
+        // The dead anchors the doors used to point at.
+        foreach (['#send"', '#earn"', '#trust"'] as $anchor) {
+            $this->assertStringNotContainsString("href=\"{$anchor}", $view);
+        }
+    }
+
+    public function test_the_doors_point_at_anchors_that_exist(): void
+    {
+        $view = (string) file_get_contents(resource_path('views/public/landing.blade.php'));
+
+        preg_match_all('/href="#([a-z]+)"/', $view, $hrefs);
+
+        foreach (array_unique($hrefs[1]) as $anchor) {
+            $this->assertStringContainsString(
+                "id=\"{$anchor}\"",
+                $view,
+                "the page links to #{$anchor} but nothing carries that id"
+            );
+        }
+    }
+
     private function layout(string $name): string
     {
         $path = resource_path("views/layouts/{$name}.blade.php");

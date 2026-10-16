@@ -37,17 +37,6 @@
 
         .num { font-variant-numeric: tabular-nums; }
 
-        /* ── Hero ──────────────────────────────────────────────────────────────
-           Split on desktop. On a phone the field sits ABOVE the screenshot on purpose: the ask
-           comes before the evidence, or on a 390px screen nobody reaches the evidence. */
-        .hero {
-            display: grid; gap: 40px; align-items: center;
-            padding: 54px 0 8px;
-        }
-        @media (min-width: 900px) {
-            .hero { grid-template-columns: 1fr 400px; gap: 72px; padding: 76px 0 24px; }
-        }
-
         .status {
             display: inline-flex; align-items: center; gap: 8px;
             font-size: 13px; font-weight: 600; letter-spacing: 0.01em;
@@ -111,61 +100,140 @@
         .help strong { color: var(--ink-mid); }
         .err { font-size: 14px; color: var(--red); margin-top: 10px; }
 
-        /* ── The screenshot ─────────────────────────────────────────────────── */
-        .hero-shot { text-align: center; }
-        .hero-shot img {
-            width: 100%; max-width: 300px; margin: 0 auto;
-            border-radius: 26px; border: 1px solid var(--line);
-            box-shadow: 0 24px 60px -28px color-mix(in oklch, var(--plum-900) 42%, transparent);
+        /* ── Hero ────────────────────────────────────────────────────────────────
+             The split is what uses the width. Below lg it is one column and the rate
+             card follows the form, which is correct on a phone: the ask comes before
+             the evidence, or on a 390px screen nobody reaches the evidence. --*/
+        .hero { display: grid; gap: 40px; align-items: center; padding: 56px 0 48px; }
+
+        @media (min-width: 1024px) {
+            .hero { grid-template-columns: 1fr 400px; gap: var(--space-8); }
         }
-        .shot-cap { font-size: 13px; color: var(--ink-soft); margin-top: 14px; }
 
-        /* ── Numbers ────────────────────────────────────────────────────────── */
-        .numbers { padding: 76px 0 0; }
-        .numbers dl {
-            display: grid; gap: 0; margin-top: 26px;
-            border-top: 1px solid var(--line);
+        /* ── The rate card: the proof, stated rather than photographed ────────────
+             This replaced three screenshots that said "Sell to us", "Buy from us" and
+             "Your trades". The rate is the claim the business actually makes, it is
+             read from rate_card so it cannot go stale, and it cannot contradict the
+             copy beside it the way a photograph of the wrong product did. --*/
+        .rate-card {
+            background: var(--surface-raised);
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            overflow: hidden;
         }
-        @media (min-width: 720px) { .numbers dl { grid-template-columns: repeat(3, 1fr); } }
-        .numbers dl > div { padding: 22px 0; border-bottom: 1px solid var(--line); }
-        @media (min-width: 720px) {
-            .numbers dl > div { padding: 26px 26px 26px 0; border-bottom: 0; }
-            .numbers dl > div + div { border-left: 1px solid var(--line); padding-left: 26px; }
+
+        .rate-card__head {
+            display: flex; align-items: center; justify-content: space-between; gap: 12px;
+            padding: 14px 18px; border-bottom: 1px solid var(--line);
         }
-        .numbers dt { font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-soft); }
-        .numbers dd { font-size: clamp(28px, 5vw, 40px); font-weight: 800; letter-spacing: -0.03em; margin-top: 8px; }
-        .numbers dd span { display: block; font-size: 14px; font-weight: 500; letter-spacing: 0; color: var(--ink-soft); margin-top: 4px; }
-        .numbers .foot { margin-top: 18px; }
+        .rate-card__title { font-size: var(--text-md); font-weight: 700; }
 
-        /* ── Promises ───────────────────────────────────────────────────────── */
-        .terms { padding: 80px 0 0; }
-        .terms ol { margin-top: 26px; border-top: 1px solid var(--line); }
-        .terms li { display: grid; gap: 3px 28px; padding: 24px 0; border-bottom: 1px solid var(--line); }
-        @media (min-width: 720px) { .terms li { grid-template-columns: 300px 1fr; align-items: baseline; } }
-        .terms .t { font-size: clamp(19px, 2.6vw, 23px); font-weight: 700; letter-spacing: -0.02em; }
-        .terms .d { color: var(--ink-mid); max-width: 46ch; }
-
-        /* ── Screens ────────────────────────────────────────────────────────── */
-        .proof { padding: 80px 0 0; display: grid; gap: 44px; }
-        @media (min-width: 760px) { .proof { grid-template-columns: 1fr 1fr; gap: 56px; } }
-        .proof figure { text-align: center; }
-        .proof img {
-            width: 100%; max-width: 280px; margin: 0 auto;
-            border-radius: 22px; border: 1px solid var(--line);
-            box-shadow: 0 20px 50px -30px color-mix(in oklch, var(--plum-900) 40%, transparent);
+        .live {
+            display: inline-flex; align-items: center; gap: 7px;
+            font-size: var(--text-xs); font-weight: 700;
+            color: var(--action-destructive);
+            background: color-mix(in oklch, var(--action-destructive) 8%, var(--surface-raised));
+            border: 1px solid color-mix(in oklch, var(--action-destructive) 28%, var(--surface-raised));
+            padding: 4px 10px; border-radius: 999px;
         }
-        .proof figcaption { font-size: 14px; color: var(--ink-soft); margin-top: 14px; text-wrap: pretty; }
+        .live .dot { width: 6px; height: 6px; }
 
-        /* ── Plain ──────────────────────────────────────────────────────────── */
-        .plain { padding: 80px 0 0; }
-        .plain ul { margin-top: 22px; border-top: 1px solid var(--line); }
-        .plain li { padding: 16px 0 16px 22px; border-bottom: 1px solid var(--line); position: relative; color: var(--ink-mid); }
-        .plain li::before { content: ""; position: absolute; left: 2px; top: 26px; width: 6px; height: 6px; border-radius: 50%; background: var(--plum-300); }
+        .rate-card__body { padding: 20px 18px; }
+        .rate-card__pair {
+            font-size: var(--text-xs); font-weight: 700; letter-spacing: 0.06em;
+            text-transform: uppercase; color: var(--ink-soft);
+        }
+        .rate-card__value {
+            font-size: 52px; font-weight: 800; letter-spacing: -0.035em; line-height: 1;
+            margin-top: 6px; font-variant-numeric: tabular-nums;
+        }
+        .rate-card__eq { font-size: var(--text-sm); color: var(--ink-soft); margin-top: 6px; }
 
-        /* ── Closer ──────────────────────────────────────────────────────────── */
-        .closer { padding: 84px 0 8px; text-align: center; }
-        .closer form { max-width: 440px; margin-inline: auto; }
-        .closer .row { justify-content: center; }
+        .rate-card__split {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+            margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--line);
+        }
+        .rate-card__split .k {
+            display: block; font-size: var(--text-2xs); font-weight: 700; letter-spacing: 0.06em;
+            text-transform: uppercase; color: var(--ink-soft);
+        }
+        .rate-card__split .n {
+            display: block; font-size: var(--text-xl); font-weight: 800; letter-spacing: -0.02em;
+            margin-top: 3px; font-variant-numeric: tabular-nums;
+        }
+
+        .rate-card__foot {
+            padding: 12px 18px; border-top: 1px solid var(--line);
+            font-size: var(--text-sm); color: var(--ink-soft);
+            background: color-mix(in oklch, var(--plum-900) 3%, var(--surface-raised));
+        }
+
+        /* ── What it costs ────────────────────────────────────────────────────────
+             A worked example, not a rate table. Both amounts are multiplied out of the
+             live rate in the controller, so when the rate moves this moves with it. --*/
+        .cost dl { display: grid; gap: 0; margin-top: var(--space-5); border-top: 1px solid var(--line); }
+
+        @media (min-width: 768px) {
+            .cost dl { grid-template-columns: repeat(3, 1fr); }
+            .cost dl > div { border-bottom: 0; padding: 22px 24px 22px 0; }
+            .cost dl > div + div { border-left: 1px solid var(--line); padding-left: 24px; }
+        }
+
+        .cost dl > div { padding: 22px 0; border-bottom: 1px solid var(--line); }
+        .cost dt {
+            font-size: var(--text-2xs); font-weight: 700; letter-spacing: 0.07em;
+            text-transform: uppercase; color: var(--ink-soft);
+        }
+        .cost dd {
+            font-size: var(--text-4xl); font-weight: 800; letter-spacing: -0.03em;
+            margin-top: 5px; font-variant-numeric: tabular-nums;
+        }
+        .cost dd span {
+            display: block; font-size: var(--text-sm); font-weight: 500;
+            color: var(--ink-soft); margin-top: 2px;
+        }
+        .cost .foot { margin-top: var(--space-4); }
+
+        /* ── Three promises ───────────────────────────────────────────────────────
+     Weighted, not three equal columns. The first promise is the claim the
+     business is making and the other two are conditions on it, so it gets more
+     room. Three equal columns would flatten that into a list of equals, and
+     kudilint is right to refuse it. --*/
+        .promise { padding: 60px 0 0; }
+        .promise ol { list-style: none; margin-top: var(--space-5); border-top: 1px solid var(--line); }
+
+        @media (min-width: 1024px) {
+            .promise ol { display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: 0 40px; }
+        }
+
+        .promise li { padding: 22px 0; border-bottom: 1px solid var(--line); }
+        .promise .t {
+            display: block; font-size: var(--text-lg); font-weight: 700; letter-spacing: -0.015em;
+        }
+        .promise .d {
+            display: block; color: var(--ink-mid); font-size: var(--text-md); margin-top: 6px;
+        }
+
+        /* ── Address promise beside the second ask ───────────────────────────────── */
+        .foot2 { display: grid; gap: 40px; padding: 60px 0 0; align-items: start; }
+
+        @media (min-width: 1024px) {
+            .foot2 { grid-template-columns: 1fr 400px; gap: var(--space-8); }
+        }
+
+        .plain ul { margin-top: var(--space-4); border-top: 1px solid var(--line); }
+        .plain li {
+            padding: 14px 0 14px 20px; border-bottom: 1px solid var(--line);
+            position: relative; color: var(--ink-mid);
+        }
+        .plain li::before {
+            content: ""; position: absolute; left: 0; top: 24px; width: 6px; height: 6px;
+            border-radius: 50%; background: var(--plum-300);
+        }
+        .plain .foot { margin-top: var(--space-4); }
+
+        .closer h2 { font-size: var(--text-2xl); }
+        .closer form { margin-top: var(--space-3); }
 
         /* ── Confirmation ───────────────────────────────────────────────────── */
         .confirm { padding: 54px 0 20px; }
