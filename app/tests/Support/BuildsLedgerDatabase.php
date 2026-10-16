@@ -40,7 +40,7 @@ trait BuildsLedgerDatabase
         '016_cdd.sql',
         '017_commission.sql',
         '018_platform_sell.sql',
-        '019_my_trades.sql',
+        '019_my_trades.sql', '020_remittance.sql',
     ];
 
     /**

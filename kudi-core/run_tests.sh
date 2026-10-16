@@ -21,7 +21,7 @@ ops()  { sql "select ops_transition($1,'$2','$3','$4','$5'${6:+,'$6'});" >/dev/n
 
 
 dropdb --if-exists "$DB" >/dev/null 2>&1; createdb "$DB" || exit 1
-for f in 001_core.sql 002_trade_types.sql 003_fiat_leg.sql 004_state_chain.sql 005_creation_anchor.sql 006_rate_card.sql 007_trader_role.sql 008_traders.sql 009_offer_book.sql 010_verification.sql 011_rate_direction.sql 012_trade_pair.sql 013_release_sweeper.sql 014_segregation.sql 015_trader_identity.sql 016_cdd.sql 017_commission.sql 018_platform_sell.sql 019_my_trades.sql; do
+for f in 001_core.sql 002_trade_types.sql 003_fiat_leg.sql 004_state_chain.sql 005_creation_anchor.sql 006_rate_card.sql 007_trader_role.sql 008_traders.sql 009_offer_book.sql 010_verification.sql 011_rate_direction.sql 012_trade_pair.sql 013_release_sweeper.sql 014_segregation.sql 015_trader_identity.sql 016_cdd.sql 017_commission.sql 018_platform_sell.sql 019_my_trades.sql 020_remittance.sql; do
   psql -X -q -v ON_ERROR_STOP=1 -d "$DB" -f "$HERE/$f" >/dev/null || { echo "schema $f failed"; exit 1; }
 done
 sql "insert into asset values ('USDT',6),('GHS',2);" >/dev/null
@@ -1602,6 +1602,115 @@ echo "== integrity"
 expect_eq "cached balances equal sum of postings" "$(sql "select count(*) from check_balances();")" "0"
 expect_eq "value is conserved (sum of all balances per asset = 0)" "$(sql "select count(*) from (select asset from account group by asset having sum(balance)<>0) x;")" "0"
 expect_eq "hash chain verifies" "$(sql "select verify_chain();")" "t"
+# ---------------------------------------------------------------- remittance
+#
+# The order here is deliberate: the first two tests are the ones that would have cost real money.
+# See 020 for why, and do not reorder them into the happy path.
+
+echo "== remittance: the sweeper must not settle a send that nobody has paid out"
+
+sql "select set_rate('GHS','NGN',148.20,'ops@kudi.com');" >/dev/null
+sql "insert into asset values ('NGN',2) on conflict do nothing;" >/dev/null
+
+# Fund the float so a release would have something to move. Without this the assertion below would
+# pass for the wrong reason -- there would be no float to fall.
+sql "select post_tx('float-seed','seed',null, jsonb_build_array(
+        jsonb_build_object('account',get_account('platform','external','NGN'),'asset','NGN','amount',1482000),
+        jsonb_build_object('account',get_account('chain','external','NGN'),'asset','NGN','amount',-1482000)));" >/dev/null
+FLOAT_BEFORE=$(sql "select balance from account where owner='platform' and asset='NGN';")
+
+R=$(sql "select create_remittance_send('sender@t.com','Ada Mensah','+2348012345678','GHS/NGN',1482000,148.20,'rmt-1');")
+expect_eq "a send is created in open" "$(sql "select state from trade where id=$R;")" "open"
+expect_eq "the send knows its beneficiary" "$(sql "select beneficiary_name from remittance_send where trade_id=$R;")" "Ada Mensah"
+expect_eq "nothing is delivered yet" "$(sql "select count(*) from remittance_send where trade_id=$R and delivered_amount is not null;")" "0"
+
+tt  "$R" open paid_claimed remit-1-claim "sender@t.com"
+ops "$R" paid_claimed paid_attested remit-1-attest "ops@kudi.com"
+expect_eq "the send is attested" "$(sql "select state from trade where id=$R;")" "paid_attested"
+
+# Open the claim window on every type at once, which is how the sweeper tests above age things: the
+# event log is append-only, so the window is the only lever.
+sql "update trade_policy set claim_window = '0 seconds';" >/dev/null
+sql "select released from release_due_trades();" >/dev/null
+
+# An earlier version of these two lines asserted the trade was still in paid_attested and that the
+# float had not moved. Both pass against the UNMODIFIED 013 sweeper, because trade_rule already refuses
+# paid_attested -> released for this type. They were a test that could not fail, which is worse than
+# no test because it reads as coverage. What actually changes here is already_settled: without the
+# constraint below, the sweeper attempts the move, _apply_transition throws 'illegal transition', and
+# the throw is counted as a settled trade. These two assertions fail against the old sweeper and pass
+# against this one, which is the only thing worth asserting about it.
+expect_eq "the sweeper does not count an unpaid send as a settled trade" \
+  "$(sql "select already_settled from release_due_trades();")" "0"
+expect_eq "and reports that it released nothing" \
+  "$(sql "select count(*) from trade where state = 'paid_attested' and trade_type = 'remittance';")" "1"
+expect_eq "so the send is still waiting for its payout" \
+  "$(sql "select state from trade where id=$R;")" "paid_attested"
+expect_eq "and the float has not moved" \
+  "$(sql "select balance from account where owner='platform' and asset='NGN';")" "$FLOAT_BEFORE"
+
+echo "== remittance: nobody may skip the payout"
+
+expect_fail "the sender may not confirm their own cedi" \
+  "$(astrader "select transition_trade($R,'paid_claimed','paid_attested','x1','sender@t.com');")" "ops only"
+expect_fail "a trader may not record a payout at all" \
+  "$(astrader "select record_payout($R,1482000,'TILL-1','sender@t.com','x2');")" "permission denied"
+expect_fail "ops may not settle without paying out first" \
+  "$(asops "select ops_transition($R,'paid_attested','released','x3','ops@kudi.com');")" "illegal transition"
+expect_eq "none of those attempts moved the send" "$(sql "select state from trade where id=$R;")" "paid_attested"
+
+echo "== remittance: a payout is recorded or it is not recorded"
+
+expect_fail "a payout with no till reference is refused" \
+  "$(asops "select record_payout($R,1482000,'','ops@kudi.com','rmt-1-p0');")" "till reference"
+expect_fail "a payout of the wrong amount is refused" \
+  "$(asops "select record_payout($R,1400000,'TILL-1','ops@kudi.com','rmt-1-p0b');")" "refusing to record"
+expect_eq "neither refused attempt recorded anything" \
+  "$(sql "select count(*) from remittance_send where trade_id=$R and delivered_amount is not null;")" "0"
+expect_eq "and neither moved the send" "$(sql "select state from trade where id=$R;")" "paid_attested"
+
+asops "select record_payout($R,1482000,'TILL-4471','ops@kudi.com','rmt-1-p1');" >/dev/null
+expect_eq "the send is now paid out" "$(sql "select state from trade where id=$R;")" "paid_out"
+expect_eq "the payout is evidenced" \
+  "$(sql "select delivered_reference||' by '||delivered_by from remittance_send where trade_id=$R;")" "TILL-4471 by ops@kudi.com"
+expect_fail "a second payout on the same send is refused" \
+  "$(asops "select record_payout($R,1482000,'TILL-4472','ops@kudi.com','rmt-1-p2');")" "already has a payout"
+
+echo "== remittance: the float moves only now, and only by the delivered amount"
+
+expect_eq "recording a payout does not move money, only the handover" \
+  "$(sql "select balance from account where owner='platform' and asset='NGN';")" "$FLOAT_BEFORE"
+
+asops "select ops_transition($R,'paid_out','released','rmt-1-r1','system');" >/dev/null
+expect_eq "the send is settled" "$(sql "select state from trade where id=$R;")" "released"
+expect_eq "the float fell by exactly what was handed over" \
+  "$(sql "select ($FLOAT_BEFORE - balance) from account where owner='platform' and asset='NGN';")" "1482000"
+
+echo "== remittance: the types that sweep still sweep"
+
+# The sweeper was taught to ask trade_rule rather than to exclude remittance by name. Written the other
+# way it would pass every test above -- remittance would be safe -- while silently breaking automatic
+# settlement for the other three types. This is the test that catches that mistake.
+I=$(sql "select create_fiat_trade('platform','buyer@t.com',null,null,'NGN',1482000,148.20,'platform_inventory','GHS','NGN','GHS');")
+tt  "$I" open paid_claimed inv-1-claim "buyer@t.com"
+ops "$I" paid_claimed paid_attested inv-1-attest "ops@kudi.com"
+sql "select released from release_due_trades();" >/dev/null
+expect_eq "an own-book buy is still settled by the sweeper" \
+  "$(sql "select state from trade where id=$I;")" "released"
+sql "update trade_policy set claim_window = '15 minutes';" >/dev/null
+
+echo "== remittance: corridors and beneficiaries are checked"
+
+expect_fail "a corridor we do not serve is refused" \
+  "$(asapp "select create_remittance_send('s@t.com','Ada','+2348012345678','GHS/ZAR',1000,1,'rmt-1-c1');")" "not served"
+expect_fail "a phone number that cannot be dialled is refused" \
+  "$(asapp "select create_remittance_send('s@t.com','Ada','call-me','GHS/NGN',1000,1,'rmt-1-c2');")" "beneficiary_phone"
+expect_fail "a beneficiary with no name is refused" \
+  "$(asapp "select create_remittance_send('s@t.com','x','+2348012345678','GHS/NGN',1000,1,'rmt-1-c3');")" "beneficiary_name"
+
+expect_eq "the chain verifies after every remittance movement" "$(sql "select verify_chain();")" "t"
+expect_eq "and the postings balance" "$(sql "select count(*) from check_balances();")" "0"
+
 sql "alter table posting disable trigger posting_append_only; update posting set amount = amount + 1 where id = (select min(id) from posting);" >/dev/null
 expect_eq "tampering as superuser is detected by the chain" "$(sql "select verify_chain();")" "f"
 
