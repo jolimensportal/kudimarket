@@ -31,11 +31,19 @@ final class LandingController extends Controller
         // and two queries against the same table on a page whose whole claim is that its numbers are
         // live is a way to show a rate and an example that disagree.
         $rates = $this->publishedRates();
+        $feeBps = $this->publishedFee();
 
         return view('public.landing', [
             'rates' => $rates,
             'example' => $this->workedExample($rates),
-            'feeBps' => $this->publishedFee(),
+            'feeBps' => $feeBps,
+            // Formatted here rather than in the view. The same three-step expression -- divide,
+            // trim the zeros, trim the dot -- appeared twice in the markup, and one of those copies
+            // had the HTML entity for an em-dash inside a Blade echo, where the ampersand gets
+            // escaped and the reader is shown the literal text "&mdash;".
+            'feePercent' => $feeBps === null
+                ? null
+                : rtrim(rtrim(sprintf('%.2f', $feeBps / 100), '0'), '.'),
             'waiting' => $this->waiting(),
             'referrer' => $this->validReferralCode($request->query('ref')),
         ]);

@@ -185,7 +185,11 @@
             text-transform: uppercase; color: var(--ink-soft);
         }
         .cost dd {
-            font-size: var(--text-4xl); font-weight: 800; letter-spacing: -0.03em;
+            /* 38px overflows a 375px column the moment the amount gains a thousands separator:
+               14,820.00 is the widest figure this page can print. Sized down below md, where the
+               band is one column and has the full width to itself, and up from md where there are
+               three columns and there is less of it. */
+            font-size: clamp(28px, 8vw, var(--text-4xl)); font-weight: 800; letter-spacing: -0.03em;
             margin-top: 5px; font-variant-numeric: tabular-nums;
         }
         .cost dd span {

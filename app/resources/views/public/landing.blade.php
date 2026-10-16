@@ -107,7 +107,7 @@
                             </div>
                             <div>
                                 <span class="k">Our fee</span>
-                                <span class="n num">{{ $feeBps !== null ? rtrim(rtrim(sprintf('%.2f', $feeBps / 100), '0'), '.') : '&mdash;' }}%</span>
+                                <span class="n num">{{ $feePercent !== null ? $feePercent.'%' : '—' }}</span>
                             </div>
                         </div>
                     </div>
@@ -136,7 +136,12 @@
                     </div>
                     <div>
                         <dt>Our fee</dt>
-                        <dd class="num">{{ $feeBps !== null ? rtrim(rtrim(sprintf('%.2f', $feeBps / 100), '0'), '.') : '&mdash;' }}% <span>{{ $feeBps }} bps, charged on the send</span></dd>
+                        <dd class="num">
+                            {{ $feePercent !== null ? $feePercent.'%' : '—' }}
+                            @if ($feeBps !== null)
+                                <span>{{ $feeBps }} bps, charged on the send</span>
+                            @endif
+                        </dd>
                     </div>
                 </dl>
                 <p class="foot">
