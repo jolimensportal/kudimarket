@@ -126,13 +126,30 @@ class LandingPageTest extends TestCase
 
     public function test_a_configured_contact_link_is_rendered_as_a_real_url(): void
     {
-        Config::set('kudi.whatsapp', 'https://wa.me/233000000000');
-        Config::set('kudi.telegram', 'https://t.me/kudimarket');
+        // Set through the environment rather than the config facade, because the point of this test is
+        // the wiring from the variable name production actually uses. Reading KUDI_WHATSAPP instead of
+        // KUDI_WHATSAPP_URL is how real contact details sat in the server environment, unread, while the
+        // page quietly rendered nothing.
+        $_ENV['KUDI_WHATSAPP_URL'] = 'https://wa.me/233541744222';
+        $_ENV['KUDI_TELEGRAM_URL'] = 'https://t.me/kudimarketexchange';
+        putenv('KUDI_WHATSAPP_URL=https://wa.me/233541744222');
+        putenv('KUDI_TELEGRAM_URL=https://t.me/kudimarketexchange');
 
-        $this->get('/about')
-            ->assertOk()
-            ->assertSee('https://wa.me/233000000000', escape: false)
-            ->assertSee('https://t.me/kudimarket', escape: false);
+        try {
+            $this->refreshApplication();
+
+            $this->get('/about')
+                ->assertOk()
+                ->assertSee('wa.me/233541744222', escape: false)
+                ->assertSee('t.me/kudimarketexchange', escape: false)
+                ->assertSee('WhatsApp us')
+                ->assertSee('Telegram');
+        } finally {
+            unset($_ENV['KUDI_WHATSAPP_URL'], $_ENV['KUDI_TELEGRAM_URL']);
+            putenv('KUDI_WHATSAPP_URL');
+            putenv('KUDI_TELEGRAM_URL');
+            $this->refreshApplication();
+        }
     }
 
     public function test_while_launching_the_trader_app_is_closed_and_not_merely_hidden(): void

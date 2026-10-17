@@ -34,8 +34,12 @@ return [
      * There is deliberately no default here. A guessed wa.me number is a link to a stranger's phone, and
      * a placeholder that ships is a dead link with better branding. Until these are set the row is not
      * rendered at all, which is honest.
+     *
+     * The _URL suffix is the name production actually uses -- KUDI_WHATSAPP_URL and KUDI_TELEGRAM_URL
+     * have been set on the server all along. Reading them without the suffix meant the page silently
+     * ignored real contact details that were sitting right there in the environment.
      */
-    'whatsapp' => env('KUDI_WHATSAPP'),
-    'telegram' => env('KUDI_TELEGRAM'),
+    'whatsapp' => env('KUDI_WHATSAPP_URL') ?: env('KUDI_WHATSAPP'),
+    'telegram' => env('KUDI_TELEGRAM_URL') ?: env('KUDI_TELEGRAM'),
 
 ];
