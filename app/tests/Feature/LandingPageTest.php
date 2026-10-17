@@ -110,6 +110,31 @@ class LandingPageTest extends TestCase
         $this->assertSame(0, DB::table('launch_signups')->where('email', 'not-an-email')->count());
     }
 
+    public function test_the_contact_row_is_not_rendered_without_a_real_url_behind_it(): void
+    {
+        // Both of these were href="#" for the whole life of the page. A row reading "No email?" and
+        // offering two dead links is worse than no row: it looks like a way to reach us and fails at
+        // the exact moment somebody is trying.
+        Config::set('kudi.whatsapp', null);
+        Config::set('kudi.telegram', null);
+
+        $this->get('/about')
+            ->assertOk()
+            ->assertDontSee('WhatsApp us')
+            ->assertDontSee('Telegram');
+    }
+
+    public function test_a_configured_contact_link_is_rendered_as_a_real_url(): void
+    {
+        Config::set('kudi.whatsapp', 'https://wa.me/233000000000');
+        Config::set('kudi.telegram', 'https://t.me/kudimarket');
+
+        $this->get('/about')
+            ->assertOk()
+            ->assertSee('https://wa.me/233000000000', escape: false)
+            ->assertSee('https://t.me/kudimarket', escape: false);
+    }
+
     public function test_while_launching_the_trader_app_is_closed_and_not_merely_hidden(): void
     {
         // The whole point of the switch. A landing page in front of a working sign-in form would

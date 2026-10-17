@@ -46,6 +46,10 @@ final class LandingController extends Controller
                 : rtrim(rtrim(sprintf('%.2f', $feeBps / 100), '0'), '.'),
             'waiting' => $this->waiting(),
             'referrer' => $this->validReferralCode($request->query('ref')),
+            // Passed rather than referenced from the template. The view read $waLink and $tgLink, which
+            // nothing had ever set, so the row below the form has been two dead links on the live site.
+            'waLink' => config('kudi.whatsapp'),
+            'tgLink' => config('kudi.telegram'),
         ]);
     }
 
