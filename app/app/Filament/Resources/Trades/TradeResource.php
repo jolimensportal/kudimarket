@@ -41,13 +41,20 @@ class TradeResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('id')->label('#')->sortable(),
+                // Searchable because a sender reads their send id off their own screen and quotes it
+                // on the phone. Without this the console can only be paged through, and the handover
+                // conversation has no way to get from the number a customer reads to the row it names.
+                Tables\Columns\TextColumn::make('id')->label('#')->sortable()->searchable(isIndividual: true),
                 Tables\Columns\TextColumn::make('trade_type')
                     ->label('Type')
                     ->badge()
+                    // Searchable, and sortable: sends are the rows an operator is here to work, and
+                    // they were mixed into every other trade with no way to separate them -- the
+                    // handover queue could only be reached by paging.
+                    ->searchable()
                     ->color(fn (string $state) => match ($state) {
+                        'remittance' => 'primary',
                         'platform_inventory' => 'warning',
-                        'vendor_vendor' => 'gray',
                         default => 'gray',
                     }),
                 Tables\Columns\TextColumn::make('seller')->label('Seller'),
@@ -73,6 +80,13 @@ class TradeResource extends Resource
                     ->label('State')
                     ->formatStateUsing(fn (string $state) => str_replace('_', ' ', $state)),
             ])
+            // A dropdown rather than per-column filtering: the type names are a closed set the ledger
+            // owns, and a free-text box here would let an operator type "send" and get nothing.
+            ->filters([
+                Tables\Filters\SelectFilter::make('trade_type')
+                    ->label('Type')
+                    ->options(Trade::query()->distinct()->orderBy('trade_type')->pluck('trade_type', 'trade_type')->all()),
+            ])
             ->defaultSort('id', 'desc')
             ->recordActions([
                 ViewAction::make(),
@@ -91,9 +105,17 @@ class TradeResource extends Resource
                     ->color('primary')
                     ->requiresConfirmation()
                     ->modalHeading('Confirm this payment arrived?')
-                    ->modalDescription('You are confirming that money you can see has reached KudiMarket. '
-                        .'You are not the payer, and this is recorded against your staff identity. '
-                        .'Once confirmed, the buyer still waits out the claim window before it is released.')
+                    ->modalDescription(fn ($record) => $record->trade_type === 'remittance'
+                        // No claim window on a send, and no buyer. A send has no window to wait out --
+                        // the next step is the handover -- so telling an operator to wait for one
+                        // describes a mechanism this type does not have, at the moment they are deciding
+                        // what to do next.
+                        ? 'You are confirming that money you can see has reached KudiMarket. '
+                            .'You are not the payer, and this is recorded against your staff identity. '
+                            .'Next, record the handover against a till reference.'
+                        : 'You are confirming that money you can see has reached KudiMarket. '
+                            .'You are not the payer, and this is recorded against your staff identity. '
+                            .'Once confirmed, the buyer still waits out the claim window before it is released.')
                     ->visible(fn ($record) => $record->state === 'paid_claimed')
                     ->action(function ($record, TradeLedger $ledger) {
                         $ledger->attest((int) $record->id, static::operatorIdentity());
@@ -117,11 +139,15 @@ class TradeResource extends Resource
                         && $record->state === 'paid_attested')
                     ->form([
                         TextInput::make('amount')
-                            ->label('Amount handed over (minor units)')
+                            ->label('Amount handed over')
                             ->required()
-                            ->numeric()
-                            ->default(fn ($record) => (string) $record->fiat_amount)
-                            ->helperText('Minor units, exactly as the ledger holds them. '
+                            // In naira, not in minor units. The form used to default to 370500000, and
+                            // the person standing at the till cannot check a bundle of notes against
+                            // that -- the number on the record they are meant to match is in naira, so
+                            // the box they are asked to confirm against was in a unit the counter does
+                            // not use. Converted to minor units on the way in.
+                            ->default(fn ($record) => number_format(((int) $record->fiat_amount) / 100, 2, '.', ''))
+                            ->helperText('Naira, as it is written on the send. '
                                 .'A figure that does not match what this send owes is refused.'),
                         TextInput::make('reference')
                             ->label('Till reference')
@@ -132,9 +158,12 @@ class TradeResource extends Resource
                                 .'Without it a handover cannot be recorded at all.'),
                     ])
                     ->action(function ($record, TradeLedger $ledger, array $data) {
+                        // Decimal string to minor units, never a float: the form is in naira because that
+                        // is what the counter counts in, and the ledger is in minor units because that is
+                        // what it holds. A float in between would lose pesewas on the way past.
                         $ledger->recordPayout(
                             (int) $record->id,
-                            (int) $data['amount'],
+                            RateBoard::toMinor($data['amount'], 'NGN'),
                             (string) $data['reference'],
                             static::operatorIdentity(),
                         );
@@ -315,6 +344,7 @@ class TradeResource extends Resource
         $tradeId = (int) $schema->getRecord()->id;
         $ledger = app(TradeLedger::class);
         $quote = $ledger->quote($tradeId);
+        $postings = $ledger->postings($tradeId);
 
         // A rate is fiat units per one unit of the crypto leg. On a trade with no crypto leg it is a
         // stored number that means nothing, so it is not offered as if it did.
@@ -448,8 +478,19 @@ class TradeResource extends Resource
             Section::make('Where the money went')
                 ->description('Every posting this trade made, netted by account.')
                 ->schema([
+                    // Stated rather than left blank. At the start of a send there are no postings at
+                    // all -- the cedi has been declared but nothing has been confirmed and no naira has
+                    // moved -- so the section rendered as an empty box under a heading about money, on
+                    // the one page whose job is to account for money. An empty box there reads as
+                    // "the money went somewhere and it is not written down", which is the exact fear
+                    // this screen exists to remove.
+                    TextEntry::make('no_postings')
+                        ->label('No money has moved on this send yet.')
+                        ->hidden(fn () => $postings !== [])
+                        ->hiddenLabel(),
                     RepeatableEntry::make('postings')
-                        ->state($ledger->postings($tradeId))
+                        ->state($postings)
+                        ->hidden(fn () => $postings === [])
                         ->columns(4)
                         ->schema([
                             TextEntry::make('owner')->label('Account'),

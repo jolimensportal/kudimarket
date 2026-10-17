@@ -312,7 +312,10 @@ class OpsConsoleTest extends TestCase
         $floatBefore = $this->platformFloat();
 
         $this->tradesPage()
-            ->callTableAction('record_payout', $send->id, ['amount' => $send->fiat_amount, 'reference' => 'TILL-9001'])
+            ->callTableAction('record_payout', $send->id, [
+                'amount' => number_format(((int) $send->fiat_amount) / 100, 2, '.', ''),
+                'reference' => 'TILL-9001',
+            ])
             ->assertHasNoActionErrors();
 
         $this->assertSame('paid_out', $this->stateOf($send->id));
@@ -339,7 +342,10 @@ class OpsConsoleTest extends TestCase
         $this->tradesPage()->assertTableActionDisabled('release', record: (string) $send->id);
 
         $this->tradesPage()
-            ->callTableAction('record_payout', $send->id, ['amount' => $send->fiat_amount, 'reference' => 'TILL-9002'])
+            ->callTableAction('record_payout', $send->id, [
+                'amount' => number_format(((int) $send->fiat_amount) / 100, 2, '.', ''),
+                'reference' => 'TILL-9002',
+            ])
             ->assertHasNoActionErrors();
 
         $this->tradesPage()->assertTableActionEnabled('release', record: (string) $send->id);
@@ -411,6 +417,21 @@ class OpsConsoleTest extends TestCase
         return $trader;
     }
 
+    /** The send row, for assertCanSeeTableRecords. */
+    private function latestSend(): string
+    {
+        return (string) DB::connection('pgsql_ops')->selectOne(
+            "select id from trade where trade_type = 'remittance' order by id desc limit 1"
+        )->id;
+    }
+
+    private function latestExchange(): string
+    {
+        return (string) DB::connection('pgsql_ops')->selectOne(
+            "select id from trade where trade_type <> 'remittance' order by id desc limit 1"
+        )->id;
+    }
+
     private function stateOf(int $tradeId): string
     {
         return \DB::connection('pgsql_ops')->selectOne('select state from trade where id = ?', [$tradeId])->state;
@@ -464,6 +485,82 @@ class OpsConsoleTest extends TestCase
             'select ledger_deposit(?, ?, ?, ?) as id',
             [$email, $asset, $minorUnits, 'fund-'.bin2hex(random_bytes(6))]
         );
+    }
+
+    /**
+     * An empty ledger section has to say why it is empty.
+     *
+     * A send that has been declared but not confirmed has made no postings at all, so "Where the money
+     * went" rendered as an empty box on the one page whose job is to account for money. Blank there
+     * reads as "it moved and it is not written down" -- the exact fear the page exists to remove.
+     */
+    public function test_the_money_section_says_when_nothing_has_moved_yet(): void
+    {
+        $this->actingAs($this->operator());
+        $send = $this->confirmedSend();
+
+        $this->assertCount(0, app(TradeLedger::class)->postings((int) $send->id));
+
+        $this->actingAs($this->operator())
+            ->get('/admin/trades/'.$send->id)
+            ->assertOk()
+            ->assertSee('No money has moved on this send yet.');
+    }
+
+    /**
+     * An operator has to be able to narrow the console to the sends they are here to hand over.
+     *
+     * The type column was displayed but not filterable and not searchable, so the handover queue could
+     * only be reached by paging -- sends buried among exchange trades nobody at this counter handles.
+     * Driven through Filament's own filter helper rather than a query string: the table's query-string
+     * parameter names are not what a hand-written URL assumes, and an assertion that passes because it
+     * sent the wrong key proves nothing.
+     */
+    public function test_the_console_can_be_narrowed_to_remittance(): void
+    {
+        $this->actingAs($this->operator());
+        $this->confirmedSend();
+        $this->claimedTrade();
+
+        $this->tradesPage()
+            ->filterTable('trade_type', 'remittance')
+            ->assertCanSeeTableRecords([$this->latestSend()], 'remittance')
+            ->assertCanNotSeeTableRecords([$this->latestExchange()], 'vendor_vendor');
+    }
+
+    public function test_the_type_filter_brings_back_the_rows_it_is_for(): void
+    {
+        $this->actingAs($this->operator());
+        $this->confirmedSend();
+        $exchange = $this->claimedTrade();
+
+        // The other direction. A filter that ignored its input, or that returned nothing at all, would
+        // pass the test above. The type is read from the row rather than assumed: claimedTrade() opens
+        // against KudiMarket, and naming the wrong type here would pass by matching no filter at all.
+        $type = DB::connection('pgsql_ops')->selectOne(
+            'select trade_type from trade where id = ?',
+            [$exchange->trade_id]
+        )->trade_type;
+
+        $this->tradesPage()
+            ->filterTable('trade_type', $type)
+            ->assertCanSeeTableRecords([(string) $exchange->trade_id], $type);
+    }
+
+    /**
+     * Visible text, with a space opened before every tag.
+     *
+     * Filament writes "of 1 result" as separate elements, so a literal search of the HTML cannot see
+     * the phrase at all and an assertion against it fails for a reason that has nothing to do with what
+     * it is checking.
+     */
+    private function visible(string $html): string
+    {
+        return trim(preg_replace(
+            '/\s+/',
+            ' ',
+            html_entity_decode(strip_tags(str_replace('<', ' <', $html)))
+        ));
     }
 
     private function operator(): User
