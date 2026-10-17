@@ -183,18 +183,29 @@ final class SendFlowTest extends TestCase
             'the trader role must not be able to confirm a payment, by any route'
         );
 
-        // And the public surface agrees: at paid_claimed the only control on the send page is the
-        // sender's own declaration. Nothing else is offered, and nothing else is reachable.
-        $page = $this->get('/trade/send/'.$this->latestSend($trader)->id)->assertOk();
+        // And the public surface agrees. Re-read, because the send is now paid_claimed -- the state that
+        // USED to gate the button, which is how a screen could tell a sender to mark it here while only
+        // ever rendering the control after they had. At paid_claimed the declaration is spent, and the
+        // page must offer nothing they can act on.
+        $claimed = $this->latestSend($trader);
+        $this->assertSame('paid_claimed', $claimed->state);
 
-        // Counted by ACTION, not by <form>. The trader layout carries a sign-out form on every page,
-        // so counting form tags measured the chrome rather than what this screen offers.
-        $this->assertSame(
-            1,
-            substr_count($page->getContent(), route('trade.claim', $this->latestSend($trader)->id)),
-            'the send page offers exactly one action, and it is the sender\'s own declaration'
+        $page = $this->get('/trade/send/'.$claimed->id)->assertOk();
+
+        $this->assertStringNotContainsString(
+            route('trade.claim', $claimed->id),
+            $page->getContent(),
+            'once declared, the sender has no further control on the send'
         );
-        $this->assertStringContainsString('I have sent the cedi', $page->getContent());
+
+        // And the declaration is not offered twice, or behind a second route. Counted by ACTION, not by
+        // <form> -- the trader layout carries a sign-out form on every page, so counting form tags
+        // measured the chrome rather than what this screen offers.
+        $this->assertSame(
+            0,
+            substr_count($page->getContent(), route('trade.claim', $claimed->id)),
+            'a spent declaration is not offered again'
+        );
     }
 
     public function test_nobody_can_settle_a_send_before_the_cash_has_been_handed_over(): void
@@ -317,6 +328,36 @@ final class SendFlowTest extends TestCase
      * entered, because quote() called a formatter class that does not exist. Ten passing tests and a
      * broken product entry point.
      */
+    /**
+     * A sender who has just opened a send must be able to say they paid.
+     *
+     * This is the only action a sender takes in the whole product. It was gated on `paid_claimed` -- the
+     * state that pressing it creates -- so it never rendered, and a send could be opened and then
+     * nothing: no way to declare the payment, no way for operations to confirm it, no way to hand the
+     * naira over. The flow dead-ended at the first step, and the page said "mark it here" above a
+     * button that was not there.
+     */
+    public function test_a_sender_can_mark_a_new_send_as_paid(): void
+    {
+        $trader = $this->trader('claim-visible');
+        $send = app(RemittanceDesk::class)->open($trader->email, 1000000, 'Kwesi Osei', '+2348012345678');
+
+        $this->actingAs($trader)
+            ->get("/trade/send/{$send}")
+            ->assertOk()
+            ->assertSee('I have sent the cedi')
+            ->assertSee(route('trade.claim', $send), escape: false);
+
+        // And pressing it actually moves the send on, rather than only being visible -- and comes back
+        // to the SEND page. A send is a trade row, and redirecting to trade.show sent the sender to
+        // "Trade #160" on the exchange screen the moment they declared their payment.
+        $this->actingAs($trader)
+            ->post("/trade/{$send}/claim")
+            ->assertRedirect(route('trade.send.show', $send));
+
+        $this->assertSame('paid_claimed', $this->latestSend($trader)->state);
+    }
+
     public function test_the_send_form_renders_with_an_amount_entered(): void
     {
         $this->actingAs($this->trader('form'))

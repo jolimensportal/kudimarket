@@ -174,15 +174,29 @@ class TradeController extends Controller
         } catch (RuntimeException $e) {
             // A refusal is information, not a crash: "someone already moved this" is something a
             // trader can act on. Back to the trade, with the current state on screen.
-            return redirect()->route('trade.show', $row->id)->with('notice', $e->getMessage());
+            return redirect()->route($this->pageFor($row), $row->id)->with('notice', $e->getMessage());
         }
 
         // By name, not back(). back() follows the Referer header, so a request without one -- a
         // retried POST, a reopened tab, anything that did not come from the form -- sent the trader to
         // the site root instead of the trade they just claimed. Success names its destination.
         return redirect()
-            ->route('trade.show', $row->id)
+            ->route($this->pageFor($row), $row->id)
             ->with('notice', 'Noted. We are checking for your payment.');
+    }
+
+    /**
+     * Where a trader goes after acting on one of their own transactions.
+     *
+     * A send is a row in the trade table and comes back from my_trades() like any other, so naming
+     * trade.show unconditionally dropped a sender onto the exchange screen for a transaction model they
+     * never entered -- "Trade #160", counterparties, a claim window. Declaring a remittance payment sent
+     * you out of the remittance product and into the old one. This is the third place that has assumed a
+     * trade row means an exchange trade; the type decides which page describes it.
+     */
+    private function pageFor(object $row): string
+    {
+        return ($row->trade_type ?? null) === 'remittance' ? 'trade.send.show' : 'trade.show';
     }
 
     /**

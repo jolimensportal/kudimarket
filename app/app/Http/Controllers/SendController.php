@@ -9,6 +9,7 @@ use App\Services\RemittanceDesk;
 use App\Services\TradeFigures;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\View\View;
 use RuntimeException;
 
@@ -45,7 +46,11 @@ final class SendController extends Controller
 
     public function store(Request $request, RemittanceDesk $desk): RedirectResponse
     {
-        $data = $request->validate([
+        // Validated by hand rather than with $request->validate() for one reason: the default on a
+        // ValidationException is to redirect back, which follows the Referer, and with no Referer the
+        // sender lands on a page that has no @error for this field -- the message is produced and
+        // dropped. Naming the destination puts the refusal on the one page that can explain it.
+        $validator = Validator::make($request->all(), [
             'send_amount' => ['required', 'string', 'regex:/^\d{1,12}(\.\d{1,2})?$/'],
             // Shape is validated HERE, on the field it belongs to, rather than thrown from the service
             // and attached to the amount. Routing every refusal to send_amount meant a sender who typed
@@ -54,6 +59,15 @@ final class SendController extends Controller
             'beneficiary_name' => ['required', 'string', 'min:2', 'max:120'],
             'beneficiary_phone' => ['required', 'string', 'regex:/^\+?[0-9]{7,15}$/'],
         ]);
+
+        if ($validator->fails()) {
+            return redirect()
+                ->route('trade.send.create')
+                ->withErrors($validator)
+                ->withInput();
+        }
+
+        $data = $validator->validated();
 
         // A decimal STRING throughout, never a float. 0.1 has no exact binary representation, so a
         // money amount round-tripped through a float loses pesewas -- and this is the leg that leaves
@@ -71,7 +85,14 @@ final class SendController extends Controller
             // Only a refusal about the money is the amount's fault. Everything the field rules above
             // could not catch is still about the amount, so this one key is right -- but the message
             // has to survive to the sender rather than being swallowed into a generic failure.
-            return back()->withErrors(['send_amount' => $e->getMessage()])->withInput();
+            // To the send page, not back(). `back()` follows the Referer, and when there is no
+            // Referer the refusal is delivered to "/" -- a page with no field and no @error for
+            // send_amount, so the message is written and never shown. The page that can explain this
+            // refusal is named here rather than inferred from a header a privacy setting can remove.
+            return redirect()
+                ->route('trade.send.create')
+                ->withErrors(['send_amount' => $e->getMessage()])
+                ->withInput();
         }
 
         return redirect()->route('trade.send.show', $tradeId)

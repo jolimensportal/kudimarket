@@ -1,6 +1,6 @@
 @extends('layouts.trader')
 
-@section('title', 'Your trades')
+@section('title', 'Your sends and trades')
 
 @section('content')
     <p><a class="standalone-link" href="{{ route('trade.board') }}">&larr; Rates</a></p>

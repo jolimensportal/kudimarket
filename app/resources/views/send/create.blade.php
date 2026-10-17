@@ -15,7 +15,11 @@
 
             <label for="send_amount">How much cedi you are sending</label>
             <input id="send_amount" name="send_amount" inputmode="decimal" required
-                   value="{{ old('send_amount') }}" placeholder="1000.00">
+                   {{-- The link's amount, in the box it belongs to. The quote is computed from the
+                        query string, so without this the page promised "You send 250.00 GHS" above an
+                        empty field, and submitting it sent nothing. --}}
+                   value="{{ old('send_amount', $sendMinor > 0 ? number_format($sendMinor / 100, 2, '.', '') : '') }}"
+                   placeholder="1000.00">
             @error('send_amount')
                 <p class="note" style="color:var(--red)">{{ $message }}</p>
             @enderror

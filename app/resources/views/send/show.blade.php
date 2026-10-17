@@ -72,7 +72,11 @@
         </div>
     @endif
 
-    @if ($send->state === 'paid_claimed')
+    {{-- `open`, not `paid_claimed`. paid_claimed is what pressing this button CREATES -- a sender cannot
+         be asked to declare they have paid by a screen that only appears once they have. Gated on the
+         state that means they already did it, the button never rendered and the sender's only action in
+         the entire product had no way to be taken. --}}
+    @if ($send->state === 'open')
         <form method="post" action="{{ route('trade.claim', $send->id) }}">
             @csrf
             <button type="submit">I have sent the cedi</button>
