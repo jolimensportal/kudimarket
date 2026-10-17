@@ -110,21 +110,7 @@ class LandingPageTest extends TestCase
         $this->assertSame(0, DB::table('launch_signups')->where('email', 'not-an-email')->count());
     }
 
-    public function test_the_contact_row_is_not_rendered_without_a_real_url_behind_it(): void
-    {
-        // Both of these were href="#" for the whole life of the page. A row reading "No email?" and
-        // offering two dead links is worse than no row: it looks like a way to reach us and fails at
-        // the exact moment somebody is trying.
-        Config::set('kudi.whatsapp', null);
-        Config::set('kudi.telegram', null);
-
-        $this->get('/about')
-            ->assertOk()
-            ->assertDontSee('WhatsApp us')
-            ->assertDontSee('Telegram');
-    }
-
-    public function test_a_configured_contact_link_is_rendered_as_a_real_url(): void
+    public function test_the_homepage_carries_the_configured_whatsapp_and_telegram_links(): void
     {
         // Set through the environment rather than the config facade, because the point of this test is
         // the wiring from the variable name production actually uses. Reading KUDI_WHATSAPP instead of

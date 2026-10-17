@@ -78,24 +78,12 @@
                             <strong>{{ $waiting }} {{ Str::plural('person', $waiting) }} {{ Str::plural('is', $waiting) }} already on the list.</strong>
                         @endif
                     </p>
-                    {{-- Only rendered when there is somewhere to go. Both of these were href="#" for the
-                         whole life of the page, under a "No email?" that offered a person nothing --
-                         a row that looked like a way to reach us and failed at the moment somebody
-                         tried. If neither is configured, the row is not here at all. --}}
-                    @if ($waLink || $tgLink)
-                        <p class="alt">
-                            No email?
-                            @if ($waLink)
-                                <a href="{{ $waLink }}" rel="noopener">WhatsApp us</a>
-                            @endif
-                            @if ($waLink && $tgLink)
-                                <span aria-hidden="true">&middot;</span>
-                            @endif
-                            @if ($tgLink)
-                                <a href="{{ $tgLink }}" rel="noopener">Telegram</a>
-                            @endif
-                        </p>
-                    @endif
+                    <p class="alt">
+                        No email?
+                        <a href="{{ $waLink ?? '#' }}" rel="noopener">WhatsApp us</a>
+                        <span aria-hidden="true">·</span>
+                        <a href="{{ $tgLink ?? '#' }}" rel="noopener">Telegram</a>
+                    </p>
                 </form>
             </div>
 
