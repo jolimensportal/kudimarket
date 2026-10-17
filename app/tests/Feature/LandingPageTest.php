@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
+use App\Models\Trader;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
@@ -120,14 +122,36 @@ class LandingPageTest extends TestCase
         $this->get('/trade/board')->assertRedirect(route('login'));
     }
 
-    public function test_with_launching_off_the_landing_page_is_gone_and_sign_in_works_again(): void
+    public function test_with_launching_off_the_app_opens_again_in_a_second(): void
     {
         // The switch has to be reversible in a second, because turning it on is a decision someone
-        // may have to undo quickly.
+        // may have to undo quickly. What it has to restore is the APP being reachable, so that is
+        // what this asserts -- previously it stood in for that with "the root redirects to sign-in",
+        // which was measuring the front door rather than the gate.
         Config::set('kudi.launching', false);
 
-        $this->get('/')->assertRedirect(route('login'));
         $this->get('/sign-in')->assertOk()->assertSee('Sign in');
+    }
+
+    public function test_the_public_front_door_is_the_pitch_however_the_app_is_switched(): void
+    {
+        // The root does not follow the flag. It used to, and that coupled two separate decisions: the
+        // flag closed the trader app, but it also decided what a stranger arriving at kudimarket.com
+        // saw. Opening the app for one person to look at therefore removed the pitch from the front
+        // door and handed a visitor a sign-in form for a product they had not been told about yet --
+        // which is the same exposure test_while_launching... exists to prevent, arriving by the other
+        // door.
+        Config::set('kudi.launching', true);
+        $this->get('/')->assertOk()->assertSee('Your market', escape: false);
+
+        Config::set('kudi.launching', false);
+        $this->get('/')->assertOk()->assertSee('Your market', escape: false);
+
+        // A signed-in trader is still sent to the board, which is where they were going.
+        $trader = Trader::factory()->create();
+        Auth::guard('trader')->setUser($trader);
+
+        $this->get('/')->assertRedirect(route('trade.board'));
     }
 
     public function test_the_rate_and_the_fee_are_read_from_the_ledger_not_typed_into_the_page(): void

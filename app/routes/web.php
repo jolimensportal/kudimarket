@@ -8,30 +8,29 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
 /*
- * The root, which is either the landing page or the board.
+ * The root: the landing page for everyone, and the board only for a signed-in trader.
  *
  * It was Laravel's stock welcome screen, which is how someone who had just signed in ended up looking
- * at "Laravel" and reasonably concluding the login had failed. Two rules:
+ * at "Laravel" and reasonably concluding the login had failed.
  *
- *   signed in  -> the board, which is where a trader is trying to go
- *   signed out -> sign in, which is the only other thing that makes sense
+ * The landing page here is NOT conditional on config('kudi.launching'), and that used to be a mistake.
+ * The flag was doing two jobs: closing the trader app, and deciding whether the public root was the
+ * pitch. Those are different decisions, and coupling them meant that opening the app for anyone to look
+ * at -- one config flip -- also removed the pitch from the front door. A stranger arriving at
+ * kudimarket.com got a sign-in form for a product they had not been told about yet.
  *
- * EXCEPT while config('kudi.launching') is true. KudiMarket is not yet licensed to take the other
- * side for its own account -- brand/REGULATORY.md 5b records the question and it is still open --
- * so until that is answered the root is the landing page and the trader app is closed. That is a
- * config switch rather than a branch in the code because turning it on is a decision that has to be
- * reversible in seconds.
+ * The flag still closes the app: /sign-in redirects to the pitch while it is true. brand/REGULATORY.md
+ * 5b is why it exists at all -- KudiMarket is not yet licensed to take the other side for its own
+ * account, and the broker conditions forbid exactly the handled tier's economics. What is licensed is a
+ * question about which business this is, so the switch stays a config value rather than a branch in the
+ * code: closing it has to be reversible in seconds.
  */
 Route::get('/', function () {
-    if (config('kudi.launching')) {
-        return app(LandingController::class)(request());
-    }
-
     if (Auth::guard('trader')->check()) {
         return redirect()->route('trade.board');
     }
 
-    return redirect()->route('login');
+    return app(LandingController::class)(request());
 })->name('home');
 
 /*

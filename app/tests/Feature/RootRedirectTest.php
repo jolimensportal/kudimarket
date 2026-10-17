@@ -17,9 +17,15 @@ use Tests\TestCase;
  */
 class RootRedirectTest extends TestCase
 {
-    public function test_the_root_sends_a_signed_out_trader_to_sign_in(): void
+    public function test_the_root_shows_a_signed_out_visitor_the_pitch(): void
     {
-        $this->get('/')->assertRedirect(route('login'));
+        // This used to assert a redirect to sign-in. It could not tell the two apart -- a root that
+        // sends a stranger to a login form, and a root that sends a trader to the board, were the same
+        // branch with a flag, and one flip of that flag took the pitch off the front door and handed a
+        // visitor a sign-in form for a product they had not been told about yet.
+        $this->get('/')
+            ->assertOk()
+            ->assertSee(route('landing'), escape: false);
     }
 
     public function test_the_root_sends_a_signed_in_trader_to_the_board(): void
