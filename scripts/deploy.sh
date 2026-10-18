@@ -120,8 +120,25 @@ step "Building front-end assets"
 # The layouts load their CSS through @vite, so a deploy without a build leaves the manifest missing
 # and every page 500s with ViteManifestNotFoundException. This was not needed while the styles were
 # inline in the layout, which is exactly why it is easy to forget now.
-(cd "$APP" && npm ci --omit=dev=false >/dev/null 2>&1 || npm install >/dev/null)
-(cd "$APP" && npm run build)
+#
+# Node is NOT installed on the production box, and deliberately so: a web server does not need a
+# package manager to serve pages. So the assets are built on a workstation and copied in, and this
+# step either builds them (if the machine has Node) or verifies the ones that arrived. It used to
+# call npm unconditionally, which failed on production with "npm: command not found" and took the
+# whole deploy with it, after the database had already been migrated.
+if command -v node >/dev/null && command -v npm >/dev/null; then
+    (cd "$APP" && npm ci --omit=dev=false >/dev/null 2>&1 || npm install >/dev/null)
+    (cd "$APP" && npm run build)
+elif [ -f "$APP/public/build/manifest.json" ]; then
+    echo "  node is not installed here; using the prebuilt assets in app/public/build"
+    echo "  (build them on a workstation with: cd app && npm ci && npm run build)"
+else
+    echo "  No node/npm here AND no app/public/build/manifest.json."
+    echo "  Every page will 500 with ViteManifestNotFoundException until the assets exist."
+    echo "  On a workstation: cd app && npm ci && npm run build"
+    echo "  Then copy app/public/build/ to $APP/public/build/ as the web user and re-run this."
+    exit 1
+fi
 
 step "Caching config and routes"
 (cd "$APP" && php artisan config:cache && php artisan route:cache)

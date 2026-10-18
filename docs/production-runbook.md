@@ -149,6 +149,51 @@ fresh instance it will correctly fail on "a rate is published" and "a commission
 
 ---
 
+## 4a. Updating an instance that is already running
+
+`scripts/deploy.sh` stands a **new** instance up. It is the wrong tool for shipping a change to one
+that is already serving traffic: it creates roles, migrates and caches, and a change to a Blade view
+does not need any of that. For an update, move the files and clear what Laravel has compiled.
+
+Two facts about the production box decide how this is done, and both have bitten us:
+
+- **Node is not installed there**, so the assets are built on a workstation and copied in.
+- **The app directory is owned by `www-data`**, so `scp` straight into it fails with
+  `Permission denied`. Stage in `/tmp`, then move as the web user.
+
+```bash
+# 1. Build the assets locally — app/public/build is gitignored, so it is never in a clone.
+cd app && npm ci && npm run build
+
+# 2. Stage: everything to /tmp (writable by the ssh user), nothing yet in place.
+ssh kudimarket 'rm -rf /tmp/kudi-deploy && mkdir -p /tmp/kudi-deploy/{views,partials,controller,css,js,assets}'
+scp app/resources/views/public/landing.blade.php            kudimarket:/tmp/kudi-deploy/views/
+scp app/resources/views/public/partials/send-demo.blade.php kudimarket:/tmp/kudi-deploy/partials/
+scp app/app/Http/Controllers/LandingController.php          kudimarket:/tmp/kudi-deploy/controller/
+scp app/resources/css/marketing.css app/resources/css/tokens.css kudimarket:/tmp/kudi-deploy/css/
+scp app/resources/js/app.js app/resources/js/landing-demo.js     kudimarket:/tmp/kudi-deploy/js/
+scp app/public/build/assets/*.{css,js}                       kudimarket:/tmp/kudi-deploy/assets/
+scp app/public/build/manifest.json app/public/build/fonts-manifest.json kudimarket:/tmp/kudi-deploy/
+
+# 3. Move into place as the web user, and lint the PHP before it lands, not after.
+ssh kudimarket 'sudo php -l /tmp/kudi-deploy/controller/LandingController.php
+                sudo cp /tmp/kudi-deploy/views/landing.blade.php /srv/kudimarket/app/resources/views/public/
+                ... # the rest of the cp lines
+                sudo chown www-data:www-data /srv/kudimarket/app/resources/views/public/landing.blade.php'
+
+# 4. Clear what Laravel compiled, AS the web user — artisan run as root writes root-owned
+#    caches, and the next deploy then cannot overwrite them.
+ssh kudimarket 'cd /srv/kudimarket/app && sudo -u www-data php artisan view:clear && sudo -u www-data php artisan route:clear && sudo -u www-data php artisan config:clear'
+```
+
+Then **look at it** before you call it done: `curl -s https://kudimarket.com/about | grep <the string you
+changed>` for the smallest check, and a real browser at 390px for anything visual. Take the backup
+first — `cp -r app/public/build /srv/backups/build-$(date +%F)` is enough to undo a bad asset push,
+and a tar of the changed files covers the rest.
+
+Only the hashed assets change on a CSS or JS edit, so the manifest and its files are the whole of
+what ships; the stale `app-<oldhash>.css` left behind is harmless and can be pruned later.
+
 ## 5. Environment
 
 Copy `.env.example` to `.env` and set, at minimum:
