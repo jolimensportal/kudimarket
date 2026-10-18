@@ -302,6 +302,38 @@ class LandingPageTest extends TestCase
             ->assertDontSee('75,250.00');
     }
 
+    public function test_the_device_shows_the_send_confirmed_in_words_and_never_on_the_button(): void
+    {
+        $response = $this->get('/about')->assertOk();
+
+        $response->assertSee('You send');
+        $response->assertSee('Amara receives');
+        $response->assertSee('Amara Okafor');
+        $response->assertSee('Confirm send');
+        $response->assertSee('Demo — no real money moves.');
+
+        // The confirm button is a plum surface, and a plum surface never holds a number.
+        $this->assertStringNotContainsString(
+            '>Confirm send ₵',
+            (string) file_get_contents(resource_path('views/public/partials/send-demo.blade.php'))
+        );
+    }
+
+    public function test_the_device_states_a_configured_fee_and_says_nothing_when_there_is_none(): void
+    {
+        DB::connection('pgsql_admin')->statement(
+            "update trade_policy set fee_bps = 100 where trade_type = 'platform_inventory'"
+        );
+
+        $this->get('/about')->assertOk()->assertSee('Our fee 1%');
+
+        DB::connection('pgsql_admin')->statement(
+            "update trade_policy set fee_bps = 0 where trade_type = 'platform_inventory'"
+        );
+
+        $this->get('/about')->assertOk()->assertDontSee('Our fee 1%');
+    }
+
     public function test_the_page_shows_the_real_number_waiting_and_never_an_invented_one(): void
     {
         // Every teardown warns that inventing a signup count is both illegal and instantly legible.
