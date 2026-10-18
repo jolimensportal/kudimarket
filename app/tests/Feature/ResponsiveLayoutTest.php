@@ -108,6 +108,16 @@ class ResponsiveLayoutTest extends TestCase
         }
     }
 
+    public function test_the_device_styling_lives_in_the_stylesheet_and_not_in_the_markup(): void
+    {
+        $partial = (string) file_get_contents(resource_path('views/public/partials/send-demo.blade.php'));
+        $css = (string) file_get_contents(resource_path('css/marketing.css'));
+
+        $this->assertStringNotContainsString('<style', $partial);
+        $this->assertStringNotContainsString('style=', $partial);
+        $this->assertStringContainsString('.device__frame', $css);
+    }
+
     private function layout(string $name): string
     {
         $path = resource_path("views/layouts/{$name}.blade.php");

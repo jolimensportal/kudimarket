@@ -21,6 +21,8 @@
     --bone: #FCF6EE;
     --paper: #FFFFFF;
     --green: #185B37;
+    --green-100: #D7E8DC;
+    --green-900: #1B3D28;
     --red: #933331;
 
     /* ── Layer 2: semantic ───────────────────────────────────────────────── */
@@ -35,6 +37,8 @@
     --action-primary-hover: var(--plum-400);
     --action-destructive: var(--red);
     --state-settled: var(--green);
+    --settled-bg: var(--green-100);
+    --settled-ink: var(--green-900);
 
     /* ── Layer 3: component ──────────────────────────────────────────────── */
     --card-bg: var(--surface-raised);
