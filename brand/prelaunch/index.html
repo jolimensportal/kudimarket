@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KudiMarket — prelaunch directions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --plum-deep:#331931; --plum:#462444; --plum-mkt:#5E2D5A; --plum-brt:#743F6F; --plum-lt:#8B6187;
+    --loss:#933331; --loss-fill:#C1514D;
+    --settled:#214D2C; --settled-bg:#D7E8DC; --settled-ink:#1B3D28; --settled-text:#185B37;
+    --bone:#FCF6EE; --surf:#F6EFE8; --sand:#E8E2DB; --line:#DBD5CE; --txt:#1C1916; --txt2:#6B635C;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bone);color:var(--txt);font-family:"Instrument Sans",system-ui,sans-serif;
+    padding:64px 40px 96px;max-width:1000px;margin:0 auto;
+    display:flex;flex-direction:column;gap:40px;text-wrap:pretty;-webkit-font-smoothing:antialiased}
+  :focus-visible{outline:2px solid var(--plum-brt);outline-offset:2px}
+
+  .eyebrow{font-size:14px;letter-spacing:.14em;text-transform:uppercase;color:var(--plum-mkt);font-weight:600}
+  h1{font-size:clamp(32px,5.2vw,50px);font-weight:600;letter-spacing:-.03em;line-height:1.08;margin-top:16px}
+  h1 b{font-weight:600;color:var(--plum-mkt)}
+  h2{font-size:20px;font-weight:600;letter-spacing:-.015em;margin-top:8px}
+  .tagline{font-size:clamp(20px,2.6vw,27px);font-weight:400;color:var(--txt);letter-spacing:-.015em}
+  .note{font-size:15px;line-height:1.6;color:var(--txt2);max-width:64ch}
+  .note strong{color:var(--txt);font-weight:600}
+
+  .list{display:flex;flex-direction:column;border-top:1px solid var(--line)}
+  .item{display:grid;grid-template-columns:78px 1fr 116px;gap:26px;align-items:center;
+    padding:30px 0;border-bottom:1px solid var(--line);text-decoration:none;color:inherit}
+  .item:hover .name{color:var(--plum-mkt)}
+  .item .id{font-size:34px;font-weight:700;letter-spacing:-.03em;color:var(--plum-mkt)}
+  .item .meta{display:flex;flex-direction:column;gap:5px}
+  .item .name{font-size:23px;font-weight:600;letter-spacing:-.02em;transition:color .12s}
+  .item .desc{font-size:14px;color:var(--txt2);line-height:1.45}
+  .item .desc b{color:var(--txt);font-weight:600}
+  .item .go{font-size:14px;color:var(--plum-mkt);text-align:right;font-weight:600;letter-spacing:.02em}
+
+  .fact{display:grid;grid-template-columns:78px 1fr;gap:26px;align-items:baseline;
+    padding:24px 0;border-bottom:1px solid var(--line)}
+  .fact .fid{font-size:15px;font-weight:700;letter-spacing:.1em;color:var(--plum-mkt);
+    font-variant-numeric:tabular-nums lining-nums}
+  .fact .fmeta{display:flex;flex-direction:column;gap:5px}
+  .fact .fname{font-size:17px;font-weight:600;letter-spacing:-.015em}
+  .fact .fdesc{font-size:14px;color:var(--txt2);line-height:1.45}
+
+  footer{font-size:14px;color:var(--txt2);border-top:1px solid var(--line);padding-top:18px;
+    display:flex;flex-direction:column;gap:6px}
+  footer a{color:var(--txt2)}
+
+  @media (max-width:640px){
+    body{padding:44px 24px 72px;gap:32px}
+    .item{grid-template-columns:56px 1fr;gap:16px}
+    .item .id{font-size:26px}
+    .item .go{grid-column:2;text-align:left}
+    .fact{grid-template-columns:44px 1fr;gap:14px}
+  }
+</style>
+</head>
+<body>
+
+<div class="eyebrow">kudimarket.com · prelaunch page · 18 Oct 2026</div>
+
+<h1>Prelaunch<br><b>three directions</b></h1>
+
+<p class="tagline">Same spine, three compositions. The playable phone is the hero in all of them.</p>
+
+<p class="note"><strong>Open all three before you pick one.</strong> The device, the five screens, the rate and the waitlist are identical everywhere — only the composition changes, so you are judging the composition and not the parts. Nothing is wired to a backend; the waitlist form shows what it would do.</p>
+
+<div class="list">
+  <a class="item" href="1b.html">
+    <span class="id">1b</span>
+    <span class="meta">
+      <span class="name">Phone as hero</span>
+      <span class="desc">“Send money home in a minute.” One line of copy, the device centred, waitlist underneath. <b>Recommended</b> — it is the settled spine taken literally.</span>
+    </span>
+    <span class="go">Open →</span>
+  </a>
+  <a class="item" href="1a.html">
+    <span class="id">1a</span>
+    <span class="meta">
+      <span class="name">Type first</span>
+      <span class="desc">“Your market. Your rate.” The promise and a worked receipt carry the page; the phone sits beside them.</span>
+    </span>
+    <span class="go">Open →</span>
+  </a>
+  <a class="item" href="1c.html">
+    <span class="id">1c</span>
+    <span class="meta">
+      <span class="name">Scroll story</span>
+      <span class="desc">“The rate you agreed is the rate you get.” Five beats drive the phone as you scroll. Longest read, best pacing.</span>
+    </span>
+    <span class="go">Open →</span>
+  </a>
+</div>
+
+<h2>Fixed in all three</h2>
+
+<div class="list">
+  <div class="fact">
+    <span class="fid">01</span>
+    <span class="fmeta">
+      <span class="fname">The playable phone</span>
+      <span class="fdesc">Amount → rate → receiver → confirm → sent. Tappable, and it ends in the one thing we want: join the waitlist.</span>
+    </span>
+  </div>
+  <div class="fact">
+    <span class="fid">02</span>
+    <span class="fmeta">
+      <span class="fname">Real numbers</span>
+      <span class="fdesc">Rate 148.20. Worked example ₵100.00 → ₦14,820.00. Amount chips recalculate live at 74,100 / 148,200 / 444,600 naira.</span>
+    </span>
+  </div>
+  <div class="fact">
+    <span class="fid">03</span>
+    <span class="fmeta">
+      <span class="fname">The four rules</span>
+      <span class="fdesc">Plum never on a number. Green never a button. Confirm in words. Buy and sell get identical treatment.</span>
+    </span>
+  </div>
+  <div class="fact">
+    <span class="fid">04</span>
+    <span class="fmeta">
+      <span class="fname">The waitlist end-cap</span>
+      <span class="fdesc">One conversion on the page. Header link, band under the hero, and the phone's sent state all point at the same field.</span>
+    </span>
+  </div>
+</div>
+
+<footer>
+  <span>Instrument Sans, Plum palette, tabular figures on every currency value. Instrument Sans serves 400–700, so the wordmark uses those endpoints.</span>
+  <span>No mark, no invented partners, no licensing claims — those stay unresolved until they are true. <a href="../index.html">← Brand index</a></span>
+</footer>
+
+</body>
+</html>
