@@ -110,8 +110,6 @@ Enforced by `kudilint/kudilint.mjs` and `LandingPageTest`; the candidates pass a
 
 Existing, which must keep passing:
 
-- `LandingPageTest::test_the_worked_example_is_computed_from_the_live_rate_not_hard_coded` — the
-  device's figures must move with the rate too.
 - `LandingPageTest::test_the_page_shows_the_real_number_waiting_and_never_an_invented_one` — the
   signup count stays, and stays real.
 - `ResponsiveLayoutTest::test_the_doors_point_at_anchors_that_exist` — every `href="#…"` needs a
@@ -122,6 +120,9 @@ Must be updated:
 
 - `LandingPageTest` lines 41–42 assert the current `h1` ("Your market." / "Your rate."). 1b's
   `h1` is "Send money home in a minute."; the tagline returns under the device instead.
+- `test_the_worked_example_is_computed_from_the_live_rate_not_hard_coded` keeps its intent but its
+  figures move with the new default amount: ₵500 at 150.5 is 75,250.00, not 15,050.00. The test
+  name still fits; the numbers in it change.
 
 New:
 
