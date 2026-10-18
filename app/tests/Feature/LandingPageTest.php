@@ -227,6 +227,21 @@ class LandingPageTest extends TestCase
             ->assertSee($row->referral_code);
     }
 
+    public function test_the_confirmation_screen_keeps_the_same_banned_words_out(): void
+    {
+        // The banned-words test above only ever reads the landing screen. This is the screen a
+        // stranger actually lands on after pressing the button, and it used the word the page is
+        // not allowed to use, in the sentence inviting them to bring other people. Nobody checked,
+        // because nothing asserted it.
+        $this->post('/about', ['email' => 'first@example.com']);
+
+        $this->get('/about')
+            ->assertOk()
+            ->assertDontSee('trader', false)
+            ->assertDontSee('escrow', false)
+            ->assertDontSee('offer', false);
+    }
+
     public function test_two_people_never_get_the_same_code(): void
     {
         foreach (['a@example.com', 'b@example.com', 'c@example.com'] as $email) {

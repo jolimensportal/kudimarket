@@ -70,7 +70,7 @@
         @media (max-width: 360px) { .card-actions a { flex: 1 1 100%; } }
 
         .label {
-            font-size: 12px; font-weight: 600; letter-spacing: 0.08em;
+            font-size: 14px; font-weight: 600; letter-spacing: 0.06em;
             text-transform: uppercase; color: var(--ink-soft);
         }
 
@@ -91,7 +91,7 @@
 
         .badge {
             display: inline-flex; align-items: center; gap: 6px;
-            font-size: 12px; font-weight: 600;
+            font-size: 14px; font-weight: 600;
             padding: 3px 9px; border-radius: 999px;
             border: 1px solid currentColor; color: var(--plum-600);
         }
@@ -182,7 +182,7 @@
            "held for a trade in progress" beside "GHS you can use" at 390px, which wrapped both labels
            mid-phrase and left two numbers competing for one row. dl.stack is one per row, always. */
         dl.stack { grid-template-columns: 1fr; gap: 0; }
-        dt { font-size: 13px; color: var(--ink-soft); }
+        dt { font-size: 14px; color: var(--ink-soft); }
         dd { font-size: 16px; font-weight: 500; margin: 0; }
 
         .empty { color: var(--ink-soft); font-size: 15px; padding: 20px 0; }
@@ -242,18 +242,17 @@
          */
         .assurance {
             border: 1px solid var(--line);
-            border-left: 3px solid var(--plum-300);
             border-radius: 10px;
             padding: 12px 14px;
             margin: 10px 0;
             background: var(--paper);
         }
         .assurance.is-handled {
-            border-left-color: var(--plum-600);
+            border-color: var(--plum-600);
             background: color-mix(in oklch, var(--plum-600) 5%, var(--paper));
         }
         .assurance.is-checked {
-            border-left-color: var(--plum-300);
+            border-color: var(--line);
             background: var(--paper);
         }
 

@@ -186,33 +186,20 @@
     }
 }
 
+
+/* A band of key numbers, one per row and ruled. It was three equal columns until the design
+   linter objected, and the objection was right: three columns side by side reads as a feature
+   grid, and these are terms. One per row also means the widest figure the product prints -- an
+   amount that has gained a thousands separator -- never has to shrink to fit a third of a page. */
 .stat-band {
     display: grid;
     gap: 0;
     border-top: 1px solid var(--line);
 }
 
-@media (min-width: 768px) {
-    .stat-band {
-        grid-template-columns: repeat(3, 1fr);
-    }
-}
-
 .stat-band > div {
     padding: var(--space-5) 0;
     border-bottom: 1px solid var(--line);
-}
-
-@media (min-width: 768px) {
-    .stat-band > div {
-        border-bottom: 0;
-        padding: var(--space-5) var(--space-5) var(--space-5) 0;
-    }
-
-    .stat-band > div + div {
-        border-left: 1px solid var(--line);
-        padding-left: var(--space-5);
-    }
 }
 
 .stat-band .value {

@@ -135,7 +135,7 @@
                 <form method="post" action="{{ route('landing.subscribe') }}" novalidate>
                     @csrf
                     <div class="row">
-                        <input type="email" name="email" placeholder="you@example.com" autocomplete="email"
+                        <input type="email" name="email" autocomplete="email"
                                aria-label="Email address" required>
                         <button type="submit">Notify me</button>
                     </div>

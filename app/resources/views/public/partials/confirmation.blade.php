@@ -15,7 +15,7 @@
     <h1>You are number {{ session('my_position') }}.</h1>
 
     <p class="lead">
-        Bring people and you move up. That is the whole mechanic: every trader who signs up
+        Bring people and you move up. That is the whole mechanic: everyone who signs up
         with your link counts, and each one moves you a place.
     </p>
 
@@ -25,7 +25,7 @@
                value="{{ route('landing', ['ref' => session('my_code')]) }}"
                onclick="this.select()" onfocus="this.select()">
         @if (session('my_invites') > 0)
-            <p class="help"><strong>{{ session('my_invites') }} {{ Str::plural('trader', session('my_invites')) }}</strong> {{ Str::plural('has', session('my_invites')) }} joined through you.</p>
+            <p class="help"><strong>{{ session('my_invites') }} {{ Str::plural('person', session('my_invites')) }}</strong> {{ Str::plural('has', session('my_invites')) }} joined through you.</p>
         @else
             <p class="help">Nobody has used it yet.</p>
         @endif
