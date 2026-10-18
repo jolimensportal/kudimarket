@@ -69,8 +69,10 @@ class ResponsiveLayoutTest extends TestCase
     public function test_the_printed_rate_is_no_longer_hand_stripped(): void
     {
         // The defect: rtrim(rtrim($rate, '0'), '.') rendered 148.20 as 148.2 and printed the inverse
-        // rate at full float length. Formatting now comes from RateFormatter, in one place.
-        $view = (string) file_get_contents(resource_path('views/public/landing.blade.php'));
+        // rate at full float length. Formatting now comes from RateFormatter, in one place. The rate
+        // prints inside the device partial now, so both files are read.
+        $view = (string) file_get_contents(resource_path('views/public/landing.blade.php'))
+            .(string) file_get_contents(resource_path('views/public/partials/send-demo.blade.php'));
 
         $this->assertStringNotContainsString('rtrim(rtrim($rates', $view);
         $this->assertStringContainsString('RateFormatter::format', $view);

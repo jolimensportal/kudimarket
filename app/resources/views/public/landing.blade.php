@@ -36,124 +36,60 @@
     @if (session('subscribed'))
         @include('public.partials.confirmation')
     @else
-        {{-- ─── Hero ─────────────────────────────────────────────────────────────────
-             The split is what uses the width. Below lg it is one column and the rate
-             card follows the form, which is correct on a phone: the ask comes before
-             the evidence, or on a 390px screen nobody reaches the evidence. --}}
-        <section class="hero">
-            <div class="hero-copy">
-                <p class="status"><span class="dot"></span>Not open yet</p>
+        {{-- ─── Hero ───────────────────────────────────────────────────────────────────
+             The device is the proof and it is the first thing you can touch: five
+             screens, the live rate, figures nobody typed in, and it ends in the one
+             ask this page has. The doors and the rate card it replaces were three
+             arguments at once, and none of them was "show me it works". --}}
+        <section class="hero hero--centred">
+            <div class="hero-copy hero-copy--centred">
+                <p class="status"><span class="dot"></span>Not open yet · Kumasi &amp; Lagos</p>
 
-                <h1>Your market.<br>Your rate.</h1>
+                <h1>Send money home<br>in a minute.</h1>
 
                 <p class="lead">
-                    You send your side, we send ours. Nothing waits on a stranger to turn up,
-                    because we are the other side.
+                    Pick an amount. Watch the rate. Confirm in words. Nothing moves until the naira lands.
                 </p>
-
-                <nav class="doors" aria-label="What brings you here">
-                    <a href="#cost"><span class="n">01</span> I am sending money</a>
-                    <a href="#cost"><span class="n">02</span> I want to know what it costs first</a>
-                    <a href="#promise"><span class="n">03</span> I do not trust apps that took my money</a>
-                </nav>
-
-                <form method="post" action="{{ route('landing.subscribe') }}" class="signup" novalidate>
-                    @csrf
-                    @if ($referrer)
-                        <input type="hidden" name="ref" value="{{ request()->query('ref') }}">
-                    @endif
-                    <label for="email">Tell us when we open</label>
-                    <div class="row">
-                        <input type="email" id="email" name="email" value="{{ old('email') }}"
-                               placeholder="you@example.com" autocomplete="email" required
-                               aria-describedby="email-help email-error">
-                        <button type="submit">Notify me</button>
-                    </div>
-                    @error('email')
-                        <p class="err" id="email-error" role="alert">{{ $message }}</p>
-                    @enderror
-                    <p class="help" id="email-help">
-                        One email, when we open. No sequence.
-                        @if ($waiting > 0)
-                            <strong>{{ $waiting }} {{ Str::plural('person', $waiting) }} {{ Str::plural('is', $waiting) }} already on the list.</strong>
-                        @endif
-                    </p>
-                    <p class="alt">
-                        No email?
-                        <a href="{{ $waLink ?? '#' }}" rel="noopener">WhatsApp us</a>
-                        <span aria-hidden="true">·</span>
-                        <a href="{{ $tgLink ?? '#' }}" rel="noopener">Telegram</a>
-                    </p>
-                </form>
             </div>
 
-            {{-- The proof, stated rather than photographed. --}}
-            @if (isset($rates['GHS/NGN']))
-                <aside class="rate-card" aria-label="Today's published rate">
-                    <div class="rate-card__head">
-                        <span class="rate-card__title">Today's rate</span>
-                        <span class="live"><span class="dot"></span>Live from the ledger</span>
-                    </div>
-
-                    <div class="rate-card__body">
-                        <p class="rate-card__pair">GHS &rarr; NGN</p>
-                        <p class="rate-card__value num">{{ \App\Support\RateFormatter::format($rates['GHS/NGN']) }}</p>
-                        <p class="rate-card__eq">1 cedi is {{ \App\Support\RateFormatter::format($rates['GHS/NGN']) }} naira</p>
-
-                        @if ($demo)
-                            @include('public.partials.send-demo')
-                        @endif
-
-                        <div class="rate-card__split">
-                            <div>
-                                <span class="k">And back</span>
-                                <span class="n num">{{ \App\Support\RateFormatter::format($rates['NGN/GHS'] ?? 0) }}</span>
-                            </div>
-                            <div>
-                                <span class="k">Our fee</span>
-                                <span class="n num">{{ $feePercent !== null ? $feePercent.'%' : '—' }}</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <p class="rate-card__foot">
-                        Every rate we have ever shown stays on file. Nothing here is edited in place.
-                    </p>
-                </aside>
-            @endif
+            @include('public.partials.send-demo')
         </section>
 
-        {{-- ─── What it costs ──────────────────────────────────────────────────────────
-             A worked example, not a rate table. Both figures are multiplied out of the
-             live rate in the controller, so when the rate moves this moves with it. --}}
-        @if ($example !== null)
-            <section class="cost" id="cost">
-                <h2>What it costs, before you ask</h2>
-                <dl>
-                    <div>
-                        <dt>You send</dt>
-                        <dd class="num">{{ $example['send'] }} <span>GHS</span></dd>
-                    </div>
-                    <div>
-                        <dt>They receive</dt>
-                        <dd class="num">{{ $example['receive'] }} <span>NGN</span></dd>
-                    </div>
-                    <div>
-                        <dt>Our fee</dt>
-                        <dd class="num">
-                            {{ $feePercent !== null ? $feePercent.'%' : '—' }}
-                            @if ($feeBps !== null)
-                                <span>{{ $feeBps }} bps, charged on the send</span>
-                            @endif
-                        </dd>
-                    </div>
-                </dl>
-                <p class="foot">
-                    Worked example at today's rate. Yours is priced at the rate you are shown,
-                    not a rate that moves while you look.
+        {{-- ─── The ask ─────────────────────────────────────────────────────────────────
+             One form, directly under the demo that ends by pointing at it. The header
+             link and the device's sent screen both land on this field. --}}
+        <section class="join" id="waitlist">
+            <h2>Be first when we open.</h2>
+            <p>One email, when we open. Nothing else.</p>
+
+            <form method="post" action="{{ route('landing.subscribe') }}" class="signup" novalidate>
+                @csrf
+                @if ($referrer)
+                    <input type="hidden" name="ref" value="{{ request()->query('ref') }}">
+                @endif
+                <label for="email">Email address</label>
+                <div class="row">
+                    <input type="email" id="email" name="email" value="{{ old('email') }}"
+                           autocomplete="email" required aria-describedby="email-help email-error">
+                    <button type="submit">Join the waitlist</button>
+                </div>
+                @error('email')
+                    <p class="err" id="email-error" role="alert">{{ $message }}</p>
+                @enderror
+                <p class="help" id="email-help">
+                    No spam, no resold lists.
+                    @if ($waiting > 0)
+                        <strong>{{ $waiting }} {{ Str::plural('person', $waiting) }} {{ Str::plural('is', $waiting) }} already on the list.</strong>
+                    @endif
                 </p>
-            </section>
-        @endif
+                <p class="alt">
+                    No email?
+                    <a href="{{ $waLink ?? '#' }}" rel="noopener">WhatsApp us</a>
+                    <span aria-hidden="true">·</span>
+                    <a href="{{ $tgLink ?? '#' }}" rel="noopener">Telegram</a>
+                </p>
+            </form>
+        </section>
 
         {{-- ─── Three promises ────────────────────────────────────────────────────────
              A ruled list, not three floating cards: a card grid says "features", a

@@ -38,7 +38,7 @@
                         <span class="device__tag">Rate locked</span>
                         <p class="device__line">Amara receives <b data-bind="receive">₦{{ $demo['amounts'][0]['receive'] }}</b></p>
                         @if ($feePercent !== null)
-                            <p class="device__line">Our fee {{ $feePercent }}%</p>
+                            <p class="device__line">Our fee {{ $feePercent }}%{{ $feeBps !== null ? ' · '.$feeBps.' bps, charged on the send' : '' }}</p>
                         @endif
                     </div>
                     <div class="device__actions">

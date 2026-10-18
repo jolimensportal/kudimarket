@@ -194,10 +194,10 @@ class LandingPageTest extends TestCase
         $this->get('/about')
             ->assertOk()
             ->assertSee('150.50')
-            // The pair is labelled with an arrow in the rate card rather than the words "to", so the
-            // assertion follows the presentation. The intent is unchanged: publishing a rate must
-            // make it appear on the page, labelled with the pair it belongs to.
-            ->assertSee('GHS &rarr; NGN', false);
+            // The pair is labelled in words on the device rather than with the arrow the rate card
+            // used, so the assertion follows the presentation. The intent is unchanged: publishing a
+            // rate must make it appear on the page, labelled with the pair it belongs to.
+            ->assertSee('1 cedi = 150.50 naira');
     }
 
     public function test_the_fee_is_quoted_in_basis_points_not_only_as_a_percentage(): void
@@ -262,11 +262,11 @@ class LandingPageTest extends TestCase
             'select set_rate(?, ?, ?, ?) as id', ['GHS', 'NGN', '150.5', 'rates@kudimarket.com']
         );
 
-        // 100 GHS at 150.5 is 15,050 NGN. If the page ever shows a figure that was typed into the
+        // 500 GHS at 150.5 is 75,250 NGN. If the page ever shows a figure that was typed into the
         // template rather than multiplied out of the rate card, this fails.
         $this->get('/about')
             ->assertOk()
-            ->assertSee('15,050.00');
+            ->assertSee('75,250.00');
 
         // And the rate moves, so the example moves with it. A worked example frozen at one number is
         // the exact lie this page exists not to tell.
@@ -276,8 +276,8 @@ class LandingPageTest extends TestCase
 
         $this->get('/about')
             ->assertOk()
-            ->assertSee('20,000.00')
-            ->assertDontSee('15,050.00');
+            ->assertSee('100,000.00')
+            ->assertDontSee('75,250.00');
     }
 
     public function test_the_send_demo_states_figures_taken_from_the_live_rate(): void
