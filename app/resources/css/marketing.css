@@ -277,6 +277,7 @@
         .device__steps { list-style: none; display: flex; gap: 5px; padding: 12px 20px 0; }
         .device__steps li { flex: 1; height: 3px; border-radius: 2px; background: var(--line); }
         .device__steps li.on { background: var(--plum-600); }
+        .device__body { flex: 1; position: relative; }
         .device__panel { display: flex; flex-direction: column; padding: 26px 20px 18px;
             position: absolute; inset: 0; animation: device-in .18s ease both; }
         .device__panel[hidden] { display: none !important; }
@@ -287,7 +288,7 @@
             font-variant-numeric: tabular-nums lining-nums; }
         .device__note { font-size: 14px; line-height: 1.5; color: var(--ink-soft); margin-top: 14px; }
         .device__chips { display: flex; gap: 8px; margin-top: 14px; }
-        .device__chip { height: var(--tap-target); padding: 0 14px; border: 1px solid var(--line);
+        .device__chip { flex: 1; min-width: 0; height: var(--tap-target); padding: 0 10px; border: 1px solid var(--line);
             border-radius: var(--control-radius); background: var(--paper);
             font: inherit; font-size: 14px; font-weight: 600; color: var(--ink); cursor: pointer;
             font-variant-numeric: tabular-nums lining-nums; letter-spacing: -0.01em; }

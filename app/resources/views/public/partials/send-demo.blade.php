@@ -13,6 +13,7 @@
                     <li class="on"></li><li></li><li></li><li></li><li></li>
                 </ol>
 
+                <div class="device__body">
                 <section class="device__panel" data-screen="amount" aria-label="Amount">
                     <p class="device__label">You send</p>
                     <p class="device__figure" data-bind="send">₵{{ $demo['amounts'][0]['send'] }}</p>
@@ -21,7 +22,7 @@
                             <button type="button"
                                     class="device__chip{{ $index === 0 ? ' is-on' : '' }}"
                                     data-amount="{{ $amount['value'] }}"
-                                    aria-pressed="{{ $index === 0 ? 'true' : 'false' }}">₵{{ $amount['send'] }}</button>
+                                    aria-pressed="{{ $index === 0 ? 'true' : 'false' }}">₵{{ \App\Support\MoneyFormatter::format($amount['value'], 0) }}</button>
                         @endforeach
                     </div>
                     <p class="device__note">1 cedi = {{ \App\Support\RateFormatter::format($rates['GHS/NGN']) }} naira today</p>
@@ -87,6 +88,7 @@
                         <button type="button" class="device__ghost" data-restart>Run it again</button>
                     </div>
                 </section>
+                </div>
 
             </div>
         </div>

@@ -118,6 +118,16 @@ class ResponsiveLayoutTest extends TestCase
         $this->assertStringContainsString('.device__frame', $css);
     }
 
+    public function test_the_device_javascript_is_loaded_only_where_the_device_is(): void
+    {
+        $app = (string) file_get_contents(resource_path('js/app.js'));
+        $demo = resource_path('js/landing-demo.js');
+
+        $this->assertFileExists($demo);
+        $this->assertStringContainsString("./landing-demo", $app);
+        $this->assertStringContainsString('data-send-demo', $app);
+    }
+
     private function layout(string $name): string
     {
         $path = resource_path("views/layouts/{$name}.blade.php");
