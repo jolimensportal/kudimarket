@@ -280,6 +280,28 @@ class LandingPageTest extends TestCase
             ->assertDontSee('15,050.00');
     }
 
+    public function test_the_send_demo_states_figures_taken_from_the_live_rate(): void
+    {
+        DB::connection('pgsql_pricing')->selectOne(
+            'select set_rate(?, ?, ?, ?) as id', ['GHS', 'NGN', '150.5', 'rates@kudimarket.com']
+        );
+
+        // 500 GHS at 150.5 is 75,250 NGN. Typed into the template it would survive a rate move, which
+        // is the one failure this page is built to make impossible.
+        $this->get('/about')
+            ->assertOk()
+            ->assertSee('75,250.00');
+
+        DB::connection('pgsql_pricing')->selectOne(
+            'select set_rate(?, ?, ?, ?) as id', ['GHS', 'NGN', '200', 'rates@kudimarket.com']
+        );
+
+        $this->get('/about')
+            ->assertOk()
+            ->assertSee('100,000.00')
+            ->assertDontSee('75,250.00');
+    }
+
     public function test_the_page_shows_the_real_number_waiting_and_never_an_invented_one(): void
     {
         // Every teardown warns that inventing a signup count is both illegal and instantly legible.

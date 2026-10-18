@@ -36,6 +36,7 @@ final class LandingController extends Controller
         return view('public.landing', [
             'rates' => $rates,
             'example' => $this->workedExample($rates),
+            'demo' => $this->sendDemo($rates),
             'feeBps' => $feeBps,
             // Formatted here rather than in the view. The same three-step expression -- divide,
             // trim the zeros, trim the dot -- appeared twice in the markup, and one of those copies
@@ -137,6 +138,36 @@ final class LandingController extends Controller
         }
 
         return $out;
+    }
+
+    /**
+     * The three amounts the demo offers, each with its figures at the live rate.
+     *
+     * Computed here rather than typed into the template, for the reason every figure on this page is
+     * computed here: a demo that shows a stale number teaches a visitor to distrust the rate.
+     *
+     * @param  array<string, string>  $rates
+     * @return array{raw: float, amounts: array<int, array{value: float, send: string, receive: string}>}|null
+     */
+    private function sendDemo(array $rates): ?array
+    {
+        $rate = $rates['GHS/NGN'] ?? null;
+
+        if ($rate === null) {
+            return null;
+        }
+
+        $amounts = [];
+
+        foreach ([500.0, 1000.0, 3000.0] as $amount) {
+            $amounts[] = [
+                'value' => $amount,
+                'send' => MoneyFormatter::format($amount),
+                'receive' => MoneyFormatter::format($amount * (float) $rate),
+            ];
+        }
+
+        return ['raw' => (float) $rate, 'amounts' => $amounts];
     }
 
     /**

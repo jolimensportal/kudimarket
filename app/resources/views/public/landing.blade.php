@@ -100,6 +100,10 @@
                         <p class="rate-card__value num">{{ \App\Support\RateFormatter::format($rates['GHS/NGN']) }}</p>
                         <p class="rate-card__eq">1 cedi is {{ \App\Support\RateFormatter::format($rates['GHS/NGN']) }} naira</p>
 
+                        @if ($demo)
+                            <p class="rate-card__eq">Demo: you send {{ $demo['amounts'][0]['send'] }} GHS, she receives {{ $demo['amounts'][0]['receive'] }} NGN</p>
+                        @endif
+
                         <div class="rate-card__split">
                             <div>
                                 <span class="k">And back</span>
